@@ -317,7 +317,7 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
     covar_df.pre<-covar_df[time_points < as.Date(intervention_date),]
     post_period_response <- outcome[, group]
     post_period_response <- as.vector(post_period_response[time_points >= as.Date(intervention_date)])
-
+    cID <- seq_along(y.pre) #used for observation-level random effect
     deltafix.mod<-rep(0, times=(ncol(covar_df.pre)))
     deltafix.mod[1:(n_seasons-1)]<-1 #fix  monthly dummies
     bsts_model  <- poissonBvs(y=y.pre , X=covar_df.pre, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
