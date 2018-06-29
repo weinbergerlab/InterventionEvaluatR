@@ -1,4 +1,6 @@
 # Synthetic Control
+#These scripts run synthetic control analyses where the input are vectors of count data representing a time series. The outcome variable should be a count variable. Bayesian variable selection (spike and Slab priors) is used to fit the models. Unlike the models described in Bruhn et al., these scripts use a Poisson regression with observation-level random effects to capture overdispersion. WAIC socres for each model are calculated
+
 #GETTING STARTED:
 #Save all of the files to your desktop and open the synthetic_control_run.R file. Set the working directory as the "main analysis components" folder. To use the sample Brazil data (found in Datasets for PNAS), use all of the default settings, or specficy your data file. Change the dates as needed to set the training and evaluation periods.
 
