@@ -310,11 +310,11 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
   
   for (i in 1:3) {
     covar_df <- covar_df[, colnames(covar_df) != max_var]
-  
+    covar_df.pre<-covar_df[time_points < as.Date(intervention_date),]
+    
     #Combine covars, outcome, date
     y <- outcome[, group]
     y.pre<-outcome[time_points < as.Date(intervention_date), group]
-    covar_df.pre<-covar_df[time_points < as.Date(intervention_date),]
     post_period_response <- outcome[, group]
     post_period_response <- as.vector(post_period_response[time_points >= as.Date(intervention_date)])
     cID <- seq_along(y.pre) #used for observation-level random effect
@@ -341,22 +341,21 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
     impact_sens <- list(predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=outcome[, group])
     names(impact_sens)<-c('predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
     sensitivity_analysis[[i]] <- list(removed_var = max_var, removed_prob = max_prob)
-   # if (!is.null(mean) && !is.null(sd) && !is.null(eval_period) && !is.null(post_period)) {
       quantiles <- rrPredQuantiles(impact = impact_sens,  eval_period = eval_period, post_period = post_period)
       sensitivity_analysis[[i]]$rr <- round(quantiles$rr,2)
       sensitivity_analysis[[i]]$pred <- quantiles$pred
-  #  }
-    
-    incl_prob.sens <- sort(impact_sens$inclusion_probs[-c(1:n_seasons)])
-    max_var <- names(incl_prob.sens)[length(incl_prob.sens)]
-    max_prob <- round(incl_prob.sens[length(incl_prob.sens)],2)
+
+    incl_prob <- impact[[group]]$inclusion_probs[-c(1:n_seasons),]
+    incl_prob<-incl_prob[order(incl_prob$inclusion_probs),]
+    max_var <- as.character(incl_prob$covar.names[nrow(incl_prob)])
+    max_prob <- round(incl_prob$inclusion_probs[nrow(incl_prob)],2)
   }
   return(sensitivity_analysis)
 }
 
 predSensitivityAnalysis <- function(group, ds, zoo_data, denom_name, outcome_mean, outcome_sd, intervention_date, eval_period, post_period, time_points, n_seasons , n_pred) {
   impact <- doCausalImpact(zoo_data[[group]], intervention_date, time_points, n_seasons, n_pred = n_pred)
-  quantiles <- lapply(group, FUN = function(group) {rrPredQuantiles(impact = impact, denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)})
+  quantiles <- lapply(group, FUN = function(group) {rrPredQuantiles(impact = impact,  eval_period = eval_period, post_period = post_period)})
   rr_mean <- t(sapply(quantiles, getRR))
   return(rr_mean)
 }
