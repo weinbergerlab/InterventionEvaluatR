@@ -17,10 +17,14 @@ sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
 #Detect if pogit package installed; if not download archive (no longer on cran)
 if("BayesLogit" %in% rownames(installed.packages())==FALSE){
-  url_BayesLogit<- "https://cran.r-project.org/src/contrib/Archive/BayesLogit/BayesLogit_0.6.tar.gz"
-  pkgFile_BayesLogit <- "BayesLogit_0.6.tar.gz"
+  if(.Platform$OS.type == "windows") {
+  url_BayesLogit<- "https://mran.microsoft.com/snapshot/2017-02-04/src/contrib/BayesLogit_0.6.tar.gz"
+  }else{
+    url_BayesLogit<- "https://github.com/weinbergerlab/synthetic-control-poisson/blob/master/packages/BayesLogit_0.6_mac.tgz?raw=true"
+  }
+  pkgFile_BayesLogit <- "BayesLogit.tar.gz"
   download.file(url = url_BayesLogit, destfile = pkgFile_BayesLogit)
-  install.packages(pkgs=pkgFile_BayesLogit, type="source", repos=NULL)
+  install.packages(url_BayesLogit, type="source", repos=NULL)
 }
 if("pogit" %in% rownames(installed.packages())==FALSE){
   url_pogit <- "https://cran.r-project.org/src/contrib/Archive/pogit/pogit_1.1.0.tar.gz"
