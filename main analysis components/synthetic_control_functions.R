@@ -149,13 +149,14 @@ doCausalImpact <- function(zoo_data, intervention_date, time_points, n_seasons =
 	inclusion_probs<-apply(incl.probs.mat,1,mean)
 	summary.pois<- summary(bsts_model.pois)
 	covar.names<-dimnames(x.pre)[[2]]
+	rand.eff<-bsts_model.pois$samplesP$bi
 	inclusion_probs<-cbind.data.frame(covar.names,inclusion_probs)
 	if(trend){
-	impact <- list(offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
-	names(impact)<-c('offset.t.pre','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	impact <- list(rand.eff,offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
+	names(impact)<-c('rand.eff','offset.t.pre','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
 	}else{
-	  impact <- list(covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
-	  names(impact)<-c('covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	  impact <- list(rand.eff,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
+	  names(impact)<-c('rand.eff','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
 	}
 	return(impact)
 }
@@ -170,7 +171,7 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   x.pre<-cbind(rep(1,nrow(x.pre)), x.pre)
   y.pre<-impact$observed.y[time_points < as.Date(intervention_date)]
   betas<-impact$beta.mat
-  re<- bsts_model.pois$samplesP$bi  #Obbservation-level random effect estimate
+  re<- impact$rand.eff  #Obbservation-level random effect estimate
   if(trend){
     reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[,1])
   }else{
