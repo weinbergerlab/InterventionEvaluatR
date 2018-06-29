@@ -1,33 +1,31 @@
 ---
 title: "Synthetic Controls"
+date: 'Report generated `r format(Sys.time(), "%A, %B %d, %Y")`'
 output:
-  pdf_document:
-    toc: yes
-  html_document:
-    toc: yes
-    toc_float: yes
-date: "Report generated `r format(Sys.time(), "%A, %B %d, %Y")`"
+ html_document:
+  toc: TRUE
+  toc_float: TRUE
 params:
-  code_change: no
-  country: ''
-  date_name: ''
-  denom_name: ''
-  end_date: ''
-  eval_period: ''
-  exclude_covar: ''
-  exclude_group: ''
-  file_name: ''
-  group_name: ''
-  input_directory: ''
-  install_packages: yes
-  intervention_date: ''
-  n_seasons: ''
-  outcome_name: ''
-  output_directory: ''
-  post_period: ''
-  pre_period: ''
-  start_date: ''
-  update_packages: yes
+ update_packages: TRUE
+ install_packages: TRUE
+ country: ''
+ n_seasons: ''
+ exclude_covar: ''
+ exclude_group: ''
+ code_change: FALSE
+ input_directory: ''
+ output_directory: ''
+ file_name: ''
+ group_name: ''
+ date_name: ''
+ outcome_name: ''
+ denom_name: ''
+ start_date: ''
+ intervention_date: ''
+ end_date: ''
+ pre_period: ''
+ post_period: ''
+ eval_period: ''
 ---
 
 ```{r setup, include = FALSE}
