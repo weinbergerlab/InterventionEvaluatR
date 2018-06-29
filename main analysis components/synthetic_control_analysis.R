@@ -11,9 +11,26 @@
 
 source('synthetic_control_functions.R', local = TRUE)
 
-packages <- c('parallel', 'splines', 'lubridate', 'RcppRoll','pomp', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'splines', 'lubridate','logistf', 'RcppRoll','pomp', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
+
+#Detect if pogit package installed; if not download archive (no longer on cran)
+if("BayesLogit" %in% rownames(installed.packages())==FALSE){
+  url_BayesLogit<- "https://cran.r-project.org/src/contrib/Archive/BayesLogit/BayesLogit_0.6.tar.gz"
+  pkgFile_BayesLogit <- "BayesLogit_0.6.tar.gz"
+  download.file(url = url_BayesLogit, destfile = pkgFile_BayesLogit)
+  install.packages(pkgs=pkgFile_BayesLogit, type="source", repos=NULL)
+}
+if("pogit" %in% rownames(installed.packages())==FALSE){
+  url_pogit <- "https://cran.r-project.org/src/contrib/Archive/pogit/pogit_1.1.0.tar.gz"
+  pkgFile_pogit <- "pogit_1.1.0.tar.gz"
+  download.file(url = url_pogit, destfile = pkgFile_pogit)
+  install.packages(pkgs=pkgFile, type="source", repos=NULL)
+  install.packages('logistf')
+}
+library(pogit)
+
 
 #Detects number of available cores on computers. Used for parallel processing to speed up analysis.
 n_cores <- detectCores()
@@ -96,7 +113,7 @@ data_time <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars =
 
 #Start Cluster for CausalImpact (the main analysis function).
 cl <- makeCluster(n_cores)
-clusterEvalQ(cl, {library(BoomSpikeSlab, quietly = TRUE); library(lubridate, quietly = TRUE)})
+clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE)})
 clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons'), environment())
 
 impact_full <- setNames(parLapply(cl, data_full, doCausalImpact, intervention_date = intervention_date, time_points = time_points, n_seasons = n_seasons), groups)
@@ -106,7 +123,7 @@ stopCluster(cl)
 
 #calculate WAIC
 waic_full<-t(sapply(impact_full,waic_fun))
-waic_time<-t(sapply(impact_time,waic_fun))
+waic_time<-t(sapply(impact_time,waic_fun, trend=TRUE))
 
 
 #Save the inclusion probabilities from each of the models.
@@ -126,10 +143,10 @@ pred_quantiles_time <- sapply(quantiles_time, getPred, simplify = 'array')
 log_rr_quantiles   <- sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
 dimnames(log_rr_quantiles)[[1]] <- time_points
 log_rr_sd   <- sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_sd}, simplify = 'array')
-#log_rr_full_t_samples.prec<-sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec}, simplify = 'array')
+log_rr_full_t_samples.prec<-sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec}, simplify = 'array')
 saveRDS(log_rr_quantiles, file=paste0(output_directory, country, "_log_rr_quantiles.rds"))
 saveRDS(log_rr_sd, file=paste0(output_directory, country, "_log_rr_sd.rds"))
-#saveRDS(log_rr_full_t_samples.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.prec.rds"))
+saveRDS(log_rr_full_t_samples.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.prec.rds"))
 
 
 #Rolling rate ratios
@@ -185,7 +202,7 @@ cumsum_prevented <- sapply(groups, FUN = function(group, quantiles) {
 
  #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
 cl <- makeCluster(n_cores)
-clusterEvalQ(cl, {library(BoomSpikeSlab, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
+clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
 clusterExport(cl, c('sensitivity_ds', 'doCausalImpact',  'weightSensitivityAnalysis', 'rrPredQuantiles', 'sensitivity_groups', 'intervention_date', 'outcome', 'time_points', 'n_seasons',  'eval_period', 'post_period'), environment())
 
 sensitivity_analysis_full <- setNames(parLapply(cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = time_points, intervention_date = intervention_date, n_seasons = n_seasons, outcome = outcome,  eval_period = eval_period, post_period = post_period), sensitivity_groups)

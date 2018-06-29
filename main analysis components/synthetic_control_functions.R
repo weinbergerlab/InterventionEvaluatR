@@ -97,50 +97,66 @@ makeTimeSeries <- function(group, outcome,  covars, trend=FALSE) {
 
 
 #Main analysis function.
-doCausalImpact <- function(zoo_data, intervention_date, time_points, n_seasons = NULL, n_pred = 5, n_iter = 10000, trend = FALSE) {
+doCausalImpact <- function(zoo_data, intervention_date, time_points, n_seasons = NULL, n_iter = 10000, trend = FALSE) {
 	if (is.null(n_seasons) || is.na(n_seasons)) {
 		n_seasons <- length(unique(month(time(zoo_data)))) #number of months
 	}
 	y.pre <- zoo_data[time_points < as.Date(intervention_date), 1]
 	y<-zoo_data[,1] #all y
 	
-	
 	post_period_response <- zoo_data[, 1]
 	post_period_response <- as.vector(post_period_response[time_points >= as.Date(intervention_date)])
-	x <-as.matrix(zoo_data[, -1]) #Removes outcome column from dataset
-	x.pre <-as.matrix(zoo_data[time_points < as.Date(intervention_date), -1]) #Removes outcome column from dataset
+	if(trend){
+  	x <-as.matrix(zoo_data[, -c(1,2)]) #Removes outcome column and offset from dataset
+	   offset.t<-exp(as.matrix(zoo_data[, 2]))
+	   offset.t.pre<-offset.t[time_points < as.Date(intervention_date), ]
+	}else{
+	  x <-as.matrix(zoo_data[, -c(1)]) #Removes outcome column from dataset
+	}
+	x.pre <-as.matrix(x[time_points < as.Date(intervention_date), ]) 
+	covars<-x
+	cID <- seq_along(y.pre) #used for observation-level random effect
 	
-	post_period_response <- zoo_data[, 1]
-	post_period_response <- as.vector(post_period_response[time_points >= as.Date(intervention_date)])
-	regression_prior_df <- 50
-	#instead try pogit packages?
-	exp_r2 <- 0.8
-   	if (trend) {
-        #set inclusion prob=1 for all variab;es
-    	  prior1=SpikeSlabPrior(cbind(1,x.pre), y=y.pre, prior.inclusion.probabilities =rep(1,14),prior.df = regression_prior_df, expected.r2 = exp_r2 )
-    		bsts_model <- poisson.spike(y.pre~x.pre, prior=prior1 , niter = n_iter, ping = 0, seed = 1)	
-    		covars<-x
-		 }else {
+	#Which variables are fixed in the analysis (not estimated)
+	if(trend){
+	deltafix.mod<-c(rep(1, times=(ncol(x.pre)-1)),0) #monthly dummies, offset, fixed 
+	bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, offset=offset.t.pre, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
+	}else{
+	  deltafix.mod<-rep(0, times=(ncol(x.pre)))
+	  deltafix.mod[1:(n_seasons-1)]<-1 #fix  monthly dummies
+	  bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
+	}
 
-			  denom <- ncol(x)-(n_seasons-1)
-			  if(denom>0){
-			  	prior.inclusion.probabilities = c( rep(1,n_seasons),  rep(n_pred/denom,denom) ) #force seasonality and intercept into model, repeat '1' 12 times, repeat inclusion prob by N of cnon-monthly covars
-			  } else {	
-			    prior.inclusion.probabilities = rep(1,12)   
-			  }
-  			  prior.inclusion.probabilities[prior.inclusion.probabilities>1] <- 1
-  			  prior2=SpikeSlabPrior(cbind(1,x.pre),y=y.pre, prior.inclusion.probabilities = prior.inclusion.probabilities,prior.df = regression_prior_df, expected.r2 = exp_r2 )
-  			  bsts_model <- poisson.spike(y.pre ~ x.pre,  niter = n_iter, prior=prior2 , ping = 0, seed = 1 )
-  			  covars<-x
-		  	}
-	predict.bsts<-predict(bsts_model, newdata=cbind(rep(1, times=nrow(x)),x), burn=n_iter*0.1, mean.only=FALSE)
-	beta.mat<-bsts_model$beta[-seq(from=1, to=n_iter*0.1, by=1),]
-
-	coef.bsts<-SummarizeSpikeSlabCoefficients(bsts_model$beta, burn=n_iter*0.1, order=FALSE)
-	inclusion_probs<- coef.bsts[,5]
-	names(inclusion_probs)<-substring(names(inclusion_probs),2)
-	impact <- list(covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
-	names(impact)<-c('covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	beta.mat<- bsts_model.pois$samplesP$beta
+	#Generate  predictions with prediction interval
+	disp<-bsts_model.pois$samplesP$thetaBeta
+	disp.mat<-rnorm(n=length(disp)*length(y), mean=0, sd=abs(disp))
+	disp.mat<-t(matrix(disp.mat, nrow=length(disp), ncol=length(y)))
+	x.fit<-cbind(rep(1,nrow(x)),x)
+	if(trend){
+	  reg.mean<-   exp(  (x.fit %*% t(beta.mat)) + disp.mat)  *offset.t[,1]
+	}else{
+	  reg.mean<-   exp(  (x.fit %*% t(beta.mat)) + disp.mat )
+	}
+	predict.bsts<-rpois(length(reg.mean),lambda=reg.mean)
+	predict.bsts<-matrix(predict.bsts,nrow=nrow(reg.mean), ncol=ncol(reg.mean))
+	#predict.bsts.q<-t(apply(predict.bsts,1,quantile, probs=c(0.025,0.5,0.975)))
+	#matplot(predict.bsts.q, type='l', col=c('gray','black','gray'), lty=c(2,1,2), bty='l', ylab="N hospitalizations")
+	#points(y)
+	
+	#Inclusion probabilities Poisson model
+	incl.probs.mat<-t(bsts_model.pois$samplesP$pdeltaBeta)
+	inclusion_probs<-apply(incl.probs.mat,1,mean)
+	summary.pois<- summary(bsts_model.pois)
+	covar.names<-dimnames(x.pre)[[2]]
+	inclusion_probs<-cbind.data.frame(covar.names,inclusion_probs)
+	if(trend){
+	impact <- list(offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
+	names(impact)<-c('offset.t.pre','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	}else{
+	  impact <- list(covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
+	  names(impact)<-c('covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	}
 	return(impact)
 }
 
@@ -150,10 +166,16 @@ inclusionProb <- function(impact) {
 }
 
 waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
-  covars.pre<-impact$covars[time_points < as.Date(intervention_date),]
-  covars.pre<-cbind(rep(1,nrow(covars.pre)), covars.pre)
+  x.pre<-impact$covars[time_points < as.Date(intervention_date),]
+  x.pre<-cbind(rep(1,nrow(x.pre)), x.pre)
   y.pre<-impact$observed.y[time_points < as.Date(intervention_date)]
-  reg.mean<-   exp(t(covars.pre %*% t(impact$beta.mat)))
+  betas<-impact$beta.mat
+  re<- bsts_model.pois$samplesP$bi  #Obbservation-level random effect estimate
+  if(trend){
+    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[,1])
+  }else{
+    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) ))
+  }
   log.piece<-matrix(NA, nrow=nrow(reg.mean), ncol=ncol(reg.mean))
   for(j in 1:nrow(reg.mean)){
     log.piece[j,]<-dpois(y.pre, lambda=reg.mean[j,], log=TRUE)
@@ -163,7 +185,6 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   #PWAIC_1_piece1<-apply(log.piece,2, logmeanexp) #logmeanexp AVOIDS underflow issue
   PWAIC_1<-2*sum(llpd.part - colMeans(log.piece))
   WAIC_1<- -2*(llpd-PWAIC_1)
-
   temp<-rep(0,times=ncol(log.piece))
   for(j in 1:ncol(log.piece)){
     temp[j]<-var(log.piece[,j])
@@ -183,7 +204,7 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
 #Estimate the rate ratios during the evaluation period and return to the original scale of the data.
 rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period) {
   
-    pred_samples <- impact$predict.bsts  
+  pred_samples <- impact$predict.bsts  
   
   pred <- t(apply(pred_samples, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
   eval_indices <- match(which(time_points==eval_period[1]), (1:length(impact$observed.y))):match(which(time_points==eval_period[2]), (1:length(impact$observed.y)))
@@ -201,7 +222,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   plot_rr_start <- which(time_points==post_period[1]) - n_seasons
   roll_rr_indices <- match(plot_rr_start, (1:length(impact$observed.y))):match(which(time_points==eval_period[2]), (1:length(impact$observed.y)))
  
-    obs_full <- impact$observed.y 
+  obs_full <- impact$observed.y 
   
   roll_sum_pred <- roll_sum(pred_samples[roll_rr_indices, ], n_seasons)
   roll_sum_obs <- roll_sum(obs_full[roll_rr_indices], n_seasons)
@@ -219,12 +240,12 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
 # 	#Covariance matrix for pooled analysis
  	log_rr_full_t_samples.covar<-cov(log_rr_full_t_samples)
- 	#post.indices<- which(time_points==post_period[1]):which(time_points==post_period[2])
- 	#log_rr_full_t_samples.prec.post<-solve(log_rr_full_t_samples.covar[post.indices,post.indices]) #NOT INVERTIBLE?
+ 	post.indices<- which(time_points==post_period[1]):which(time_points==post_period[2])
+ 	log_rr_full_t_samples.prec.post<-solve(log_rr_full_t_samples.covar) #NOT INVERTIBLE?
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
-   quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
+   quantiles <- list(log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
    return(quantiles)
 }
 
@@ -280,9 +301,10 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
   covar_df <- as.matrix(covars[[group]])
   #colnames(covar_df)<-substring(colnames(covar_df), 2)
   
-  incl_prob <- sort(impact[[group]]$inclusion_probs[-c(1:n_seasons)])
-  max_var <- names(incl_prob)[length(incl_prob)]
-  max_prob <- round(incl_prob[length(incl_prob)],2)
+  incl_prob <- impact[[group]]$inclusion_probs[-c(1:n_seasons),]
+  incl_prob<-incl_prob[order(incl_prob$inclusion_probs),]
+  max_var <- as.character(incl_prob$covar.names[nrow(incl_prob)])
+  max_prob <- round(incl_prob$inclusion_probs[nrow(incl_prob)],2)
   sensitivity_analysis <- vector('list', 3)
   
   for (i in 1:3) {
@@ -294,24 +316,26 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
     covar_df.pre<-covar_df[time_points < as.Date(intervention_date),]
     post_period_response <- outcome[, group]
     post_period_response <- as.vector(post_period_response[time_points >= as.Date(intervention_date)])
+
+    deltafix.mod<-rep(0, times=(ncol(covar_df.pre)))
+    deltafix.mod[1:(n_seasons-1)]<-1 #fix  monthly dummies
+    bsts_model  <- poissonBvs(y=y.pre , X=covar_df.pre, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
     
-    regression_prior_df <- 50
-    exp_r2 <- 0.8
-    n_pred<-3
-    denom <- ncol(covar_df.pre)-(n_seasons-1)
-    if(denom>0){
-      prior.inclusion.probabilities = c( rep(1,n_seasons),  rep(n_pred/denom,denom) ) #force seasonality and intercept into model, repeat '1' 12 times, repeat inclusion prob by N of cnon-monthly covars
-    } else {	
-      prior.inclusion.probabilities = rep(1,12)   
-    }
-    prior.inclusion.probabilities[prior.inclusion.probabilities>1] <- 1
-    prior2=SpikeSlabPrior(cbind(1,covar_df.pre),y=y.pre, prior.inclusion.probabilities = prior.inclusion.probabilities,prior.df = regression_prior_df, expected.r2 = exp_r2 )
-    bsts_model <- poisson.spike(y.pre ~ covar_df.pre,  niter = n_iter, prior=prior2 , ping = 0, seed = 1 )
-   
-    predict.bsts<-predict(bsts_model, newdata=cbind(1,covar_df), burn=n_iter*0.1, mean.only=FALSE)
-    coef.bsts<-SummarizeSpikeSlabCoefficients(bsts_model$beta, burn=n_iter*0.1, order=FALSE)
-    inclusion_probs<-coef.bsts[,5]
-    names(inclusion_probs)<-substring(names(inclusion_probs),9)
+    beta.mat<- bsts_model$samplesP$beta
+    #Generate  predictions with prediction interval
+    disp<-bsts_model$samplesP$thetaBeta
+    disp.mat<-rnorm(n=length(disp)*length(y), mean=0, sd=abs(disp))
+    disp.mat<-t(matrix(disp.mat, nrow=length(disp), ncol=length(y)))
+    x.fit<-cbind(rep(1,nrow(covar_df)),covar_df)
+    reg.mean<-   exp(  (x.fit %*% t(beta.mat)) + disp.mat )
+    predict.bsts<-rpois(length(reg.mean),lambda=reg.mean)
+    predict.bsts<-matrix(predict.bsts,nrow=nrow(reg.mean), ncol=ncol(reg.mean))
+    
+    incl.probs.mat<-t(bsts_model$samplesP$pdeltaBeta)
+    inclusion_probs<-apply(incl.probs.mat,1,mean)
+   # summary.pois<- summary(bsts_model)
+    covar.names<-dimnames(covar_df.pre)[[2]]
+    inclusion_probs<-cbind.data.frame(covar.names,inclusion_probs)
     
     impact_sens <- list(predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=outcome[, group])
     names(impact_sens)<-c('predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
