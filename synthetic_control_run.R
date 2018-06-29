@@ -19,7 +19,7 @@ if(.Platform$OS.type == "windows") {
   desktop<- "~/Desktop"
 }
 setwd(file.path(paste0(desktop,'/synthetic-control-master/main analysis components/')))
-setwd('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/main analysis components')
+
 #Used to check for relevant packages and update them if out of date or install them if not installed.
 update_packages  <- TRUE #Whether to update outdated packages.
 install_packages <- TRUE #Whether to install missing packages.
