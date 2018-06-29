@@ -26,7 +26,7 @@ if("pogit" %in% rownames(installed.packages())==FALSE){
   url_pogit <- "https://cran.r-project.org/src/contrib/Archive/pogit/pogit_1.1.0.tar.gz"
   pkgFile_pogit <- "pogit_1.1.0.tar.gz"
   download.file(url = url_pogit, destfile = pkgFile_pogit)
-  install.packages(pkgs=pkgFile, type="source", repos=NULL)
+  install.packages(pkgs=pkgFile_pogit, type="source", repos=NULL)
   install.packages('logistf')
 }
 library(pogit)
