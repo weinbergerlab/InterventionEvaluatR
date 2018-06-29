@@ -173,7 +173,7 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   betas<-impact$beta.mat
   re<- impact$rand.eff  #Obbservation-level random effect estimate
   if(trend){
-    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[,1])
+    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])
   }else{
     reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) ))
   }

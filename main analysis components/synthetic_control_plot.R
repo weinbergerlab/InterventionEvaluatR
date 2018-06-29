@@ -5,8 +5,9 @@ for (group in groups) {
 	plots <- list()
 	
 	#View scaled covariates
-	covars.sub<-covars_full[[group]][,-c(1:12)]
-	covar_plot <- ggplot(melt(covars.sub, id.vars = NULL), mapping = aes_string(x = rep(time_points, ncol(covars.sub)), y = 'value', group = 'variable', alpha = rep(inclusion_prob_full[[group]][colnames(covars.sub)], each = nrow(covars.sub)   ))) + 
+	covars.sub<-covars_full[[group]][,-c(1:(n_seasons-1))]
+	alpha1=rep(inclusion_prob_full[[group]][-c(1:(n_seasons-1)),'inclusion_probs'], each=nrow(covars_full[[group]]))
+	covar_plot <- ggplot(melt(covars.sub, id.vars = NULL), mapping = aes_string(x = rep(time_points, ncol(covars.sub)), y = 'value', group = 'variable', alpha = alpha1 )) + 
 		geom_line() + 
 		labs(x = 'Time', y = 'Scaled Covariates') + 
 		ggtitle(paste(group, 'Scaled Covariates Weighted by Inclusion Probability')) +
