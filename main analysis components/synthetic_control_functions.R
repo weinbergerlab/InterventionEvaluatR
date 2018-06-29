@@ -345,7 +345,8 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
       sensitivity_analysis[[i]]$rr <- round(quantiles$rr,2)
       sensitivity_analysis[[i]]$pred <- quantiles$pred
 
-      #Set up for next cycle     incl_prob<-incl_prob[incl_prob$covar.names != max_var, ] #EXCLUDE TOP VAR HERE from cycle i here
+    #Set up for next cycle     
+    incl_prob<-incl_prob[incl_prob$covar.names != max_var, ] #EXCLUDE TOP VAR HERE from cycle i here
     incl_prob<-incl_prob[order(incl_prob$inclusion_probs),]
     max_var <- as.character(incl_prob$covar.names[nrow(incl_prob)])
     max_prob <- round(incl_prob$inclusion_probs[nrow(incl_prob)],2)
