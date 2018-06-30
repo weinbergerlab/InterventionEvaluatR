@@ -175,20 +175,20 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   re<- impact$rand.eff  #Obbservation-level random effect estimate
   if(trend){
     reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])
-    reg.mean.marginal<-   t(exp(x.pre %*% t(betas)  )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])#Leave out random intercept
+    #reg.mean.marginal<-   t(exp(x.pre %*% t(betas)  )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])#Leave out random intercept
   }else{
     reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) ))
-    reg.mean.marginal<-   t(exp(x.pre %*% t(betas) )) #Leave out random intercept
+    #reg.mean.marginal<-   t(exp(x.pre %*% t(betas) )) #Leave out random intercept
   }
-  log.piece<-matrix(NA, nrow=nrow(reg.mean.marginal), ncol=ncol(reg.mean.marginal))
+  log.piece<-matrix(NA, nrow=nrow(reg.mean), ncol=ncol(reg.mean))
   for(j in 1:nrow(reg.mean.marginal)){
-    log.piece[j,]<-dpois(y.pre, lambda=reg.mean.marginal[j,], log=TRUE)
+    log.piece[j,]<-dpois(y.pre, lambda=reg.mean[j,], log=TRUE)
   }
   log.lik.mat<-log.piece
-  llpd.part<-apply(log.piece,2, logmeanexp) #logmeanexp AVOIDS underflow issue
-  llpd<-sum(  llpd.part)
+  llpd<-sum(log(colMeans(exp(log.piece))))
+
   #PWAIC_1_piece1<-apply(log.piece,2, logmeanexp) #logmeanexp AVOIDS underflow issue
-  PWAIC_1<-2*sum(llpd.part - colMeans(log.piece))
+  PWAIC_1<-2*sum(log(colMeans(exp(log.piece))) - colMeans(log.piece))
   WAIC_1<- -2*(llpd-PWAIC_1)
   temp<-rep(0,times=ncol(log.piece))
   for(j in 1:ncol(log.piece)){

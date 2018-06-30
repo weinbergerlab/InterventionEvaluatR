@@ -158,7 +158,7 @@ waic_full<-sapply(waic_full_all, '[[', 'waic_2')
 waic_time<-sapply(waic_time_all, '[[', 'waic_2')
 waic_pca<-sapply(waic_pca_all, '[[', 'waic_2')
 
-#Not clear the log likelihoods are correctly calculated...might need to exponentiate?
+#Not clear the log likelihoods are correctly calculated...?
 log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
 log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
 log.lik.pca<-lapply(waic_pca_all, '[[', 'log.lik.mat')
