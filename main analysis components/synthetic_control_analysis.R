@@ -203,7 +203,7 @@ rr_mean_full <- t(sapply(quantiles_full, getRR))
 rr_mean_time <- t(sapply(quantiles_time, getRR))
 rr_mean_pca <- t(sapply(quantiles_pca, getRR))
 
-rr_mean_full_intervals <- data.frame('Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
+rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_intervals <- data.frame('ITS Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
 

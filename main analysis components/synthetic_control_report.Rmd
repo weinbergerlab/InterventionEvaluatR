@@ -72,19 +72,9 @@ if (!is.null(names(sparse_groups[sparse_groups])) && length(names(sparse_groups[
 }
 ```
 
-##Synthetic Controls
-```{r SC}
-kable(rr_mean_full_intervals, align = 'c')
-```
-
-##ITS
-```{r ITS}
-kable(rr_mean_time_intervals, align = 'c')
-```
-
-##STL+PCA
-```{r STL+PCA}
-kable(rr_mean_pca_intervals, align = 'c')
+##combine estimates
+```{r Comparison of estimates from different models}
+kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals, rr_mean_pca_intervals), align = 'c')
 ```
 
 ##Inclusion Probabilities
