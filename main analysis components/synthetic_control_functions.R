@@ -492,3 +492,15 @@ pca_top_var<-function(glm.results.in, covars){
     #covar.matrix.pca$obs<-as.factor(1:nrow(covar.matrix.pca))
     return(covar.matrix.pca)
 }
+
+cumsum_func<-function(group, quantiles) {
+  is_post_period <- which(time_points >= post_period[1])
+  is_pre_period <- which(time_points < post_period[1])
+  
+  #Cumulative sum of prevented cases
+  cases_prevented <- quantiles[[group]]$pred_samples - outcome[, group]
+  cumsum_cases_prevented_post <- apply(cases_prevented[is_post_period, ], 2, cumsum)
+  cumsum_cases_prevented_pre <- matrix(0, nrow = nrow(cases_prevented[is_pre_period, ]), ncol = ncol(cases_prevented[is_pre_period, ]))
+  cumsum_cases_prevented <- rbind(cumsum_cases_prevented_pre, cumsum_cases_prevented_post)
+  cumsum_prevented <- t(apply(cumsum_cases_prevented, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
+}
