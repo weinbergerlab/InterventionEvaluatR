@@ -116,7 +116,6 @@ stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds )  #list of lis
 ##SECTION 2: run first stage models
 n_cores <- detectCores()-1
 glm.results<- vector("list",  length=length(stl.data.setup)) #combine models into a list
-print(i)
 cl1 <- makeCluster(n_cores)
 clusterEvalQ(cl1, {library(lme4, quietly = TRUE)})
 clusterExport(cl1, c('stl.data.setup',  'glm.fun', 'time_points', 'n_seasons','post.start.index'), environment())
