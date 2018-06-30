@@ -128,7 +128,7 @@ stopCluster(cl1)
 #Combine the outcome, covariates, and time point information.
 data_full <- setNames(lapply(groups, makeTimeSeries, outcome = outcome,       covars = covars_full), groups)
 data_time <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars = covars_time, trend=TRUE), groups)
-data_pca<-mapply(FUN=pca_top_var,glm.results.in=glm.results, covars=stl.covars, SIMPLIFY=FALSE)
+data_pca<-mapply(FUN=pca_top_var,glm.results.in=glm.results, covars=stl.covars,ds.in=ds, SIMPLIFY=FALSE)
 names(data_pca)<-groups
 
 ###############################

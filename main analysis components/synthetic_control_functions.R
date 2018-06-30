@@ -454,7 +454,7 @@ glm.fun<-function(ds.fit){
   return(glm.out)
 }
 
-pca_top_var<-function(glm.results.in, covars){
+pca_top_var<-function(glm.results.in, covars,ds.in){
     #Extract AICs from list into dataframe
     aics<-unlist(lapply(glm.results.in, '[[', 'aic.test'))  # This returns a vector with AIC score
     vars<-unlist(lapply(glm.results.in, '[[', 'test.var'))  # This returns a vector with the variable names
@@ -484,12 +484,11 @@ pca_top_var<-function(glm.results.in, covars){
     top.covars<-as.character(top.covar.grp$covars[! top.covar.grp$covars %in% remove])
     ###SETUP AND RUN MODELS WITH FIRST PC
     covars.keep.pca<-covars[,top.covars]
+    #Run PCA
     pca <- prcomp(covars.keep.pca, scale=TRUE) # scale=TRUE should be added!!
     predictors2 <- as.data.frame(pca$x[,1]) # First "1" PC
     names(predictors2)<-'pca1'
-    #y.pre<-glm.results.in[[1]]$ds.fit.fun[1:(post.start.index-1),1]
-   # y.fit<-c(y.pre, rep(NA, times=nrow(predictors2)-length(y.pre) ))
-    y=glm.results.in[[1]]$ds.fit.fun[,1]
+    y=ds.in[,outcome_name]
     covar.matrix.pca<-cbind.data.frame(y,season.dummies, predictors2)
     #covar.matrix.pca$obs<-as.factor(1:nrow(covar.matrix.pca))
     return(covar.matrix.pca)
