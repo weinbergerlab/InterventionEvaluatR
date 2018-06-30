@@ -174,20 +174,17 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   betas<-impact$beta.mat
   re<- impact$rand.eff  #Obbservation-level random effect estimate
   if(trend){
-    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])
-    #reg.mean.marginal<-   t(exp(x.pre %*% t(betas)  )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])#Leave out random intercept
+    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1]) #return to count scale
   }else{
     reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) ))
-    #reg.mean.marginal<-   t(exp(x.pre %*% t(betas) )) #Leave out random intercept
   }
   log.piece<-matrix(NA, nrow=nrow(reg.mean), ncol=ncol(reg.mean))
-  for(j in 1:nrow(reg.mean.marginal)){
+  for(j in 1:nrow(reg.mean)){
     log.piece[j,]<-dpois(y.pre, lambda=reg.mean[j,], log=TRUE)
   }
   log.lik.mat<-log.piece
   llpd<-sum(log(colMeans(exp(log.piece))))
 
-  #PWAIC_1_piece1<-apply(log.piece,2, logmeanexp) #logmeanexp AVOIDS underflow issue
   PWAIC_1<-2*sum(log(colMeans(exp(log.piece))) - colMeans(log.piece))
   WAIC_1<- -2*(llpd-PWAIC_1)
   temp<-rep(0,times=ncol(log.piece))
