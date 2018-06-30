@@ -272,12 +272,23 @@ plotPred <- function(pred_quantiles, time_points, post_period, ylim, outcome_plo
   
   if (!plot_sensitivity) {
     pred_plot <- ggplot() + 
-      geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound'), alpha = 0.3) +
+      #geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound', color='variable'), alpha = 0.3) +
+      geom_ribbon(aes( x=time_points[post_period_start:post_period_end], ymin=pred_quantiles[which(time_points %in% post_dates), 1], ymax=pred_quantiles[which(time_points %in% post_dates), 3]), alpha=0.2)+
+    
       geom_line(data = data.frame(time = time_points, outcome = outcome_plot), aes_string(x = 'time', y = 'outcome')) +
-      geom_line(data = data.frame(time = time_points, pred_outcome = pred_quantiles[, 2]), aes_string(x = 'time', y = 'pred_outcome'), linetype = 'dashed', color = '#e41a1c') + 
+      geom_line(data = data.frame(time = time_points[1:(post_period_start-1)], pred_outcome = pred_quantiles[1:(post_period_start-1), 2]), aes_string(x = 'time', y = 'pred_outcome'), linetype = 'dashed', color = 'red') + 
+      geom_line(data = data.frame(time = time_points[post_period_start:post_period_end], pred_outcome = pred_quantiles[post_period_start:post_period_end, 2]), aes_string(x = 'time', y = 'pred_outcome'), linetype = 'dashed', color = 'white') + 
+      
       labs(x = 'Time', y = 'Number of Cases') + 
+      #scale_colour_manual(values = c('black', 'white')) +
+      scale_fill_hue(guide = 'none') +
       ggtitle(title) + 
       theme_bw() +
+      theme(axis.line = element_line(colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank()) +
       theme(plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
     return(pred_plot)
   } else if (!is.null(sensitivity_pred_quantiles)) {
@@ -292,6 +303,11 @@ plotPred <- function(pred_quantiles, time_points, post_period, ylim, outcome_plo
       labs(x = 'Time', y = 'Number of Cases') + 
       ggtitle(sensitivity_title) + 
       theme_bw() +
+      theme(axis.line = element_line(colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank()) +
       theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
     return(pred_plot)
   }

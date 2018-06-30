@@ -12,6 +12,11 @@ for (group in groups) {
 		labs(x = 'Time', y = 'Scaled Covariates') + 
 		ggtitle(paste(group, 'Scaled Covariates Weighted by Inclusion Probability')) +
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.position = 'none', plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
 	#Plot predictions
@@ -32,6 +37,11 @@ for (group in groups) {
 		ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
 		coord_cartesian(ylim = min_max) +
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	rr_roll_time_plot <- ggplot(melt(as.data.frame(rr_roll_time[, , group]), id.vars = NULL), mapping = aes_string(x = rep(time_points[(length(time_points) - nrow(rr_roll_time[, , group]) + 1):length(time_points)], ncol(rr_roll_time[, , group])), y = 'value', linetype = 'variable')) + 
 		geom_line() + geom_hline(yintercept = 1, linetype = 4) +
@@ -39,6 +49,11 @@ for (group in groups) {
 		ggtitle(paste(group, 'TT Rolling Rate Ratio')) +
 		coord_cartesian(ylim = min_max) +
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	rr_roll_pca_plot <- ggplot(melt(as.data.frame(rr_roll_pca[, , group]), id.vars = NULL), mapping = aes_string(x = rep(time_points[(length(time_points) - nrow(rr_roll_pca[, , group]) + 1):length(time_points)], ncol(rr_roll_pca[, , group])), y = 'value', linetype = 'variable')) + 
 	  geom_line() + geom_hline(yintercept = 1, linetype = 4) +
@@ -46,6 +61,11 @@ for (group in groups) {
 	  ggtitle(paste(group, 'STL+PCA Rolling Rate Ratio')) +
 	  coord_cartesian(ylim = min_max) +
 	  theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 	  theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
 	#Plot cumulative sums
@@ -54,6 +74,11 @@ for (group in groups) {
 		labs(x = 'Time', y = 'Cumulative Sum Prevented') + 
 		ggtitle(paste(group, 'Cumulative Number of Cases Prevented')) + 
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
 	plot_list[[group]] <- list(covar_plot = covar_plot, 
