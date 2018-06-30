@@ -84,6 +84,7 @@ for (group in groups) {
 	plot_list[[group]] <- list(covar_plot = covar_plot, 
 															pred_full_plot = pred_full_plot, 
 															pred_time_plot = pred_time_plot, 
+															pred_pca_plot = pred_pca_plot, 
 															pred_sensitivity_plot = pred_sensitivity_plot, 
 															rr_roll_full_plot = rr_roll_full_plot, 
 															rr_roll_time_plot = rr_roll_time_plot, 

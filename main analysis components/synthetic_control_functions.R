@@ -166,6 +166,7 @@ inclusionProb <- function(impact) {
 	return(impact$inclusion_probs)
 }
 
+#In this version, use marginal mean for calculating likelihood--this will give best indication of prediction ability
 waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   x.pre<-impact$covars[time_points < as.Date(intervention_date),]
   x.pre<-cbind(rep(1,nrow(x.pre)), x.pre)
@@ -174,12 +175,14 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   re<- impact$rand.eff  #Obbservation-level random effect estimate
   if(trend){
     reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])
+    reg.mean.marginal<-   t(exp(x.pre %*% t(betas)  )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1])#Leave out random intercept
   }else{
     reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) ))
+    reg.mean.marginal<-   t(exp(x.pre %*% t(betas) )) #Leave out random intercept
   }
-  log.piece<-matrix(NA, nrow=nrow(reg.mean), ncol=ncol(reg.mean))
-  for(j in 1:nrow(reg.mean)){
-    log.piece[j,]<-dpois(y.pre, lambda=reg.mean[j,], log=TRUE)
+  log.piece<-matrix(NA, nrow=nrow(reg.mean.marginal), ncol=ncol(reg.mean.marginal))
+  for(j in 1:nrow(reg.mean.marginal)){
+    log.piece[j,]<-dpois(y.pre, lambda=reg.mean.marginal[j,], log=TRUE)
   }
   log.lik.mat<-log.piece
   llpd.part<-apply(log.piece,2, logmeanexp) #logmeanexp AVOIDS underflow issue
