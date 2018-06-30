@@ -181,6 +181,7 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   for(j in 1:nrow(reg.mean)){
     log.piece[j,]<-dpois(y.pre, lambda=reg.mean[j,], log=TRUE)
   }
+  log.lik.mat<-log.piece
   llpd.part<-apply(log.piece,2, logmeanexp) #logmeanexp AVOIDS underflow issue
   llpd<-sum(  llpd.part)
   #PWAIC_1_piece1<-apply(log.piece,2, logmeanexp) #logmeanexp AVOIDS underflow issue
@@ -193,8 +194,8 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   PWAIC_2<-sum(temp)
   WAIC_2<- -2*(llpd-PWAIC_2)
   #save output
-  waics<-c(WAIC_1, WAIC_2)
-  names(waics)<-c('waic_1','waic_2')
+  waics<-list(WAIC_1, WAIC_2,log.lik.mat)
+  names(waics)<-c('waic_1','waic_2','log.lik.mat')
   return(waics)
 }
 
@@ -486,9 +487,10 @@ pca_top_var<-function(glm.results.in, covars){
     pca <- prcomp(covars.keep.pca, scale=TRUE) # scale=TRUE should be added!!
     predictors2 <- as.data.frame(pca$x[,1]) # First "1" PC
     names(predictors2)<-'pca1'
-    y.pre<-glm.results.in[[1]]$ds.fit.fun[1:(post.start.index-1),1]
-    y.fit<-c(y.pre, rep(NA, times=nrow(predictors2)-length(y.pre) ))
-    covar.matrix.pca<-cbind.data.frame(y.fit,season.dummies, predictors2)
+    #y.pre<-glm.results.in[[1]]$ds.fit.fun[1:(post.start.index-1),1]
+   # y.fit<-c(y.pre, rep(NA, times=nrow(predictors2)-length(y.pre) ))
+    y=glm.results.in[[1]]$ds.fit.fun[,1]
+    covar.matrix.pca<-cbind.data.frame(y,season.dummies, predictors2)
     #covar.matrix.pca$obs<-as.factor(1:nrow(covar.matrix.pca))
     return(covar.matrix.pca)
 }

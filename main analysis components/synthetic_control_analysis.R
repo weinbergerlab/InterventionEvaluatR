@@ -151,9 +151,18 @@ stopCluster(cl)
 
 
 #calculate WAIC
-waic_full<-t(sapply(impact_full,waic_fun))
-waic_time<-t(sapply(impact_time,waic_fun, trend=TRUE))
-waic_pca<-t(sapply(impact_pca,waic_fun, trend=FALSE))
+waic_full_all<-lapply(impact_full,waic_fun)
+waic_time_all<-lapply(impact_time,waic_fun, trend=TRUE)
+waic_pca_all<-lapply(impact_pca,waic_fun, trend=FALSE)
+waic_full<-sapply(waic_full_all, '[[', 'waic_2')
+waic_time<-sapply(waic_time_all, '[[', 'waic_2')
+waic_pca<-sapply(waic_pca_all, '[[', 'waic_2')
+
+log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
+log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
+log.lik.pca<-lapply(waic_pca_all, '[[', 'log.lik.mat')
+
+
 
 #Save the inclusion probabilities from each of the models.
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
