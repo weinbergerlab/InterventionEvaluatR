@@ -11,7 +11,7 @@
 
 source('synthetic_control_functions.R', local = TRUE)
 
-packages <- c('parallel', 'splines', 'lubridate','logistf', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'splines', 'lubridate','logistf','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
@@ -158,11 +158,15 @@ waic_full<-sapply(waic_full_all, '[[', 'waic_2')
 waic_time<-sapply(waic_time_all, '[[', 'waic_2')
 waic_pca<-sapply(waic_pca_all, '[[', 'waic_2')
 
-log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
-log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
-log.lik.pca<-lapply(waic_pca_all, '[[', 'log.lik.mat')
-
-
+# log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
+# log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
+# log.lik.pca<-lapply(waic_pca_all, '[[', 'log.lik.mat')
+# 
+# age.log.like<- vector("list",  length=length(log.lik.full)) #combine models into a list
+# for(i in 1:length(log.lik.full)){
+#   age.log.like[[i]]<-list(log.lik.full[[i]],log.lik.time[[i]],log.lik.pca[[i]])
+# }
+# mod.weights<-lapply(age.log.like, loo_model_weights, method='pseudobma', cores=n_cores)
 
 #Save the inclusion probabilities from each of the models.
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
