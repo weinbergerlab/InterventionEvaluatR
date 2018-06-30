@@ -11,7 +11,7 @@
 
 source('synthetic_control_functions.R', local = TRUE)
 
-packages <- c('parallel', 'splines', 'lubridate','logistf', 'RcppRoll','pomp', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'splines', 'lubridate','logistf', 'RcppRoll','pomp','lme4','stl', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
@@ -179,6 +179,42 @@ cumsum_prevented <- sapply(groups, FUN = function(group, quantiles) {
 	cumsum_prevented <- t(apply(cumsum_cases_prevented, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
 }, quantiles = quantiles_full, simplify = 'array')
 
+
+################################
+#STL+PCA
+################################
+##SECTION 1: CREATING SMOOTHED VERSIONS OF CONTROL TIME SERIES AND APPENDING THEM ONTO ORIGINAL DATAFRAME OF CONTROLS
+#EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
+# Set a list of parameters for STL
+stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full) 
+post.start.index<-which(time_points==post_period[1])
+stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds )  #list of lists that has covariates for each regression for each strata
+
+##SECTION 2: run first stage models
+n_cores <- detectCores()-1
+glm.results<- vector("list",  length=length(stl.data.setup)) #combine models into a list
+  print(i)
+cl1 <- makeCluster(n_cores)
+clusterEvalQ(cl1, {library(lme4, quietly = TRUE)})
+clusterExport(cl1, c('stl.data.setup',  'glm.fun', 'time_points', 'n_seasons','post.start.index'), environment())
+for(i in 1:length(stl.data.setup)){
+      glm.results[[i]]<-parLapply(cl=cl1 ,     stl.data.setup[[i]], fun=glm.fun )
+}
+      stopCluster(cl1)
+
+
+#Run PCA:
+pca.mat<-mapply(FUN=pca_top_var,glm.results.in=glm.results, covars=stl.covars, SIMPLIFY=FALSE)
+names(pca.mat)<-groups
+cl <- makeCluster(n_cores)
+clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE)})
+clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons'), environment())
+impact_pca <- setNames(parLapply(cl, pca.mat, doCausalImpact, intervention_date = intervention_date, time_points = time_points, n_seasons = n_seasons), groups)
+stopCluster(cl)
+waic_pca<-t(sapply(impact_pca,waic_fun, trend=FALSE))
+
+
+
 ################################
 #                              #
 #     Sensitivity Analyses     #
@@ -208,9 +244,7 @@ cumsum_prevented <- sapply(groups, FUN = function(group, quantiles) {
 cl <- makeCluster(n_cores)
 clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
 clusterExport(cl, c('sensitivity_ds', 'doCausalImpact',  'weightSensitivityAnalysis', 'rrPredQuantiles', 'sensitivity_groups', 'intervention_date', 'outcome', 'time_points', 'n_seasons',  'eval_period', 'post_period'), environment())
-
-sensitivity_analysis_full <- setNames(parLapply(cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = time_points, intervention_date = intervention_date, n_seasons = n_seasons, outcome = outcome,  eval_period = eval_period, post_period = post_period), sensitivity_groups)
-
+  sensitivity_analysis_full <- setNames(parLapply(cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = time_points, intervention_date = intervention_date, n_seasons = n_seasons, outcome = outcome,  eval_period = eval_period, post_period = post_period), sensitivity_groups)
 stopCluster(cl)
 
 sensitivity_pred_quantiles  <- lapply(sensitivity_analysis_full, FUN = function(sensitivity_analysis) {

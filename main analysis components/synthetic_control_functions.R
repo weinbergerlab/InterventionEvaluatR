@@ -370,3 +370,125 @@ sensitivityTable <- function(group, sensitivity_analysis, original_rr = NULL) {
   sensitivity_table <- c(original_rr[group, ], c(top_controls, recursive = TRUE))
   return(sensitivity_table)
 }
+
+###########################
+#Functions for STL+PCA piece
+#from STL package:
+nextodd <- function(x){
+  x <- round(x)
+  if(x%%2==0) x <- x+1
+  as.integer(x)
+}
+DoSTL_trend <- function(new,t.windows,s.windows) {
+  trend <- as.data.frame(matrix(NA, nrow=nrow(new), ncol=ncol(new)))
+  for (j in 1:ncol(new)) {
+    ts <- ts(new[,j], frequency=n_seasons)
+    trend[,j] <- as.vector(stl(ts, s.window=s.windows, t.window=t.windows)[[1]][,2]) 
+  }
+  colnames(trend) <- c(paste(colnames(new),".trend.",t.windows,sep=""))
+  return(trend)
+}
+
+smooth_func<-function(ds.list,covar.list){
+  t.windows <- c(nextodd(0.04*nrow(ds.list)),nextodd(0.2*nrow(ds.list)),nextodd(0.5*nrow(ds.list)))
+  covars.raw.compile<- vector("list", length(t.windows)) 
+  s.windows <- "periodic"
+  # STL
+  for (value_t in 1:length(t.windows)) {
+    for (value_s in 1:length(s.windows)) {
+      t <- t.windows[value_t]
+      s <- s.windows[value_s]
+      covar.noseason<-covar.list[,-c(1:(n_seasons-1))]
+      stl.covars <- DoSTL_trend(covar.noseason,t,s)
+      covars.raw.compile[[value_t]] <-stl.covars
+    }
+  }
+  covars.raw2<-do.call(cbind, covars.raw.compile)
+  covars.raw2<-cbind(covar.list,covars.raw2)
+  covars.stl<-covars.raw2 #COMBINE ALL VARIABLES WITH DIFFERENT SMOOTHING LEVELS, FROM RAW TO VERY SMOOTH
+}
+
+stl_data_fun<-function(covars,ds.sub){
+  aic.test <- vector(mode="numeric", length=ncol(covars))
+  V<- vector("list",  length=ncol(covars)) #combine models into a list
+  pred.mean<- vector("list",  length=ncol(covars)) #combine models into a list
+  pred.coefs<- vector("list",  length=ncol(covars)) #combine models into a list
+  covar.test<- vector("list",  length=ncol(covars)) #combine models into a list
+  #coef1<- vector("list",  length=ncol(covars)) #combine models into a list
+  preds.stage2<- vector("list",  length=ncol(covars)) #combine models into a list
+  mod1<- vector("list",  length=ncol(covars)) #combine models into a list
+  pred.mean<- matrix(NA, nrow=nrow(covars), ncol=ncol(covars)) #combine models into a list
+  aic.test[]<-NA
+  covars.no.season<-covars[,-c(1:(n_seasons-1))]
+  covars.season<-covars[,c(1:(n_seasons-1))]
+  combos3<-dimnames(covars.no.season)[[2]]
+  ds.fit<- vector("list",  length=length(combos3)) #combine models into a list
+  
+  data.fit<-cbind.data.frame(ds.sub[,outcome_name], covars)
+  names(data.fit)[1]<-'y'
+  data.fit<-data.fit[1:(post.start.index-1),]
+  for(p in 1:length(combos3)){
+    incl.names<-c('y',names(covars.season), combos3[p] )
+    keep.cols<-which(names(data.fit) %in% incl.names )
+    ds.fit[[p]]<-data.fit[,keep.cols]
+    comment(ds.fit[[p]])<-combos3[p]
+  }
+  return(ds.fit)
+}
+
+glm.fun<-function(ds.fit){
+  names(ds.fit)<-paste0('c',names(ds.fit))
+  covars.fit<-ds.fit[-1]
+  pre.index<-1:(post.start.index-1)
+  fixed.effects<-paste(names(covars.fit), collapse="+")
+  ds.fit$obs<-as.factor(1:nrow(ds.fit))
+  form1<-as.formula(paste0('cy~', fixed.effects, "+ (1|obs)" ))
+  mod1<-glmer(form1,data=ds.fit[pre.index,], family='poisson',control=glmerControl(optimizer="bobyqa",
+                                                                                   optCtrl=list(maxfun=2e5)) )
+  pred.mean<-predict(mod1, newdata=ds.fit,re.form=NA )
+  aic.test<-AIC( mod1)
+  test.var<-   attributes(ds.fit)$comment  #THIS IS DIFFERENT FOR BIVARIATE
+  glm.out<-list(pred.mean,ds.fit, mod1,aic.test, test.var) #save output in a named list
+  names(glm.out)<-c('pred.mean','ds.fit.fun','mod1','aic.test','test.var')
+  return(glm.out)
+}
+
+pca_top_var<-function(glm.results.in, covars){
+    #Extract AICs from list into dataframe
+    aics<-unlist(lapply(glm.results.in, '[[', 'aic.test'))  # This returns a vector with AIC score
+    vars<-unlist(lapply(glm.results.in, '[[', 'test.var'))  # This returns a vector with the variable names
+    pred.mean<-lapply(glm.results.in, '[[', 'pred.mean') # This returns a vector with the variable names
+    pred.mean<-do.call(cbind,pred.mean)
+    pred.mean<-exp(pred.mean)
+    aic.df<-cbind.data.frame(vars, aics)
+    names(aic.df)<-c('covars','aic')
+    aic.df$model.index<-1:nrow(aic.df)
+    aic.df$grp<-as.numeric(as.factor(substr(aic.df$covars,1,3))) #for each smoothed or unsmoothed version of variable, assign it to a grouping 
+    aic.df$delta.aic<-aic.df$aic-min(aic.df$aic)
+    aic.df$w_aic<- exp(-0.5*aic.df$delta.aic)/sum( exp(-0.5*aic.df$delta.aic))
+    aic.df<-aic.df[order(-aic.df$w_aic),]
+    aic.df$cumsum<-cumsum(aic.df$w_aic) 
+    aic.df$keep.high.weight<- aic.df$cumsum<=0.99  #only keep variables that contribute to 99% f weight
+    aic.df$model.rank<- 1:nrow(aic.df)  #only keep variables that contribute to 99% f weight
+
+    #top.covar in each set
+    aic.df2<-aic.df
+    aic.df2<-aic.df2[order(-aic.df$w_aic),]
+    aic.df2$deseason=0
+    aic.df2$deseason[grep('trend',aic.df2$covars, fixed=TRUE)] <- 1
+    aic.df2<-aic.df2[aic.df2$deseason==1,] #Only keep STL version of variable, not raw
+    aic.df2$w_aic<-aic.df2$w_aic/sum(aic.df2$w_aic) #rescale weights
+    top.covar.grp<-aic.df2[!duplicated(aic.df2$grp),]
+    remove<-c('t','nocovars')
+    top.covars<-as.character(top.covar.grp$covars[! top.covar.grp$covars %in% remove])
+    ###SETUP AND RUN MODELS WITH FIRST PC
+    covars.keep.pca<-covars[,top.covars]
+    pca <- prcomp(covars.keep.pca, scale=TRUE) # scale=TRUE should be added!!
+    predictors2 <- as.data.frame(pca$x[,1]) # First "1" PC
+    names(predictors2)<-'pca1'
+    y.pre<-glm.results.in[[1]]$ds.fit.fun[1:(post.start.index-1),1]
+    y.fit<-c(y.pre, rep(NA, times=nrow(predictors2)-length(y.pre) ))
+    covar.matrix.pca<-cbind.data.frame(y.fit,season.dummies, predictors2)
+    #covar.matrix.pca$obs<-as.factor(1:nrow(covar.matrix.pca))
+    return(covar.matrix.pca)
+}
