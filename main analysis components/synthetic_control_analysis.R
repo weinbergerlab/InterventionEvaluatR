@@ -158,15 +158,16 @@ waic_full<-sapply(waic_full_all, '[[', 'waic_2')
 waic_time<-sapply(waic_time_all, '[[', 'waic_2')
 waic_pca<-sapply(waic_pca_all, '[[', 'waic_2')
 
+#Not clear the log likelihoods are correctly calculated...might need to exponentiate?
 # log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
 # log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
 # log.lik.pca<-lapply(waic_pca_all, '[[', 'log.lik.mat')
 # 
 # age.log.like<- vector("list",  length=length(log.lik.full)) #combine models into a list
 # for(i in 1:length(log.lik.full)){
-#   age.log.like[[i]]<-list(log.lik.full[[i]],log.lik.time[[i]],log.lik.pca[[i]])
+#   age.log.like[[i]]<-list(exp(log.lik.full[[i]]),exp(log.lik.time[[i]]),exp(log.lik.pca[[i]]))
 # }
-# mod.weights<-lapply(age.log.like, loo_model_weights, method='pseudobma', cores=n_cores)
+# mod.weights<-lapply(age.log.like, loo_model_weights, method='stacking', cores=n_cores)
 
 #Save the inclusion probabilities from each of the models.
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
