@@ -11,7 +11,7 @@
 
 source('synthetic_control_functions.R', local = TRUE)
 
-packages <- c('parallel', 'splines', 'lubridate','logistf', 'RcppRoll','pomp','lme4','stl', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'splines', 'lubridate','logistf', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
