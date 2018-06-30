@@ -82,6 +82,11 @@ kable(rr_mean_full_intervals, align = 'c')
 kable(rr_mean_time_intervals, align = 'c')
 ```
 
+##STL+PCA
+```{r STL+PCA}
+kable(rr_mean_pca_intervals, align = 'c')
+```
+
 ##Inclusion Probabilities
 ```{r incl, include = FALSE}
 incl_probs <- NULL
