@@ -174,7 +174,7 @@ inclusionProb <- function(impact) {
 waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   x.pre<-impact$covars[time_points < as.Date(intervention_date),]
   x.pre<-cbind(rep(1,nrow(x.pre)), x.pre)
-  y.pre<-impact$observed.y[time_points < as.Date(intervention_date)]
+  y.pre<-impact$observed.y[time_points < as.Date(intervention_date)] 
   betas<-impact$beta.mat
   re<- impact$rand.eff  #Obbservation-level random effect estimate
   if(trend){
@@ -203,6 +203,13 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   return(waics)
 }
 
+#Calculate Reff for LOO
+r_eff_func1<-function(y){
+  r_eff_func2<-lapply(y, function(x) {
+    re<-relative_eff(exp(x), chain_id = rep(1, times=nrow(x)), cores=n_cores)
+    return(re)
+  })
+}
 #Estimate the rate ratios during the evaluation period and return to the original scale of the data.
 
 #Estimate the rate ratios during the evaluation period and return to the original scale of the data.

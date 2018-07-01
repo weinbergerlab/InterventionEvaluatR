@@ -188,12 +188,15 @@ waic_weights.m<-melt(waic_weights, id='group')
 log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
 log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
 log.lik.pca<-lapply(waic_pca_all, '[[', 'log.lik.mat')
-# 
+
+#WEIGHTS FOR STACKING code--will probbaly need to do K-fold cross validation
 # age.log.like<- vector("list",  length=length(log.lik.full)) #combine models into a list
 # for(i in 1:length(log.lik.full)){
 #   age.log.like[[i]]<-list(log.lik.full[[i]],log.lik.time[[i]],log.lik.pca[[i]])
 # }
-# mod.weights<-lapply(age.log.like, loo_model_weights, method='stacking', cores=n_cores)
+# r_eff_list.age<-lapply(age.log.like,r_eff_func1 )
+# loo.weights<-round(t(mapply(FUN=loo_model_weights, x=age.log.like, r_eff_list=r_eff_list.age, method='stacking', cores=n_cores)),2)
+
 
 #Save the inclusion probabilities from each of the models.
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
