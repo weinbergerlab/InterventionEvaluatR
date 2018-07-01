@@ -11,6 +11,19 @@
 
 source('synthetic_control_functions.R', local = TRUE)
 
+#############################
+#Automatically set working directory to desktop
+#setwd('~/synthetic-control-master/main analysis components')  #directory where .Rmd file is saved
+#Set working directory: default to desktop--different path for windows vs Mac
+if(.Platform$OS.type == "windows") {
+  desktop<-file.path(Sys.getenv("USERPROFILE"),"Desktop")
+  desktop<-gsub(pattern='\\',replacement='/', desktop, fixed=TRUE)
+} else {
+  desktop<- "~/Desktop"
+}
+auto.wd<-file.path(paste0(desktop,'/synthetic-control-master/main analysis components/'))
+#
+
 packages <- c('parallel', 'splines', 'lubridate','logistf','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)

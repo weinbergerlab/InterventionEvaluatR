@@ -1,25 +1,18 @@
 #This is the file used to set variables to be used in analysis, as well as to run the analysis.
 #Make sure *_analysis.R, *_report.R, *_report.Rmd, *_functions.R, and *_plot.R are all in the same folder as this file.
 #Model the setup shown in this file, then run this file from the console using source('This file's directory/This file's name'). 
-
 #Clear the workspace
 rm(list = ls(all = TRUE))
 gc()
+source('synthetic_control_analysis.R', local = TRUE)
 
 #Set the working directory
 #This step only works as written if this file is run using the source() command. Otherwise, skip this step and set manually.
 
 ###WORKING DIRECTORY Should be set as the directory where .Rmd file is saved  ####
-#setwd('~/synthetic-control-master/main analysis components')  #directory where .Rmd file is saved
-#Set working directory: default to desktop--different path for windows vs Mac
-if(.Platform$OS.type == "windows") {
-  desktop<-file.path(Sys.getenv("USERPROFILE"),"Desktop")
-  desktop<-gsub(pattern='\\',replacement='/', desktop, fixed=TRUE)
-} else {
-  desktop<- "~/Desktop"
-}
-setwd('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/main analysis components')
-#setwd(file.path(paste0(desktop,'/synthetic-control-master/main analysis components/')))
+setwd(auto.wd) ##automatically set working directory to '~desktop/synthetic-control-poisson-master/main analysis components/'
+
+#setwd('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/main analysis components')
 
 #Used to check for relevant packages and update them if out of date or install them if not installed.
 update_packages  <- TRUE #Whether to update outdated packages.
@@ -32,9 +25,9 @@ n_seasons     <- 12       #Number of months (seasons) per year. 12 for monthly, 
 exclude_covar <- c()      #User-defined list of covariate columns to exclude from all analyses.
 exclude_group <- c()      #User-defined list of groups to exclude from analyses.
 if(country=="Brazil"){code_change   <- TRUE     #Used for Brazil data. Set to TRUE to adjust for year 2008 coding changes; otherwise, set to FALSE.
-}else{
-  code_change   <- FALSE
-}
+    }else{
+    code_change   <- FALSE
+  }
 
 input_directory  <- '../Datasets for PNAS/' #Directory (or URL) containing input data file.
 output_directory <- '../Results'   #Directory where results will be saved.
