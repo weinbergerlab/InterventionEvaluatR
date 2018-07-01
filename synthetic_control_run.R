@@ -10,9 +10,9 @@ source('synthetic_control_analysis.R', local = TRUE)
 #This step only works as written if this file is run using the source() command. Otherwise, skip this step and set manually.
 
 ###WORKING DIRECTORY Should be set as the directory where .Rmd file is saved  ####
-setwd(auto.wd) ##automatically set working directory to '~desktop/synthetic-control-poisson-master/main analysis components/'
+#setwd(auto.wd) ##automatically set working directory to '~desktop/synthetic-control-poisson-master/main analysis components/'
 
-#setwd('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/main analysis components')
+setwd('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/main analysis components')
 
 #Used to check for relevant packages and update them if out of date or install them if not installed.
 update_packages  <- TRUE #Whether to update outdated packages.

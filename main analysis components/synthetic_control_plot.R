@@ -82,8 +82,7 @@ for (group in groups) {
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
 	plot_list[[group]] <- list(covar_plot = covar_plot, 
-	                           compare.rr.plot=compare.rr.plot,
-															pred_full_plot = pred_full_plot, 
+	                           	pred_full_plot = pred_full_plot, 
 															pred_time_plot = pred_time_plot, 
 															pred_pca_plot = pred_pca_plot, 
 															pred_sensitivity_plot = pred_sensitivity_plot, 

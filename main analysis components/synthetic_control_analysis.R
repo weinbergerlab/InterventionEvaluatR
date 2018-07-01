@@ -21,7 +21,7 @@ if(.Platform$OS.type == "windows") {
 } else {
   desktop<- "~/Desktop"
 }
-auto.wd<-file.path(paste0(desktop,'/synthetic-control-master/main analysis components/'))
+auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson-master/main analysis components/'))
 #
 
 packages <- c('parallel', 'splines', 'lubridate','logistf','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
