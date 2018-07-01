@@ -18,8 +18,8 @@ for (group in groups) {
 	        panel.border = element_blank(),
 	        panel.background = element_blank()) +
 		theme(legend.position = 'none', plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-	
-	#Plot predictions
+
+		#Plot predictions
 	min_max <- c(min(c(pred_quantiles_full[, , group], outcome_plot[, group])), max(c(pred_quantiles_full[, , group], outcome_plot[, group])))
 	pred_full_plot <-        plotPred(pred_quantiles_full[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Synthetic controls estimate'))
 	pred_time_plot <-        plotPred(pred_quantiles_time[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Interupted time series estimate'))
@@ -82,6 +82,7 @@ for (group in groups) {
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
 	plot_list[[group]] <- list(covar_plot = covar_plot, 
+	                           compare.rr.plot=compare.rr.plot,
 															pred_full_plot = pred_full_plot, 
 															pred_time_plot = pred_time_plot, 
 															pred_pca_plot = pred_pca_plot, 

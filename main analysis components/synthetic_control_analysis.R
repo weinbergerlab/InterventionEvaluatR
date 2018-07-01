@@ -158,6 +158,12 @@ waic_full<-sapply(waic_full_all, '[[', 'waic_2')
 waic_time<-sapply(waic_time_all, '[[', 'waic_2')
 waic_pca<-sapply(waic_pca_all, '[[', 'waic_2')
 
+#Calculate WAIC weights for each stratum https://cran.r-project.org/web/packages/loo/vignettes/loo2-weights.html
+waic_combo<-cbind.data.frame(waic_full,waic_time, waic_pca)
+waic_weights<- as.data.frame(round(t(apply(waic_combo,1, function(x) exp(-0.5*(x-min(x))) / sum(exp(-0.5*(x-min(x)))) ) ),2))
+waic_weights$group<-groups
+waic_weights.m<-melt(waic_weights, id='group')
+
 #Not clear the log likelihoods are correctly calculated...?
 log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
 log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
@@ -208,6 +214,25 @@ rr_mean_time_intervals <- data.frame('ITS Estimate (95% CI)' = makeInterval(rr_m
 rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
 
 colnames(rr_mean_time) <- paste('ITS', colnames(rr_mean_time))
+
+#Combine into 1 file for plotting
+rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_full),
+                       cbind(rep(2, nrow(rr_mean_time)),groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)), rr_mean_time),
+                       cbind(rep(3, nrow(rr_mean_pca)), groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_pca)))
+names(rr_mean_combo)<-c('Model', 'groups', 'group.index','lcl','mean.rr','ucl')
+rr_mean_combo$waic_weights<-waic_weights.m$value
+rr_mean_combo$group.index<-as.numeric(as.character(rr_mean_combo$group.index))
+rr_mean_combo$mean.rr<-as.numeric(as.character(rr_mean_combo$mean.rr))
+rr_mean_combo$lcl<-as.numeric(as.character(rr_mean_combo$lcl))
+rr_mean_combo$ucl<-as.numeric(as.character(rr_mean_combo$ucl))
+rr_mean_combo$group.index[rr_mean_combo$Model==2]<-rr_mean_combo$group.index[rr_mean_combo$Model==2]+0.15
+rr_mean_combo$group.index[rr_mean_combo$Model==3]<-rr_mean_combo$group.index[rr_mean_combo$Model==3]+0.3
+rr_mean_combo$Model<-as.character(rr_mean_combo$Model)
+rr_mean_combo$Model[rr_mean_combo$Model=='1']<-"Synthetic Controls"
+rr_mean_combo$Model[rr_mean_combo$Model=='2']<-"Time trend"
+rr_mean_combo$Model[rr_mean_combo$Model=='3']<-"STL+PCA"
+cbPalette <- c("#1b9e77", "#d95f02", "#7570b3")
+rr_mean_combo$index<-as.factor(1:nrow(rr_mean_combo))
 
 
 cumsum_prevented <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_full, simplify = 'array')
