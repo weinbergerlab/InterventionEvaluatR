@@ -228,7 +228,7 @@ rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterv
 
 colnames(rr_mean_time) <- paste('ITS', colnames(rr_mean_time))
 
-#Combine into 1 file for plotting
+#Combine RRs into 1 file for plotting
 rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_full),
                        cbind(rep(2, nrow(rr_mean_time)),groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)), rr_mean_time),
                        cbind(rep(3, nrow(rr_mean_pca)), groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_pca)))
@@ -246,7 +246,10 @@ rr_mean_combo$Model[rr_mean_combo$Model=='2']<-"Time trend"
 rr_mean_combo$Model[rr_mean_combo$Model=='3']<-"STL+PCA"
 cbPalette <- c("#1b9e77", "#d95f02", "#7570b3")
 rr_mean_combo$index<-as.factor(1:nrow(rr_mean_combo))
-
+#Fix order for axis
+rr_mean_combo$Model<-as.factor(rr_mean_combo$Model)
+rr_mean_combo$Model = factor(rr_mean_combo$Model,levels(rr_mean_combo$Model)[c(2,3,1)])
+#print(levels(rr_mean_combo$Model))
 
 cumsum_prevented <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_full, simplify = 'array')
 cumsum_prevented_pca <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_pca, simplify = 'array')
