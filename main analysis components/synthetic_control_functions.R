@@ -97,12 +97,12 @@ makeTimeSeries <- function(group, outcome,  covars, trend=FALSE) {
 
 
 #Main analysis function.
-doCausalImpact <- function(zoo_data, intervention_date, time_points, n_seasons = NULL, n_iter = 10000, trend = FALSE) {
+doCausalImpact <- function(zoo_data, intervention_date, time_points, var.select.on=TRUE, n_seasons = NULL, n_iter = 10000, trend = FALSE) {
 	if (is.null(n_seasons) || is.na(n_seasons)) {
 		n_seasons <- length(unique(month(time(zoo_data)))) #number of months
 	}
 	y.pre <- zoo_data[time_points < as.Date(intervention_date), 1]
-	y<-zoo_data[,1] #all y
+	y.full<-zoo_data[,1] #all y
 	
 	post_period_response <- zoo_data[, 1]
 	post_period_response <- as.vector(post_period_response[time_points >= as.Date(intervention_date)])
@@ -119,19 +119,23 @@ doCausalImpact <- function(zoo_data, intervention_date, time_points, n_seasons =
 	
 	#Which variables are fixed in the analysis (not estimated)
 	if(trend){
-	deltafix.mod<-c(rep(1, times=(ncol(x.pre)-1)),0) #monthly dummies, offset, fixed 
-	bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, offset=offset.t.pre, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
+  	deltafix.mod<-c(rep(1, times=(ncol(x.pre)-1)),0) #monthly dummies, offset, fixed 
+  	bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, offset=offset.t.pre, BVS=var.select.on, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
 	}else{
-	  deltafix.mod<-rep(0, times=(ncol(x.pre)))
-	  deltafix.mod[1:(n_seasons-1)]<-1 #fix  monthly dummies
-	  bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
+	  if(var.select.on){
+	    deltafix.mod<-rep(0, times=(ncol(x.pre)))
+	    deltafix.mod[1:(n_seasons-1)]<-1 #fix  monthly dummies
+	    bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, BVS=TRUE, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
+	  }else{
+	    bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, BVS=FALSE, model = list(ri = TRUE, clusterID = cID))
+	  }
 	}
 
-	beta.mat<- bsts_model.pois$samplesP$beta
+	beta.mat<- bsts_model.pois$samplesP$beta[-c(1:2000),]
 	#Generate  predictions with prediction interval
-	disp<-bsts_model.pois$samplesP$thetaBeta
-	disp.mat<-rnorm(n=length(disp)*length(y), mean=0, sd=abs(disp))
-	disp.mat<-t(matrix(disp.mat, nrow=length(disp), ncol=length(y)))
+	disp<-bsts_model.pois$samplesP$thetaBeta[-c(1:2000)] ##note theta beta is signed--bimodal dist---take abs value
+	disp.mat<-rnorm(n=length(disp)*length(y.full), mean=0, sd=abs(disp))
+	disp.mat<-t(matrix(disp.mat, nrow=length(disp), ncol=length(y.full)))
 	x.fit<-cbind(rep(1,nrow(x)),x)
 	if(trend){
 	  reg.mean<-   exp(  (x.fit %*% t(beta.mat)) + disp.mat)  *offset.t[,1]
@@ -145,11 +149,11 @@ doCausalImpact <- function(zoo_data, intervention_date, time_points, n_seasons =
 	#points(y)
 	
 	#Inclusion probabilities Poisson model
-	incl.probs.mat<-t(bsts_model.pois$samplesP$pdeltaBeta)
+	incl.probs.mat<-t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:2000),])
 	inclusion_probs<-apply(incl.probs.mat,1,mean)
 	summary.pois<- summary(bsts_model.pois)
 	covar.names<-dimnames(x.pre)[[2]]
-	rand.eff<-bsts_model.pois$samplesP$bi
+	rand.eff<-bsts_model.pois$samplesP$bi[-c(1:2000),]
 	inclusion_probs<-cbind.data.frame(covar.names,inclusion_probs)
 	if(trend){
 	impact <- list(rand.eff,offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
@@ -194,8 +198,8 @@ waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
   PWAIC_2<-sum(temp)
   WAIC_2<- -2*(llpd-PWAIC_2)
   #save output
-  waics<-list(WAIC_1, WAIC_2,log.lik.mat)
-  names(waics)<-c('waic_1','waic_2','log.lik.mat')
+  waics<-list(WAIC_1, WAIC_2,PWAIC_2,log.lik.mat)
+  names(waics)<-c('waic_1','waic_2','PWAIC_2','log.lik.mat')
   return(waics)
 }
 
