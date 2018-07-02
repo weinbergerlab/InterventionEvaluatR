@@ -98,11 +98,11 @@ kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals, rr_mean_p
 	        panel.background = element_blank()) 
 ```
 
-##WAIC scores for each model
+##WAIC scores for each of the models
 ```{r Comparison of WAIC from different models}
 kable(waic_combo)
 ```
-
+  
 ##Inclusion Probabilities
 ```{r incl, include = FALSE}
 incl_probs <- NULL
