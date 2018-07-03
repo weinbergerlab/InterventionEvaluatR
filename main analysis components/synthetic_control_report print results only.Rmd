@@ -77,13 +77,14 @@ if (!is.null(names(sparse_groups[sparse_groups])) && length(names(sparse_groups[
 kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals, rr_mean_pca_intervals), align = 'c')
 ```
 
-#Plot of Rate ratios, with size proportional to WAIC weights
+#Plot of Rate ratios, with size proportional to cross validation weights
 ```{r fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
 #Compare rate ratios, with size of marker scaled to WAIC weights
-		ggplot(rr_mean_combo, aes(x=group.index, y=mean.rr, color=Model, group=Model)) + 
+		ggplot(rr_mean_combo, aes(x=group.index, y=mean.rr, color=Model,group=Model)) + 
 	  geom_errorbar(aes(ymin=lcl, ymax=ucl), colour="gray", width=.0) +
-	  geom_point(aes(shape=Model, size=index))+
-	  scale_size_manual(values=c(waic_weights.m$value*2)) + #Scales area, which is optimal for bubbl plot
+	  geom_point(aes(shape=Model, size=est.index))+
+     scale_shape_manual(values=c(15, 16, 17,18))+
+	  scale_size_manual(values=c(point.weights2$value*2)) + #Scales area, which is optimal for bubbl plot
 	  #geom_errorbar(rr_mean_combo,aes(ymin=lcl, ymax=ucl), colour="black", width=.1) +
 	  theme_bw() +
 	  guides(size=FALSE)+ #turn off size axis
@@ -98,9 +99,13 @@ kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals, rr_mean_p
 	        panel.background = element_blank()) 
 ```
 
-##WAIC scores for each model
-```{r Comparison of WAIC from different models}
-kable(waic_combo)
+##Weights for each of the models from cross validation
+```{r Comparison of Cross validation Weights from different models}
+if(crossval){
+kable(stacking_weights.all, align = 'c')
+} else{
+      print("Cross-validation not performed")
+    }
 ```
 
 ##Inclusion Probabilities

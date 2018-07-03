@@ -111,6 +111,7 @@ groups <- groups[!sparse_groups]
 covars_full <- setNames(lapply(ds, makeCovars, code_change = code_change,season.dummies=season.dummies,  intervention_date = intervention_date, time_points = time_points), groups)
 covars_full <- sapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
 covars_time <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), groups)
+covars_null <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), groups)
 
 #Standardize the outcome variable and save the original mean and SD for later analysis.
 outcome      <- sapply(ds, FUN = function(data) {data[, outcome_name]})
@@ -143,6 +144,10 @@ data_full <- setNames(lapply(groups, makeTimeSeries, outcome = outcome,       co
 data_time <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars = covars_time, trend=TRUE), groups)
 data_pca<-mapply(FUN=pca_top_var,glm.results.in=glm.results, covars=stl.covars,ds.in=ds, SIMPLIFY=FALSE)
 names(data_pca)<-groups
+#Null model where we only include seasonal terms but no covariates
+data_null <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars = covars_null, trend=FALSE), groups)
+#Time trend model but without a denominator
+data_time_no_offset <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars = covars_time, trend=FALSE), groups)
 
 ###############################
 #                             #
@@ -154,49 +159,74 @@ names(data_pca)<-groups
 cl <- makeCluster(n_cores)
 clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE)})
 clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons'), environment())
-
-impact_full <- setNames(parLapply(cl, data_full, doCausalImpact, intervention_date = intervention_date, var.select.on=TRUE, time_points = time_points, n_seasons = n_seasons), groups)
-impact_time <- setNames(parLapply(cl, data_time, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points, n_seasons = n_seasons, trend = TRUE), groups)
-impact_pca <- setNames(parLapply(cl, data_pca, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points, n_seasons = n_seasons), groups)
-
+impact_full <- setNames(parLapply(cl, data_full, doCausalImpact, intervention_date = intervention_date, var.select.on=TRUE, time_points = time_points), groups)
+impact_time <- setNames(parLapply(cl, data_time, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points, trend = TRUE), groups)
+impact_time_no_offset <- setNames(parLapply(cl, data_time_no_offset, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points,  trend = FALSE), groups)
+impact_pca <- setNames(parLapply(cl, data_pca, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points), groups)
+#No covariates, but with random intercept
+#impact_seas_only <- setNames(parLapply(cl, data_null, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points, n_seasons = n_seasons), groups)
+#No covariates except seasonal, no random intercept
+#impact_seas_only_no_re <- setNames(parLapply(cl, data_null, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE,ri.select=FALSE, time_points = time_points, n_seasons = n_seasons), groups)
 stopCluster(cl)
 
-
-
-#calculate WAIC
-waic_full_all<-lapply(impact_full,waic_fun)
-waic_time_all<-lapply(impact_time,waic_fun, trend=TRUE)
-waic_pca_all<-lapply(impact_pca,waic_fun, trend=FALSE)
-#Extract WAIC
-waic_full<-sapply(waic_full_all, '[[', 'waic_2')
-waic_time<-sapply(waic_time_all, '[[', 'waic_2')
-waic_pca<-sapply(waic_pca_all, '[[', 'waic_2')
-waic_combo<-cbind.data.frame(waic_full,waic_time, waic_pca)
-
-#Extract PWAIC
-p.waic_full<-sapply(waic_full_all, '[[', 'PWAIC_2')
-p.waic_time<-sapply(waic_time_all, '[[', 'PWAIC_2')
-p.waic_pca<-sapply(waic_pca_all, '[[', 'PWAIC_2')
-pwaic_combo<-cbind.data.frame(p.waic_full,p.waic_time, p.waic_pca)
-
-#Calculate WAIC weights for each stratum https://cran.r-project.org/web/packages/loo/vignettes/loo2-weights.html
-waic_weights<- as.data.frame(round(t(apply(waic_combo,1, function(x) exp(-0.5*(x-min(x))) / sum(exp(-0.5*(x-min(x)))) ) ),2))
-waic_weights$group<-groups
-waic_weights.m<-melt(waic_weights, id='group')
-
-#Not clear the log likelihoods are correctly calculated...?
-log.lik.full<-lapply(waic_full_all, '[[', 'log.lik.mat')
-log.lik.time<-lapply(waic_time_all, '[[', 'log.lik.mat')
-log.lik.pca<-lapply(waic_pca_all, '[[', 'log.lik.mat')
-
-#WEIGHTS FOR STACKING code--will probbaly need to do K-fold cross validation
-# age.log.like<- vector("list",  length=length(log.lik.full)) #combine models into a list
-# for(i in 1:length(log.lik.full)){
-#   age.log.like[[i]]<-list(log.lik.full[[i]],log.lik.time[[i]],log.lik.pca[[i]])
-# }
-# r_eff_list.age<-lapply(age.log.like,r_eff_func1 )
-# loo.weights<-round(t(mapply(FUN=loo_model_weights, x=age.log.like, r_eff_list=r_eff_list.age, method='stacking', cores=n_cores)),2)
-
+####################################################
+####################################################
+#CROSS VALIDATION
+####################################################
+    if(cross_validation){
+      #Creates List of lists: 1 entry for each stratum; within this, there are CV datasets for each year left out, and within this, there are 2 lists, one with full dataset, and one with the CV dataset
+        cv.data_full<-lapply(data_full, makeCV)
+        cv.data_time<-lapply(data_time, makeCV)
+        cv.data_time_no_offset<-lapply(data_time_no_offset, makeCV)
+        cv.data_pca<-lapply(data_pca, makeCV)
+      #zoo_data<-cv.data_time[[1]][[2]]
+      #Run the models on each of these datasets
+        # Start the clock!--takes ~45 minutes
+          ptm <- proc.time()
+        cl <- makeCluster(n_cores)
+        clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE)})
+        clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons'), environment())
+          cv_impact_full <-setNames(parLapply(cl, cv.data_full, function(x) lapply(x, doCausalImpact,crossval=TRUE, intervention_date = intervention_date,  var.select.on=TRUE, time_points = time_points)), groups)
+          cv_impact_time_no_offset <-setNames(parLapply(cl, cv.data_time_no_offset, function(x) lapply(x, doCausalImpact,crossval=TRUE, trend=FALSE, intervention_date = intervention_date,  var.select.on=FALSE, time_points = time_points)), groups)
+          cv_impact_time <-setNames(parLapply(cl, cv.data_time, function(x) lapply(x, doCausalImpact,crossval=TRUE, trend=TRUE, intervention_date = intervention_date,  var.select.on=FALSE, time_points = time_points)), groups)
+          cv_impact_pca <-setNames(parLapply(cl, cv.data_pca, function(x) lapply(x, doCausalImpact,crossval=TRUE, intervention_date = intervention_date,  var.select.on=FALSE, time_points = time_points)), groups)
+        stopCluster(cl)
+        # Stop the clock
+        proc.time() - ptm
+      
+        #Calculate pointwise log likelihood for cross-val prediction sample vs observed
+        #These are N_iter*N_obs*N_cross_val array
+        ll.cv.full<-lapply(cv_impact_full, function(x) lapply(x,crossval.log.lik))
+        ll.cv.full2<-lapply(ll.cv.full, reshape.arr)
+        #
+        ll.cv.time_no_offset<-lapply(cv_impact_time_no_offset, function(x) lapply(x,crossval.log.lik))
+        ll.cv.time_no_offset2<-lapply(ll.cv.time_no_offset, reshape.arr)
+        #
+        ll.cv.time<-lapply(cv_impact_time, function(x) lapply(x,crossval.log.lik))
+        ll.cv.time2<-lapply(ll.cv.time, reshape.arr)
+        #
+        ll.cv.pca<-lapply(cv_impact_pca, function(x) lapply(x,crossval.log.lik))
+        ll.cv.pca2<-lapply(ll.cv.pca, reshape.arr)
+        #Create list that has model result for each stratum
+        ll.compare<- vector("list", length(ll.cv.pca2)) 
+        stacking_weights.est<- vector("list", length(ll.cv.pca2)) 
+        
+         for(i in 1:length(ll.compare)){
+          ll.compare[[i]]<-cbind(ll.cv.full2[[i]],ll.cv.time_no_offset2[[i]],ll.cv.time2[[i]],ll.cv.pca2[[i]])#will get NAs if one of covariates is constant in fitting period (ie pandemic flu dummy)...shoud=ld fix this above
+          keep<-complete.cases(ll.compare[[i]])
+          ll.compare[[i]]<-ll.compare[[i]][keep,]
+          if(min(exp(ll.compare[[i]]))>0){
+          stacking_weights.est[[i]]<-stacking_weights(ll.compare[[i]])
+          } 
+         }
+        stacking_weights.all<-as.data.frame(round(t(sapply(stacking_weights.est, function(x) x)),3))     
+        names(stacking_weights.all)<-c('Synthetic Controls', 'Time trend', 'Time trend (no offset)', 'STL+PCA')
+        stacking_weights.all<-cbind.data.frame(groups,stacking_weights.all)
+        stacking_weights.all.m<-melt(stacking_weights.all, id.vars='groups')
+       # stacking_weights.all.m<-stacking_weights.all.m[order(stacking_weights.all.m$groups),]
+         }
+##########################################################################
+##########################################################################
 
 #Save the inclusion probabilities from each of the models.
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
@@ -205,12 +235,14 @@ inclusion_prob_time <- setNames(lapply(impact_time, inclusionProb), groups)
 #All model results combined
 quantiles_full <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_full[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
+quantiles_time_no_offset <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time_no_offset[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_pca <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_pca[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
 
 
 #Model predicitons
 pred_quantiles_full <- sapply(quantiles_full, getPred, simplify = 'array')
 pred_quantiles_time <- sapply(quantiles_time, getPred, simplify = 'array')
+pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getPred, simplify = 'array')
 pred_quantiles_pca <- sapply(quantiles_pca, getPred, simplify = 'array')
 
 #Pointwise RR and uncertainty for second stage meta analysis
@@ -225,40 +257,50 @@ saveRDS(log_rr_full_t_samples.prec, file=paste0(output_directory, country, "_log
 #Rolling rate ratios
 rr_roll_full <- sapply(quantiles_full, FUN = function(quantiles_full) {quantiles_full$roll_rr}, simplify = 'array')
 rr_roll_time <- sapply(quantiles_time, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
+rr_roll_time_no_offset <- sapply(quantiles_time_no_offset, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
 rr_roll_pca <- sapply(quantiles_pca, FUN = function(quantiles_pca) {quantiles_pca$roll_rr}, simplify = 'array')
 
 #Rate ratios for evaluation period.
 rr_mean_full <- t(sapply(quantiles_full, getRR))
 rr_mean_time <- t(sapply(quantiles_time, getRR))
+rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR))
 rr_mean_pca <- t(sapply(quantiles_pca, getRR))
 
 rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
-rr_mean_time_intervals <- data.frame('ITS Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
+rr_mean_time_intervals <- data.frame('Time trend Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
+rr_mean_time_no_offset_intervals <- data.frame('Time trend (no offset) Estimate (95% CI)' = makeInterval(rr_mean_time_no_offset[, 2], rr_mean_time_no_offset[, 3], rr_mean_time_no_offset[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
-
-colnames(rr_mean_time) <- paste('ITS', colnames(rr_mean_time))
+colnames(rr_mean_time) <- paste('Time_trend', colnames(rr_mean_time))
 
 #Combine RRs into 1 file for plotting
 rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_full),
                        cbind(rep(2, nrow(rr_mean_time)),groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)), rr_mean_time),
-                       cbind(rep(3, nrow(rr_mean_pca)), groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_pca)))
+                       cbind(rep(3, nrow(rr_mean_time_no_offset)),groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)), rr_mean_time_no_offset),
+                    cbind(rep(4, nrow(rr_mean_pca)), groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_pca)))
         names(rr_mean_combo)<-c('Model', 'groups', 'group.index','lcl','mean.rr','ucl')
-        rr_mean_combo$waic_weights<-waic_weights.m$value
+        if(crossval){
+          point.weights2<-stacking_weights.all.m
+        }else{
+          point.weights2<-rep(1,nrow(rr_mean_combo))
+        }
+        rr_mean_combo$point.weights<-point.weights2$value
         rr_mean_combo$group.index<-as.numeric(as.character(rr_mean_combo$group.index))
         rr_mean_combo$mean.rr<-as.numeric(as.character(rr_mean_combo$mean.rr))
         rr_mean_combo$lcl<-as.numeric(as.character(rr_mean_combo$lcl))
         rr_mean_combo$ucl<-as.numeric(as.character(rr_mean_combo$ucl))
         rr_mean_combo$group.index[rr_mean_combo$Model==2]<-rr_mean_combo$group.index[rr_mean_combo$Model==2]+0.15
         rr_mean_combo$group.index[rr_mean_combo$Model==3]<-rr_mean_combo$group.index[rr_mean_combo$Model==3]+0.3
+        rr_mean_combo$group.index[rr_mean_combo$Model==4]<-rr_mean_combo$group.index[rr_mean_combo$Model==4]+0.45
         rr_mean_combo$Model<-as.character(rr_mean_combo$Model)
         rr_mean_combo$Model[rr_mean_combo$Model=='1']<-"Synthetic Controls"
         rr_mean_combo$Model[rr_mean_combo$Model=='2']<-"Time trend"
-        rr_mean_combo$Model[rr_mean_combo$Model=='3']<-"STL+PCA"
-        cbPalette <- c("#1b9e77", "#d95f02", "#7570b3")
-        rr_mean_combo$index<-as.factor(1:nrow(rr_mean_combo))
+        rr_mean_combo$Model[rr_mean_combo$Model=='3']<-"Time trend (No offset)"
+        rr_mean_combo$Model[rr_mean_combo$Model=='4']<-"STL+PCA"
+        cbPalette <- c("#1b9e77", "#d95f02", "#7570b3",'#e7298a')
+        rr_mean_combo$est.index<-as.factor(1:nrow(rr_mean_combo))
         #Fix order for axis
         rr_mean_combo$Model<-as.factor(rr_mean_combo$Model)
-        rr_mean_combo$Model = factor(rr_mean_combo$Model,levels(rr_mean_combo$Model)[c(2,3,1)])
+        rr_mean_combo$Model = factor(rr_mean_combo$Model,levels(rr_mean_combo$Model)[c(2,3,4,1)])
         #print(levels(rr_mean_combo$Model))
 
 cumsum_prevented <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_full, simplify = 'array')

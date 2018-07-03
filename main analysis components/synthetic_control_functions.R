@@ -97,72 +97,123 @@ makeTimeSeries <- function(group, outcome,  covars, trend=FALSE) {
 
 
 #Main analysis function.
-doCausalImpact <- function(zoo_data, intervention_date, time_points, var.select.on=TRUE, n_seasons = NULL, n_iter = 10000, trend = FALSE) {
-	if (is.null(n_seasons) || is.na(n_seasons)) {
-		n_seasons <- length(unique(month(time(zoo_data)))) #number of months
-	}
-	y.pre <- zoo_data[time_points < as.Date(intervention_date), 1]
-	y.full<-zoo_data[,1] #all y
+doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_points,crossval=FALSE, var.select.on=TRUE, n_iter = 10000, trend = FALSE) {
 	
-	post_period_response <- zoo_data[, 1]
+  #Format outcome and covariates for regular and cross-validations
+  if(crossval){
+    #Data for cross-validation
+    y.pre<-zoo_data$cv.data[,1]
+    y.full<-zoo_data$full.data[,1]
+    exclude.indices<-zoo_data$exclude.indices
+    if(trend){
+      x <-as.matrix(zoo_data$full.data[, -c(1,2)]) #Removes outcome column and offset from dataset
+      offset.t<-as.vector(exp(as.matrix(zoo_data$full.data[, 2])))
+      offset.t.pre<-as.vector(exp(as.matrix(zoo_data$cv.data[, 2])))
+      x.pre <-as.matrix(zoo_data$cv.data[,-c(1,2)]) 
+    }else{
+      x <-as.matrix(zoo_data$full.data[, -1]) #Removes outcome column from dataset
+      x.pre <-as.matrix(zoo_data$cv.data[,-1]) 
+      x.pre.var<-apply(x.pre,2,var) #test if covariate changes at all in pre-period; if not delete (ie pandemic)
+      x<-x[,x.pre.var>0] #eliminate from full matrix
+      x.pre<-x.pre[,x.pre.var>0] #eliminate from cv matrix
+    }
+  }else{
+    ##Data for non-cross-validation
+      y.pre <- zoo_data[time_points < as.Date(intervention_date), 1]
+    	y.full<-zoo_data[,1] #all y
+    	exclude.indices<-NA
+    	if(trend){
+    	  x <-as.matrix(zoo_data[, -c(1,2)]) #Removes outcome column and offset from dataset
+    	  offset.t<-as.vector(exp(as.matrix(zoo_data[, 2])))
+    	  offset.t.pre<- offset.t[time_points < as.Date(intervention_date) ]
+    	}else{
+    	  x <-as.matrix(zoo_data[, -c(1)]) #Removes outcome column from dataset
+    	}
+    	x.pre <-as.matrix(x[time_points < as.Date(intervention_date), ]) 
+  }
+  
+	post_period_response <- y.full
 	post_period_response <- as.vector(post_period_response[time_points >= as.Date(intervention_date)])
-	if(trend){
-  	x <-as.matrix(zoo_data[, -c(1,2)]) #Removes outcome column and offset from dataset
-	   offset.t<-exp(as.matrix(zoo_data[, 2]))
-	   offset.t.pre<-offset.t[time_points < as.Date(intervention_date), ]
-	}else{
-	  x <-as.matrix(zoo_data[, -c(1)]) #Removes outcome column from dataset
-	}
-	x.pre <-as.matrix(x[time_points < as.Date(intervention_date), ]) 
+
 	covars<-x
 	cID <- seq_along(y.pre) #used for observation-level random effect
 	
 	#Which variables are fixed in the analysis (not estimated)
 	if(trend){
   	deltafix.mod<-c(rep(1, times=(ncol(x.pre)-1)),0) #monthly dummies, offset, fixed 
-  	bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, offset=offset.t.pre, BVS=var.select.on, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
+  	bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, offset=offset.t.pre, BVS=var.select.on, model = list(deltafix=deltafix.mod,ri = ri.select, clusterID = cID))
 	}else{
 	  if(var.select.on){
 	    deltafix.mod<-rep(0, times=(ncol(x.pre)))
 	    deltafix.mod[1:(n_seasons-1)]<-1 #fix  monthly dummies
 	    bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, BVS=TRUE, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
 	  }else{
+	    if(ri.select){
 	    bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, BVS=FALSE, model = list(ri = TRUE, clusterID = cID))
+	    }else{
+	   bsts_model.pois  <- poissonBvs(y=y.pre , X=x.pre, BVS=FALSE)
+	    }
 	  }
 	}
 
 	beta.mat<- bsts_model.pois$samplesP$beta[-c(1:2000),]
-	#Generate  predictions with prediction interval
-	disp<-bsts_model.pois$samplesP$thetaBeta[-c(1:2000)] ##note theta beta is signed--bimodal dist---take abs value
-	disp.mat<-rnorm(n=length(disp)*length(y.full), mean=0, sd=abs(disp))
-	disp.mat<-t(matrix(disp.mat, nrow=length(disp), ncol=length(y.full)))
 	x.fit<-cbind(rep(1,nrow(x)),x)
+		#Generate  predictions with prediction interval
+	if(ri.select){
+  	disp<-bsts_model.pois$samplesP$thetaBeta[-c(1:2000),1] ##note theta beta is signed--bimodal dist---take abs value
+  	disp.mat<-rnorm(n=length(disp)*length(y.full), mean=0, sd=abs(disp)) #Note: confirmed that median(abs(disp)) is same as sd(rand.eff)
+  	disp.mat<-t(matrix(disp.mat, nrow=length(disp), ncol=length(y.full)))
+   	} else{
+	    disp.mat=0 #if no random effect in model, just set to 0.
+  	}
 	if(trend){
-	  reg.mean<-   exp(  (x.fit %*% t(beta.mat)) + disp.mat)  *offset.t[,1]
+	  reg.mean<-   exp(  (x.fit %*% t(beta.mat)) + disp.mat)  *offset.t
 	}else{
 	  reg.mean<-   exp(  (x.fit %*% t(beta.mat)) + disp.mat )
-	}
+	  }
 	predict.bsts<-rpois(length(reg.mean),lambda=reg.mean)
 	predict.bsts<-matrix(predict.bsts,nrow=nrow(reg.mean), ncol=ncol(reg.mean))
 	#predict.bsts.q<-t(apply(predict.bsts,1,quantile, probs=c(0.025,0.5,0.975)))
 	#matplot(predict.bsts.q, type='l', col=c('gray','black','gray'), lty=c(2,1,2), bty='l', ylab="N hospitalizations")
-	#points(y)
+	#points(y.full)
 	
 	#Inclusion probabilities Poisson model
 	incl.probs.mat<-t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:2000),])
 	inclusion_probs<-apply(incl.probs.mat,1,mean)
 	summary.pois<- summary(bsts_model.pois)
 	covar.names<-dimnames(x.pre)[[2]]
-	rand.eff<-bsts_model.pois$samplesP$bi[-c(1:2000),]
+	if (ri.select){
+  	rand.eff<-bsts_model.pois$samplesP$bi[-c(1:2000),]
+	}else{
+	  rand.eff=0
+	}
 	inclusion_probs<-cbind.data.frame(covar.names,inclusion_probs)
 	if(trend){
-	impact <- list(rand.eff,offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
-	names(impact)<-c('rand.eff','offset.t.pre','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	impact <- list(exclude.indices,rand.eff,offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=y.full)
+	names(impact)<-c('exclude.indices','rand.eff','offset.t.pre','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
 	}else{
-	  impact <- list(rand.eff,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=zoo_data[, 1])
-	  names(impact)<-c('rand.eff','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	  impact <- list(exclude.indices, rand.eff,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=y.full)
+	  names(impact)<-c('exclude.indices' ,'rand.eff','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
 	}
 	return(impact)
+}
+
+crossval.log.lik<- function(cv.impact){
+  exclude.id<-cv.impact$exclude.indices
+  pred.exclude<- cv.impact$predict.bsts[exclude.id,]
+  obs.exclude<- cv.impact$observed.y[exclude.id]
+  point.ll1<-matrix(NA, nrow=nrow(pred.exclude), ncol=ncol(pred.exclude))
+  for(i in 1: ncol(pred.exclude)){
+    point.ll1[,i]<-dpois(obs.exclude, lambda=pred.exclude[,i], log=TRUE )
+  }
+  return(point.ll1)
+}
+reshape.arr<-function(point.ll3){
+  arr1=sapply(point.ll3, function(x) x, simplify='array') 
+  arr2<-aperm(arr1,perm=c(1,3,2))
+  mat1=matrix(arr2,nrow=dim(arr2)[1]*dim(arr2)[2],ncol=dim(arr2)[3] ) #f want to consider them ll together
+  mean.mat<-apply(mat1,1,logmeanexp)  #want to take mean of the likelihood, not log-likelihood..so use logmean exp to avoid underflow
+  return(mean.mat)
 }
 
 #Save inclusion probabilities.
@@ -170,49 +221,23 @@ inclusionProb <- function(impact) {
 	return(impact$inclusion_probs)
 }
 
-#In this version, use marginal mean for calculating likelihood--this will give best indication of prediction ability
-waic_fun<-function(impact,  eval_period, post_period, trend = FALSE) {
-  x.pre<-impact$covars[time_points < as.Date(intervention_date),]
-  x.pre<-cbind(rep(1,nrow(x.pre)), x.pre)
-  y.pre<-impact$observed.y[time_points < as.Date(intervention_date)] 
-  betas<-impact$beta.mat
-  re<- impact$rand.eff  #Obbservation-level random effect estimate
-  if(trend){
-    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) )*  impact$offset.t.pre[time_points < as.Date(intervention_date),1]) #return to count scale
-  }else{
-    reg.mean<-   t(exp(x.pre %*% t(betas) + t(re) ))
+##K-fold cross-validation
+  #Create K-fold datasets
+makeCV<-function(ds){
+  impact<-ds
+  impact.pre<-ds[time_points<intervention_date,]
+  year.pre<-year(time_points[time_points<intervention_date])
+  year.pre.vec<-unique(year.pre)
+  N.year.pre<-length(year.pre.vec)
+  impact.list.cv<-vector("list",  length=N.year.pre) 
+  for(i in 1:N.year.pre){
+    impact.list.cv<-impact.pre[!(year.pre==year.pre.vec[i]),] 
+    exclude.indices<-which((year.pre==year.pre.vec[i]))
+    cv.data[[i]]<- list(impact.list.cv,impact,exclude.indices) #combine full data (pre and post) and CV data
+    names(cv.data[[i]])<-c('cv.data','full.data','exclude.indices')
   }
-  log.piece<-matrix(NA, nrow=nrow(reg.mean), ncol=ncol(reg.mean))
-  for(j in 1:nrow(reg.mean)){
-    log.piece[j,]<-dpois(y.pre, lambda=reg.mean[j,], log=TRUE)
-  }
-  log.lik.mat<-log.piece
-  llpd<-sum(log(colMeans(exp(log.piece))))
-
-  PWAIC_1<-2*sum(log(colMeans(exp(log.piece))) - colMeans(log.piece))
-  WAIC_1<- -2*(llpd-PWAIC_1)
-  temp<-rep(0,times=ncol(log.piece))
-  for(j in 1:ncol(log.piece)){
-    temp[j]<-var(log.piece[,j])
-  }
-  PWAIC_2<-sum(temp)
-  WAIC_2<- -2*(llpd-PWAIC_2)
-  #save output
-  waics<-list(WAIC_1, WAIC_2,PWAIC_2,log.lik.mat)
-  names(waics)<-c('waic_1','waic_2','PWAIC_2','log.lik.mat')
-  return(waics)
+  return(cv.data)
 }
-
-#Calculate Reff for LOO
-r_eff_func1<-function(y){
-  r_eff_func2<-lapply(y, function(x) {
-    re<-relative_eff(exp(x), chain_id = rep(1, times=nrow(x)), cores=n_cores)
-    return(re)
-  })
-}
-#Estimate the rate ratios during the evaluation period and return to the original scale of the data.
-
-#Estimate the rate ratios during the evaluation period and return to the original scale of the data.
 
 #Estimate the rate ratios during the evaluation period and return to the original scale of the data.
 rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period) {
