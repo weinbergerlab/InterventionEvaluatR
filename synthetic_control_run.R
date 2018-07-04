@@ -47,7 +47,7 @@ pre_period        <- as.Date(c('2004-01-01', '2009-12-31')) #Range over which th
 post_period       <- as.Date(c('2010-01-01', '2013-12-01')) #Range from the intervention date to the end date.
 eval_period       <- as.Date(c('2012-01-01', '2013-12-01')) #Range over which rate ratio calculation will be performed.
 
-crossvall=FALSE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
+crossval=FALSE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
 #Run analysis, but don't generate HTML report
 # source('synthetic_control_analysis.R', local = TRUE)
 # source('synthetic_control_write_results.R', local = TRUE)
