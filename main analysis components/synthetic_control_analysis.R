@@ -60,7 +60,6 @@ set.seed(1)
 ###################################################
 
 dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
-prelog_data <- read.csv(data_file, check.names = FALSE)
 groups <- as.character(unique(unlist(prelog_data[, group_name], use.names = FALSE)))
 if (exists('exclude_group')) {groups <- groups[!(groups %in% exclude_group)]}
 
