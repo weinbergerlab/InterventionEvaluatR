@@ -15,10 +15,8 @@ write.csv(rr_roll_full, paste(output_directory, country, '_rr_roll_full.csv', se
 write.csv(rr_roll_time, paste(output_directory, country, '_rr_roll_time.csv', sep = ''))
 write.csv(rr_roll_pca, paste(output_directory, country, '_rr_roll_pca.csv', sep = ''))
 
-#WAICs
-write.csv(waic_full, paste(output_directory, country, '_waic_full.csv', sep = ''))
-write.csv(waic_time, paste(output_directory, country, '_waic_time.csv', sep = ''))
-write.csv(waic_pca, paste(output_directory, country, '_waic_pca.csv', sep = ''))
+#STacking weights
+write.csv(stacking_weights.est, paste(output_directory, country, '_stacking_weights.csv', sep = ''))
 
 #Tables for rate ratios.
 write.csv(sensitivity_table, paste(output_directory, country, '_sensitivity_table.csv', sep = ''))

@@ -79,7 +79,7 @@ kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_ti
 
 #Plot of Rate ratios, with size proportional to cross validation weights
 ```{r fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
-#Compare rate ratios, with size of marker scaled to WAIC weights
+#Compare rate ratios, with size of marker scaled to cross val weights
 		ggplot(rr_mean_combo, aes(x=group.index, y=mean.rr, color=Model,group=Model)) + 
 	  geom_errorbar(aes(ymin=lcl, ymax=ucl), colour="gray", width=.0) +
 	  geom_point(aes(shape=Model, size=est.index))+
