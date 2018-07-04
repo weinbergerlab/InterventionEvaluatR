@@ -33,6 +33,8 @@ input_directory  <- '../Datasets for PNAS/' #Directory (or URL) containing input
 output_directory <- '../Results'   #Directory where results will be saved.
 output_directory <- paste(output_directory, format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
 file_name        <- 'Dataset S1 Brazil.csv'                                                                       #Name of file containing data for analysis. Must be a .csv file.
+data_file <- paste0(input_directory, file_name)
+prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
 
 group_name   <- 'age_group' #Name of column containing group labels.
 date_name    <- 'date'      #Name of column containing dates.
