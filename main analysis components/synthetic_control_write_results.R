@@ -16,7 +16,7 @@ write.csv(rr_roll_time, paste(output_directory, country, '_rr_roll_time.csv', se
 write.csv(rr_roll_pca, paste(output_directory, country, '_rr_roll_pca.csv', sep = ''))
 
 #STacking weights
-write.csv(stacking_weights.est, paste(output_directory, country, '_stacking_weights.csv', sep = ''))
+write.csv(stacking_weights.all, paste(output_directory, country, '_stacking_weights.csv', sep = ''))
 
 #Tables for rate ratios.
 write.csv(sensitivity_table, paste(output_directory, country, '_sensitivity_table.csv', sep = ''))
