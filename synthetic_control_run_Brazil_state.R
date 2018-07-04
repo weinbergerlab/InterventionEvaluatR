@@ -29,6 +29,7 @@ if(country=="Brazil"){code_change   <- TRUE     #Used for Brazil data. Set to TR
     code_change   <- FALSE
   }
 
+input_directory  <- '../Datasets for PNAS/' #Directory containing input data file; if using UR, just set to desktop.
 output_directory <- '../Results'   #Directory where results will be saved.
 output_directory <- paste(output_directory, format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
 #Import direct from github
@@ -36,7 +37,6 @@ data_file= getURL("https://raw.githubusercontent.com/weinbergerlab/Brazil_state/
 prelog_data <- read.csv(text=data_file, check.names = FALSE)
 
 #Import from local file
-#input_directory  <- '../Datasets for PNAS/' #Directory (or URL) containing input data file.
 # data_file <- paste(input_directory, file_name, sep = '')
 # prelog_data <- read.csv(data_file, check.names = FALSE)
 
