@@ -230,7 +230,8 @@ makeCV<-function(ds){
   year.pre.vec<-unique(year.pre)
   N.year.pre<-length(year.pre.vec)
   impact.list.cv<-vector("list",  length=N.year.pre) 
-  for(i in 1:N.year.pre){
+  cv.data<-vector("list",  length=N.year.pre) 
+    for(i in 1:N.year.pre){
     impact.list.cv<-impact.pre[!(year.pre==year.pre.vec[i]),] 
     exclude.indices<-which((year.pre==year.pre.vec[i]))
     cv.data[[i]]<- list(impact.list.cv,impact,exclude.indices) #combine full data (pre and post) and CV data
