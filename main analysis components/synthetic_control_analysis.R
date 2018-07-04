@@ -69,7 +69,8 @@ if (exists('exclude_group')) {groups <- groups[!(groups %in% exclude_group)]}
 #                                             #
 ###############################################
 
-
+#test<-split(prelog_data, factor(prelog_data[,group_name]))
+#outcome.na<-sapply(test, function(x) sum(is.na(x[,outcome_name])))
 prelog_data[, date_name] <- formatDate(prelog_data[, date_name])
 prelog_data <- setNames(lapply(groups, FUN = splitGroup, ungrouped_data = prelog_data, group_name = group_name, date_name = date_name, start_date = start_date, end_date = end_date, no_filter = c(group_name, date_name, outcome_name, denom_name)), groups)
 #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}

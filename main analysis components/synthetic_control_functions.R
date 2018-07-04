@@ -39,11 +39,11 @@ formatDate <- function(time_points) {
 }
 
 splitGroup <- function(ungrouped_data, group_name, group, date_name, start_date, end_date, no_filter = NULL) {
-	ds <- ungrouped_data[ungrouped_data[, group_name] == group, ]
-	ds <- ds[, colSums(is.na(ds)) == 0]
-	ds <- ds[match(start_date, ds[, date_name]):match(end_date, ds[, date_name]), ]
-	ds <- cbind(ds[, colnames(ds) %in% no_filter], filterSparse(ds[, !(colnames(ds) %in% no_filter)]))
-	return(ds)
+  ds <- ungrouped_data[ungrouped_data[, group_name] == group, ]
+  ds <- ds[, colSums(is.na(ds)) == 0]
+  ds <- ds[match(start_date, ds[, date_name]):match(end_date, ds[, date_name]), ]
+  ds <- cbind(ds[, colnames(ds) %in% no_filter], filterSparse(ds[, !(colnames(ds) %in% no_filter), drop=FALSE]))
+  return(ds)
 }
 
 #Log-transform the covariate
