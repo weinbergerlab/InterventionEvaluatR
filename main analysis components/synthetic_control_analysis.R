@@ -209,22 +209,25 @@ stopCluster(cl)
         ll.cv.pca2<-lapply(ll.cv.pca, reshape.arr)
         #Create list that has model result for each stratum
         ll.compare<- vector("list", length(ll.cv.pca2)) 
-        stacking_weights.est<- vector("list", length(ll.cv.pca2)) 
+      stacking_weights.all<-matrix(NA, nrow=length(ll.cv.pca2), ncol=4)
         
          for(i in 1:length(ll.compare)){
           ll.compare[[i]]<-cbind(ll.cv.full2[[i]],ll.cv.time_no_offset2[[i]],ll.cv.time2[[i]],ll.cv.pca2[[i]])#will get NAs if one of covariates is constant in fitting period (ie pandemic flu dummy)...shoud=ld fix this above
           keep<-complete.cases(ll.compare[[i]])
           ll.compare[[i]]<-ll.compare[[i]][keep,]
-          if(min(exp(ll.compare[[i]]))>0){
-          stacking_weights.est[[i]]<-stacking_weights(ll.compare[[i]])
-          } 
+          #occasionally if there is a very poor fit, likelihood is very very small, which leads to underflow issue and log(0)...delete these rows to avoid this as a dirty solution. Better would be to fix underflow
+          row.min<-apply(exp(ll.compare[[i]]),1,min)
+          ll.compare[[i]]<-ll.compare[[i]][!(row.min==0),]
+          #if(min(exp(ll.compare[[i]]))>0){
+             stacking_weights.all[i,]<-stacking_weights(ll.compare[[i]])
+           #}
          }
-        stacking_weights.all<-as.data.frame(round(t(sapply(stacking_weights.est, function(x) x)),3))     
+      stacking_weights.all<-as.data.frame(round(stacking_weights.all,3))
         names(stacking_weights.all)<-c('Synthetic Controls', 'Time trend', 'Time trend (no offset)', 'STL+PCA')
         stacking_weights.all<-cbind.data.frame(groups,stacking_weights.all)
         stacking_weights.all.m<-melt(stacking_weights.all, id.vars='groups')
        # stacking_weights.all.m<-stacking_weights.all.m[order(stacking_weights.all.m$groups),]
-         }
+      }
 ##########################################################################
 ##########################################################################
 
