@@ -29,7 +29,7 @@ if(country=="Brazil"){code_change   <- TRUE     #Used for Brazil data. Set to TR
     code_change   <- FALSE
   }
 
-input_directory  <- 'https://raw.githubusercontent.com/weinbergerlab/synthetic-control/master/' #Directory (or URL) containing input data file.
+input_directory  <- 'https://raw.githubusercontent.com/weinbergerlab/synthetic-control/master/Datasets%20for%20PNAS/' #Directory (or URL) containing input data file.
 file_name="Dataset%20S1%20Brazil.csv"
 output_directory <- '../Results'   #Directory where results will be saved.
 output_directory <- paste(output_directory, format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
