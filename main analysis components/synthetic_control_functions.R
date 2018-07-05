@@ -189,11 +189,11 @@ doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_poin
 	}
 	inclusion_probs<-cbind.data.frame(covar.names,inclusion_probs)
 	if(trend){
-	impact <- list(exclude.indices,rand.eff,offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=y.full)
-	names(impact)<-c('exclude.indices','rand.eff','offset.t.pre','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	impact <- list(reg.mean,exclude.indices,rand.eff,offset.t,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=y.full)
+	names(impact)<-c('reg.mean','exclude.indices','rand.eff','offset.t.pre','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
 	}else{
-	  impact <- list(exclude.indices, rand.eff,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=y.full)
-	  names(impact)<-c('exclude.indices' ,'rand.eff','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
+	  impact <- list(reg.mean,exclude.indices, rand.eff,covars,beta.mat,predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=y.full)
+	  names(impact)<-c('reg.mean','exclude.indices' ,'rand.eff','covars','beta.mat','predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
 	}
 	return(impact)
 }
@@ -362,8 +362,8 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
   max_prob <- round(incl_prob$inclusion_probs[nrow(incl_prob)],2)
   sensitivity_analysis <- vector('list', 3)
   
-  for (i in 1:3) {
-    covar_df <- covar_df[, colnames(covar_df) != max_var]
+  for (i in 1:(min(nrow(incl_prob),3))) {
+    covar_df <- covar_df[, colnames(covar_df) != max_var,drop = FALSE]
     covar_df.pre<-covar_df[time_points < as.Date(intervention_date),]
     
     #Combine covars, outcome, date
