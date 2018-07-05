@@ -200,7 +200,7 @@ doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_poin
 
 crossval.log.lik<- function(cv.impact){
   exclude.id<-cv.impact$exclude.indices
-  pred.exclude<- cv.impact$predict.bsts[exclude.id,]
+  pred.exclude<- cv.impact$reg.mean[exclude.id,] #use predicted mean (which incorporates random effect)
   obs.exclude<- cv.impact$observed.y[exclude.id]
   point.ll1<-matrix(NA, nrow=nrow(pred.exclude), ncol=ncol(pred.exclude))
   for(i in 1: ncol(pred.exclude)){
