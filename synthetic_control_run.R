@@ -5,7 +5,7 @@
 rm(list = ls(all = TRUE))
 gc()
 source('synthetic_control_analysis.R', local = TRUE)
-
+require(RCurl)
 #Set the working directory
 #This step only works as written if this file is run using the source() command. Otherwise, skip this step and set manually.
 
