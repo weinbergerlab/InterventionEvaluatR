@@ -208,6 +208,44 @@ crossval.log.lik<- function(cv.impact){
   }
   return(point.ll1)
 }
+
+stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca){
+  #Averaged--multiply each log(mean) by weight, then add, then exponentiate and draw from Poisson
+    weights<-as.numeric(as.vector(stacking_weights.all[stacking_weights.all$groups==group,]))
+    rm.full<-log(impact_full$reg.mean)*weights[2]
+    rm.time<-log(impact_time$reg.mean)*weights[3]
+    rm.time_no_offset<-log(impact_time_no_offset$reg.mean)*weights[4]
+    rm.pca<-log(impact_pca$reg.mean)*weights[5]
+    
+    pred.full<-apply(impact_full$reg.mean, 1, median)
+    pred.time<-apply(impact_time$reg.mean, 1, median)
+    pred.time.no_offset<-apply(impact_time_no_offset$reg.mean, 1, median)
+    pred.pca<-apply(impact_pca$reg.mean, 1, median)
+    all.preds<-cbind(pred.full,pred.time,pred.time.no_offset,pred.pca)
+    
+    stack<-rm.full+rm.time+rm.time_no_offset+rm.pca
+    pred.stack.count<-rpois(n=length(stack),lambda=exp(stack))
+     pred.stack.count<-matrix(pred.stack.count, nrow=nrow(rm.full), ncol=ncol(rm.full))
+      pred.stack.q<- t(apply(pred.stack.count,1,quantile, probs=c(0.025,0.5,0.975)))
+     # log.rr.stack.q<-log((outcome[,group]+0.5)/pred.stack.q)
+    # log.rr.iter<- log((outcome[,group]+0.5)/pred.stack.count)
+    # log_rr_stack.cov<-cov(t(log.rr.iter))
+    # log_rr_stack.prec<-solve(log_rr_stack.cov) #NOT INVERTIBLE?
+    # #log_rr_stack.prec=log_rr_stack.cov
+    stacked.est<-list(pred.stack.count, pred.stack.q,outcome[,group] )
+    names(stacked.est)<-list('predict.bsts','pred.stack.q', 'observed.y' )
+    return(stacked.est)
+}
+
+plot.stack.est<-function(stacked.ests){
+  matplot(stacked.ests$all.preds, lty=1,type='l', col=c('#a6cee3','#1f78b4','#b2df8a','#33a02c'),bty='l', lwd=0.5, ylim=c(0, range(stacked.ests$pred.stack.q)[2]))
+  matplot(stacked.ests$pred.stack.q, type='l', col=c('gray','black','gray'),lwd=c(1,2,1), lty=c(2,1,2), bty='l', add=TRUE )
+  points(stacked.ests$y)
+  legend('bottomleft',inset=0.02, legend=c("Synthetic controls", "Time trend",'Time trend, no offset', 'STL+PCA'),
+         col=c('#a6cee3','#1f78b4','#b2df8a','#33a02c'), lty=1, cex=0.8,
+         box.lty=0)
+}
+
 reshape.arr<-function(point.ll3){
   arr1=sapply(point.ll3, function(x) x, simplify='array') 
   arr2<-aperm(arr1,perm=c(1,3,2))
