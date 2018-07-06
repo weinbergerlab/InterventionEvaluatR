@@ -226,6 +226,26 @@ stopCluster(cl)
         stacking_weights.all<-cbind.data.frame(groups,stacking_weights.all)
         stacking_weights.all.m<-melt(stacking_weights.all, id.vars='groups')
        # stacking_weights.all.m<-stacking_weights.all.m[order(stacking_weights.all.m$groups),]
+        
+        stacked.ests<-mapply(  FUN=stack.mean,group=groups,impact_full=impact_full,impact_time=impact_time,impact_time_no_offset=impact_time_no_offset,impact_pca=impact_pca, SIMPLIFY=FALSE )
+       # plot.stacked.ests<-lapply(stacked.ests,plot.stack.est)
+        quantiles_stack <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = stacked.ests[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
+        pred_quantiles_stack <- sapply(quantiles_stack, getPred, simplify = 'array')
+        rr_roll_stack <- sapply(quantiles_stack, FUN = function(quantiles_stack) {quantiles_stack$roll_rr}, simplify = 'array')
+        rr_mean_stack <- t(sapply(quantiles_stack, getRR))
+        rr_mean_stack_intervals <- data.frame('Stacking Estimate (95% CI)'     = makeInterval(rr_mean_stack[, 2], rr_mean_stack[, 3], rr_mean_stack[, 1]), check.names = FALSE, row.names = groups)
+        cumsum_prevented_stack <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_stack, simplify = 'array')
+        
+        save.stack.est<-list(pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
+        names(save.stack.est)<-c('pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
+        saveRDS(save.stack.est, file=paste0(output_directory, country, "Stack estimates.rds"))
+        
+        #Pointwise RR and uncertainty for second stage meta analysis
+        log_rr_quantiles_stack   <- sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
+        dimnames(log_rr_quantiles_stack)[[1]] <- time_points
+        log_rr_full_t_samples.stack.prec<-sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec}, simplify = 'array')
+        saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, country, "_log_rr_quantiles_stack.rds"))
+        saveRDS(log_rr_full_t_samples.stack.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.stack.prec.rds"))
       }
 ##########################################################################
 ##########################################################################
