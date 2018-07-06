@@ -77,7 +77,7 @@ if (!is.null(names(sparse_groups[sparse_groups])) && length(names(sparse_groups[
 kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')
 ```
 
-#Plot of Rate ratios, with size proportional to cross validation weights
+##Plot of Rate ratios, with size proportional to cross validation weights
 ```{r fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
 #Compare rate ratios, with size of marker scaled to cross val weights
 		ggplot(rr_mean_combo, aes(x=group.index, y=mean.rr, color=Model,group=Model)) + 
