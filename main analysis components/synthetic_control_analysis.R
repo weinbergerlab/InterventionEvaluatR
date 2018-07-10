@@ -11,7 +11,20 @@
 
 source('synthetic_control_functions.R', local = TRUE)
 
-packages <- c('parallel', 'splines', 'lubridate','logistf', 'RcppRoll','pomp', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
+#############################
+#Automatically set working directory to desktop
+#setwd('~/synthetic-control-master/main analysis components')  #directory where .Rmd file is saved
+#Set working directory: default to desktop--different path for windows vs Mac
+if(.Platform$OS.type == "windows") {
+  desktop<-file.path(Sys.getenv("USERPROFILE"),"Desktop")
+  desktop<-gsub(pattern='\\',replacement='/', desktop, fixed=TRUE)
+} else {
+  desktop<- "~/Desktop"
+}
+auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson-master/main analysis components/'))
+#
+
+packages <- c('parallel', 'splines', 'lubridate','logistf','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
@@ -47,8 +60,6 @@ set.seed(1)
 ###################################################
 
 dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
-data_file <- paste(input_directory, file_name, sep = '')
-prelog_data <- read.csv(data_file, check.names = FALSE)
 groups <- as.character(unique(unlist(prelog_data[, group_name], use.names = FALSE)))
 if (exists('exclude_group')) {groups <- groups[!(groups %in% exclude_group)]}
 
@@ -58,7 +69,8 @@ if (exists('exclude_group')) {groups <- groups[!(groups %in% exclude_group)]}
 #                                             #
 ###############################################
 
-
+#test<-split(prelog_data, factor(prelog_data[,group_name]))
+#outcome.na<-sapply(test, function(x) sum(is.na(x[,outcome_name])))
 prelog_data[, date_name] <- formatDate(prelog_data[, date_name])
 prelog_data <- setNames(lapply(groups, FUN = splitGroup, ungrouped_data = prelog_data, group_name = group_name, date_name = date_name, start_date = start_date, end_date = end_date, no_filter = c(group_name, date_name, outcome_name, denom_name)), groups)
 #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
@@ -98,16 +110,43 @@ groups <- groups[!sparse_groups]
 covars_full <- setNames(lapply(ds, makeCovars, code_change = code_change,season.dummies=season.dummies,  intervention_date = intervention_date, time_points = time_points), groups)
 covars_full <- sapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
 covars_time <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), groups)
+covars_null <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), groups)
 
 #Standardize the outcome variable and save the original mean and SD for later analysis.
 outcome      <- sapply(ds, FUN = function(data) {data[, outcome_name]})
 outcome_plot=outcome
 offset<- sapply(ds, FUN=function(data) exp(data[, denom_name]) )  #offset term on original scale; 1 column per age group
+################################
+#set up for STL+PCA
+################################
+##SECTION 1: CREATING SMOOTHED VERSIONS OF CONTROL TIME SERIES AND APPENDING THEM ONTO ORIGINAL DATAFRAME OF CONTROLS
+#EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
+# Set a list of parameters for STL
+stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full) 
+post.start.index<-which(time_points==post_period[1])
+stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds )  #list of lists that has covariates for each regression for each strata
 
+##SECTION 2: run first stage models
+n_cores <- detectCores()-1
+glm.results<- vector("list",  length=length(stl.data.setup)) #combine models into a list
+cl1 <- makeCluster(n_cores)
+clusterEvalQ(cl1, {library(lme4, quietly = TRUE)})
+clusterExport(cl1, c('stl.data.setup',  'glm.fun', 'time_points', 'n_seasons','post.start.index'), environment())
+for(i in 1:length(stl.data.setup)){
+  glm.results[[i]]<-parLapply(cl=cl1 ,     stl.data.setup[[i]], fun=glm.fun )
+}
+stopCluster(cl1)
+######################
 
 #Combine the outcome, covariates, and time point information.
 data_full <- setNames(lapply(groups, makeTimeSeries, outcome = outcome,       covars = covars_full), groups)
 data_time <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars = covars_time, trend=TRUE), groups)
+data_pca<-mapply(FUN=pca_top_var,glm.results.in=glm.results, covars=stl.covars,ds.in=ds, SIMPLIFY=FALSE)
+names(data_pca)<-groups
+#Null model where we only include seasonal terms but no covariates
+data_null <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars = covars_null, trend=FALSE), groups)
+#Time trend model but without a denominator
+data_time_no_offset <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars = covars_time, trend=FALSE), groups)
 
 ###############################
 #                             #
@@ -118,17 +157,98 @@ data_time <- setNames(lapply(groups, makeTimeSeries, outcome = outcome, covars =
 #Start Cluster for CausalImpact (the main analysis function).
 cl <- makeCluster(n_cores)
 clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE)})
-clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons'), environment())
-
-impact_full <- setNames(parLapply(cl, data_full, doCausalImpact, intervention_date = intervention_date, time_points = time_points, n_seasons = n_seasons), groups)
-impact_time <- setNames(parLapply(cl, data_time, doCausalImpact, intervention_date = intervention_date, time_points = time_points, n_seasons = n_seasons, trend = TRUE), groups)
-
+clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons','crossval'), environment())
+impact_full <- setNames(parLapply(cl, data_full, doCausalImpact, intervention_date = intervention_date, var.select.on=TRUE, time_points = time_points), groups)
+impact_time <- setNames(parLapply(cl, data_time, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points, trend = TRUE), groups)
+impact_time_no_offset <- setNames(parLapply(cl, data_time_no_offset, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points,  trend = FALSE), groups)
+impact_pca <- setNames(parLapply(cl, data_pca, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points), groups)
+#No covariates, but with random intercept
+#impact_seas_only <- setNames(parLapply(cl, data_null, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points, n_seasons = n_seasons), groups)
+#No covariates except seasonal, no random intercept
+#impact_seas_only_no_re <- setNames(parLapply(cl, data_null, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE,ri.select=FALSE, time_points = time_points, n_seasons = n_seasons), groups)
 stopCluster(cl)
 
-#calculate WAIC
-waic_full<-t(sapply(impact_full,waic_fun))
-waic_time<-t(sapply(impact_time,waic_fun, trend=TRUE))
-
+####################################################
+####################################################
+#CROSS VALIDATION
+####################################################
+    if(crossval){
+      #Creates List of lists: 1 entry for each stratum; within this, there are CV datasets for each year left out, and within this, there are 2 lists, one with full dataset, and one with the CV dataset
+        cv.data_full<-lapply(data_full, makeCV)
+        cv.data_time<-lapply(data_time, makeCV)
+        cv.data_time_no_offset<-lapply(data_time_no_offset, makeCV)
+        cv.data_pca<-lapply(data_pca, makeCV)
+      #zoo_data<-cv.data_time[[1]][[2]]
+      #Run the models on each of these datasets
+        # Start the clock!--takes ~45 minutes
+          ptm <- proc.time()
+        cl <- makeCluster(n_cores)
+        clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE)})
+        clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons','crossval'), environment())
+          cv_impact_full <-setNames(parLapply(cl, cv.data_full, function(x) lapply(x, doCausalImpact,crossval=TRUE, intervention_date = intervention_date,  var.select.on=TRUE, time_points = time_points)), groups)
+          cv_impact_time_no_offset <-setNames(parLapply(cl, cv.data_time_no_offset, function(x) lapply(x, doCausalImpact,crossval=TRUE, trend=FALSE, intervention_date = intervention_date,  var.select.on=FALSE, time_points = time_points)), groups)
+          cv_impact_time <-setNames(parLapply(cl, cv.data_time, function(x) lapply(x, doCausalImpact,crossval=TRUE, trend=TRUE, intervention_date = intervention_date,  var.select.on=FALSE, time_points = time_points)), groups)
+          cv_impact_pca <-setNames(parLapply(cl, cv.data_pca, function(x) lapply(x, doCausalImpact,crossval=TRUE, intervention_date = intervention_date,  var.select.on=FALSE, time_points = time_points)), groups)
+        stopCluster(cl)
+        # Stop the clock
+        proc.time() - ptm
+      
+        #Calculate pointwise log likelihood for cross-val prediction sample vs observed
+        #These are N_iter*N_obs*N_cross_val array
+        ll.cv.full<-lapply(cv_impact_full, function(x) lapply(x,crossval.log.lik))
+        ll.cv.full2<-lapply(ll.cv.full, reshape.arr)
+        #
+        ll.cv.time_no_offset<-lapply(cv_impact_time_no_offset, function(x) lapply(x,crossval.log.lik))
+        ll.cv.time_no_offset2<-lapply(ll.cv.time_no_offset, reshape.arr)
+        #
+        ll.cv.time<-lapply(cv_impact_time, function(x) lapply(x,crossval.log.lik))
+        ll.cv.time2<-lapply(ll.cv.time, reshape.arr)
+        #
+        ll.cv.pca<-lapply(cv_impact_pca, function(x) lapply(x,crossval.log.lik))
+        ll.cv.pca2<-lapply(ll.cv.pca, reshape.arr)
+        #Create list that has model result for each stratum
+        ll.compare<- vector("list", length(ll.cv.pca2)) 
+      stacking_weights.all<-matrix(NA, nrow=length(ll.cv.pca2), ncol=4)
+        
+         for(i in 1:length(ll.compare)){
+          ll.compare[[i]]<-cbind(ll.cv.full2[[i]],ll.cv.time_no_offset2[[i]],ll.cv.time2[[i]],ll.cv.pca2[[i]])#will get NAs if one of covariates is constant in fitting period (ie pandemic flu dummy)...shoud=ld fix this above
+          keep<-complete.cases(ll.compare[[i]])
+          ll.compare[[i]]<-ll.compare[[i]][keep,]
+          #occasionally if there is a very poor fit, likelihood is very very small, which leads to underflow issue and log(0)...delete these rows to avoid this as a dirty solution. Better would be to fix underflow
+          row.min<-apply(exp(ll.compare[[i]]),1,min)
+          ll.compare[[i]]<-ll.compare[[i]][!(row.min==0),]
+          #if(min(exp(ll.compare[[i]]))>0){
+             stacking_weights.all[i,]<-stacking_weights(ll.compare[[i]])
+           #}
+         }
+      stacking_weights.all<-as.data.frame(round(stacking_weights.all,3))
+        names(stacking_weights.all)<-c('Synthetic Controls', 'Time trend', 'Time trend (no offset)', 'STL+PCA')
+        stacking_weights.all<-cbind.data.frame(groups,stacking_weights.all)
+        stacking_weights.all.m<-melt(stacking_weights.all, id.vars='groups')
+       # stacking_weights.all.m<-stacking_weights.all.m[order(stacking_weights.all.m$groups),]
+        
+        stacked.ests<-mapply(  FUN=stack.mean,group=groups,impact_full=impact_full,impact_time=impact_time,impact_time_no_offset=impact_time_no_offset,impact_pca=impact_pca, SIMPLIFY=FALSE )
+       # plot.stacked.ests<-lapply(stacked.ests,plot.stack.est)
+        quantiles_stack <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = stacked.ests[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
+        pred_quantiles_stack <- sapply(quantiles_stack, getPred, simplify = 'array')
+        rr_roll_stack <- sapply(quantiles_stack, FUN = function(quantiles_stack) {quantiles_stack$roll_rr}, simplify = 'array')
+        rr_mean_stack <- t(sapply(quantiles_stack, getRR))
+        rr_mean_stack_intervals <- data.frame('Stacking Estimate (95% CI)'     = makeInterval(rr_mean_stack[, 2], rr_mean_stack[, 3], rr_mean_stack[, 1]), check.names = FALSE, row.names = groups)
+        cumsum_prevented_stack <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_stack, simplify = 'array')
+        
+        save.stack.est<-list(pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
+        names(save.stack.est)<-c('pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
+        saveRDS(save.stack.est, file=paste0(output_directory, country, "Stack estimates.rds"))
+        
+        #Pointwise RR and uncertainty for second stage meta analysis
+        log_rr_quantiles_stack   <- sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
+        dimnames(log_rr_quantiles_stack)[[1]] <- time_points
+        log_rr_full_t_samples.stack.prec<-sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec}, simplify = 'array')
+        saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, country, "_log_rr_quantiles_stack.rds"))
+        saveRDS(log_rr_full_t_samples.stack.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.stack.prec.rds"))
+      }
+##########################################################################
+##########################################################################
 
 #Save the inclusion probabilities from each of the models.
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
@@ -137,11 +257,15 @@ inclusion_prob_time <- setNames(lapply(impact_time, inclusionProb), groups)
 #All model results combined
 quantiles_full <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_full[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
+quantiles_time_no_offset <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time_no_offset[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
+quantiles_pca <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_pca[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
 
 
 #Model predicitons
 pred_quantiles_full <- sapply(quantiles_full, getPred, simplify = 'array')
 pred_quantiles_time <- sapply(quantiles_time, getPred, simplify = 'array')
+pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getPred, simplify = 'array')
+pred_quantiles_pca <- sapply(quantiles_pca, getPred, simplify = 'array')
 
 #Pointwise RR and uncertainty for second stage meta analysis
 log_rr_quantiles   <- sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
@@ -152,32 +276,61 @@ saveRDS(log_rr_quantiles, file=paste0(output_directory, country, "_log_rr_quanti
 saveRDS(log_rr_sd, file=paste0(output_directory, country, "_log_rr_sd.rds"))
 saveRDS(log_rr_full_t_samples.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.prec.rds"))
 
-
 #Rolling rate ratios
 rr_roll_full <- sapply(quantiles_full, FUN = function(quantiles_full) {quantiles_full$roll_rr}, simplify = 'array')
 rr_roll_time <- sapply(quantiles_time, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
+rr_roll_time_no_offset <- sapply(quantiles_time_no_offset, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
+rr_roll_pca <- sapply(quantiles_pca, FUN = function(quantiles_pca) {quantiles_pca$roll_rr}, simplify = 'array')
 
 #Rate ratios for evaluation period.
 rr_mean_full <- t(sapply(quantiles_full, getRR))
 rr_mean_time <- t(sapply(quantiles_time, getRR))
+rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR))
+rr_mean_pca <- t(sapply(quantiles_pca, getRR))
 
-rr_mean_full_intervals <- data.frame('Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
-rr_mean_time_intervals <- data.frame('ITS Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
+rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
+rr_mean_time_intervals <- data.frame('Time trend Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
+rr_mean_time_no_offset_intervals <- data.frame('Time trend (no offset) Estimate (95% CI)' = makeInterval(rr_mean_time_no_offset[, 2], rr_mean_time_no_offset[, 3], rr_mean_time_no_offset[, 1]), check.names = FALSE, row.names = groups)
+rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
+colnames(rr_mean_time) <- paste('Time_trend', colnames(rr_mean_time))
 
-colnames(rr_mean_time) <- paste('ITS', colnames(rr_mean_time))
+#Combine RRs into 1 file for plotting
+rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_full),
+                       cbind(rep(2, nrow(rr_mean_time)),groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)), rr_mean_time),
+                       cbind(rep(3, nrow(rr_mean_time_no_offset)),groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)), rr_mean_time_no_offset),
+                    cbind(rep(4, nrow(rr_mean_pca)), groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_pca)))
+        names(rr_mean_combo)<-c('Model', 'groups', 'group.index','lcl','mean.rr','ucl')
+        if(crossval){
+          point.weights2<-stacking_weights.all.m
+        }else{
+          point.weights2<-rep(1,nrow(rr_mean_combo))
+        }
+        rr_mean_combo$point.weights<-point.weights2$value
+        rr_mean_combo$group.index<-as.numeric(as.character(rr_mean_combo$group.index))
+        rr_mean_combo$mean.rr<-as.numeric(as.character(rr_mean_combo$mean.rr))
+        rr_mean_combo$lcl<-as.numeric(as.character(rr_mean_combo$lcl))
+        rr_mean_combo$ucl<-as.numeric(as.character(rr_mean_combo$ucl))
+        rr_mean_combo$group.index[rr_mean_combo$Model==2]<-rr_mean_combo$group.index[rr_mean_combo$Model==2]+0.15
+        rr_mean_combo$group.index[rr_mean_combo$Model==3]<-rr_mean_combo$group.index[rr_mean_combo$Model==3]+0.3
+        rr_mean_combo$group.index[rr_mean_combo$Model==4]<-rr_mean_combo$group.index[rr_mean_combo$Model==4]+0.45
+        rr_mean_combo$Model<-as.character(rr_mean_combo$Model)
+        rr_mean_combo$Model[rr_mean_combo$Model=='1']<-"Synthetic Controls"
+        rr_mean_combo$Model[rr_mean_combo$Model=='2']<-"Time trend"
+        rr_mean_combo$Model[rr_mean_combo$Model=='3']<-"Time trend (No offset)"
+        rr_mean_combo$Model[rr_mean_combo$Model=='4']<-"STL+PCA"
+        cbPalette <- c("#1b9e77", "#d95f02", "#7570b3",'#e7298a')
+        rr_mean_combo$est.index<-as.factor(1:nrow(rr_mean_combo))
+        #Fix order for axis
+        rr_mean_combo$Model<-as.factor(rr_mean_combo$Model)
+        rr_mean_combo$Model = factor(rr_mean_combo$Model,levels(rr_mean_combo$Model)[c(2,3,4,1)])
+        #print(levels(rr_mean_combo$Model))
+
+cumsum_prevented <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_full, simplify = 'array')
+cumsum_prevented_pca <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_pca, simplify = 'array')
+cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_time, simplify = 'array')
 
 
-cumsum_prevented <- sapply(groups, FUN = function(group, quantiles) {
-	is_post_period <- which(time_points >= post_period[1])
-	is_pre_period <- which(time_points < post_period[1])
-	
-	#Cumulative sum of prevented cases
-	cases_prevented <- quantiles[[group]]$pred_samples - outcome[, group]
-	cumsum_cases_prevented_post <- apply(cases_prevented[is_post_period, ], 2, cumsum)
-	cumsum_cases_prevented_pre <- matrix(0, nrow = nrow(cases_prevented[is_pre_period, ]), ncol = ncol(cases_prevented[is_pre_period, ]))
-	cumsum_cases_prevented <- rbind(cumsum_cases_prevented_pre, cumsum_cases_prevented_post)
-	cumsum_prevented <- t(apply(cumsum_cases_prevented, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
-}, quantiles = quantiles_full, simplify = 'array')
+
 
 ################################
 #                              #
@@ -207,10 +360,8 @@ cumsum_prevented <- sapply(groups, FUN = function(group, quantiles) {
  #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
 cl <- makeCluster(n_cores)
 clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
-clusterExport(cl, c('sensitivity_ds', 'doCausalImpact',  'weightSensitivityAnalysis', 'rrPredQuantiles', 'sensitivity_groups', 'intervention_date', 'outcome', 'time_points', 'n_seasons',  'eval_period', 'post_period'), environment())
-
-sensitivity_analysis_full <- setNames(parLapply(cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = time_points, intervention_date = intervention_date, n_seasons = n_seasons, outcome = outcome,  eval_period = eval_period, post_period = post_period), sensitivity_groups)
-
+clusterExport(cl, c('sensitivity_ds', 'doCausalImpact',  'weightSensitivityAnalysis', 'rrPredQuantiles', 'sensitivity_groups', 'intervention_date', 'outcome', 'time_points', 'n_seasons',  'eval_period', 'post_period','crossval'), environment())
+  sensitivity_analysis_full <- setNames(parLapply(cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = time_points, intervention_date = intervention_date, n_seasons = n_seasons, outcome = outcome,  eval_period = eval_period, post_period = post_period), sensitivity_groups)
 stopCluster(cl)
 
 sensitivity_pred_quantiles  <- lapply(sensitivity_analysis_full, FUN = function(sensitivity_analysis) {

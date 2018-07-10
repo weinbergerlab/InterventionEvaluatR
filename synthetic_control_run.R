@@ -1,25 +1,18 @@
 #This is the file used to set variables to be used in analysis, as well as to run the analysis.
 #Make sure *_analysis.R, *_report.R, *_report.Rmd, *_functions.R, and *_plot.R are all in the same folder as this file.
 #Model the setup shown in this file, then run this file from the console using source('This file's directory/This file's name'). 
-
 #Clear the workspace
 rm(list = ls(all = TRUE))
 gc()
-
+source('synthetic_control_analysis.R', local = TRUE)
+require(RCurl)
 #Set the working directory
 #This step only works as written if this file is run using the source() command. Otherwise, skip this step and set manually.
 
 ###WORKING DIRECTORY Should be set as the directory where .Rmd file is saved  ####
-#setwd('~/synthetic-control-master/main analysis components')  #directory where .Rmd file is saved
-#Set working directory: default to desktop--different path for windows vs Mac
-if(.Platform$OS.type == "windows") {
-  desktop<-file.path(Sys.getenv("USERPROFILE"),"Desktop")
-  desktop<-gsub(pattern='\\',replacement='/', desktop, fixed=TRUE)
-} else {
-  desktop<- "~/Desktop"
-}
+#setwd(auto.wd) ##automatically set working directory to '~desktop/synthetic-control-poisson-master/main analysis components/'
+
 setwd('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/main analysis components')
-#setwd(file.path(paste0(desktop,'/synthetic-control-master/main analysis components/')))
 
 #Used to check for relevant packages and update them if out of date or install them if not installed.
 update_packages  <- TRUE #Whether to update outdated packages.
@@ -32,14 +25,17 @@ n_seasons     <- 12       #Number of months (seasons) per year. 12 for monthly, 
 exclude_covar <- c()      #User-defined list of covariate columns to exclude from all analyses.
 exclude_group <- c()      #User-defined list of groups to exclude from analyses.
 if(country=="Brazil"){code_change   <- TRUE     #Used for Brazil data. Set to TRUE to adjust for year 2008 coding changes; otherwise, set to FALSE.
-}else{
-  code_change   <- FALSE
-}
+    }else{
+    code_change   <- FALSE
+  }
 
-input_directory  <- '../Datasets for PNAS/' #Directory (or URL) containing input data file.
+input_directory  <- 'https://raw.githubusercontent.com/weinbergerlab/synthetic-control/master/Datasets%20for%20PNAS/' #Directory (or URL) containing input data file.
+file_name="Dataset%20S1%20Brazil.csv"
 output_directory <- '../Results'   #Directory where results will be saved.
-output_directory <- paste(output_directory, format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
-file_name        <- 'Dataset S1 Brazil.csv'                                                                       #Name of file containing data for analysis. Must be a .csv file.
+output_directory <- paste(output_directory,'_',country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
+data_file <- paste0(input_directory, file_name)
+#prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
+prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
 
 group_name   <- 'age_group' #Name of column containing group labels.
 date_name    <- 'date'      #Name of column containing dates.
@@ -54,6 +50,7 @@ pre_period        <- as.Date(c('2004-01-01', '2009-12-31')) #Range over which th
 post_period       <- as.Date(c('2010-01-01', '2013-12-01')) #Range from the intervention date to the end date.
 eval_period       <- as.Date(c('2012-01-01', '2013-12-01')) #Range over which rate ratio calculation will be performed.
 
+crossval=TRUE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
 #Run analysis, but don't generate HTML report
 # source('synthetic_control_analysis.R', local = TRUE)
 # source('synthetic_control_write_results.R', local = TRUE)

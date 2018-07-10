@@ -12,12 +12,18 @@ for (group in groups) {
 		labs(x = 'Time', y = 'Scaled Covariates') + 
 		ggtitle(paste(group, 'Scaled Covariates Weighted by Inclusion Probability')) +
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.position = 'none', plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-	
-	#Plot predictions
+
+		#Plot predictions
 	min_max <- c(min(c(pred_quantiles_full[, , group], outcome_plot[, group])), max(c(pred_quantiles_full[, , group], outcome_plot[, group])))
 	pred_full_plot <-        plotPred(pred_quantiles_full[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Synthetic controls estimate'))
 	pred_time_plot <-        plotPred(pred_quantiles_time[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Interupted time series estimate'))
+	pred_pca_plot <-        plotPred(pred_quantiles_pca[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'STL+PCA estimate'))
 	pred_sensitivity_plot <- plotPred(pred_quantiles_full[, , group], time_points, post_period, min_max, outcome_plot[, group], sensitivity_pred_quantiles = sensitivity_pred_quantiles[[group]], sensitivity_title = paste(group, 'Sensitivity Plots'), plot_sensitivity = TRUE)
 	
 	#matplot(pred_quantiles_full[, , 10], ylim=c(0,22000), type='l')	 ##Check
@@ -31,6 +37,11 @@ for (group in groups) {
 		ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
 		coord_cartesian(ylim = min_max) +
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	rr_roll_time_plot <- ggplot(melt(as.data.frame(rr_roll_time[, , group]), id.vars = NULL), mapping = aes_string(x = rep(time_points[(length(time_points) - nrow(rr_roll_time[, , group]) + 1):length(time_points)], ncol(rr_roll_time[, , group])), y = 'value', linetype = 'variable')) + 
 		geom_line() + geom_hline(yintercept = 1, linetype = 4) +
@@ -38,7 +49,24 @@ for (group in groups) {
 		ggtitle(paste(group, 'TT Rolling Rate Ratio')) +
 		coord_cartesian(ylim = min_max) +
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+	rr_roll_pca_plot <- ggplot(melt(as.data.frame(rr_roll_pca[, , group]), id.vars = NULL), mapping = aes_string(x = rep(time_points[(length(time_points) - nrow(rr_roll_pca[, , group]) + 1):length(time_points)], ncol(rr_roll_pca[, , group])), y = 'value', linetype = 'variable')) + 
+	  geom_line() + geom_hline(yintercept = 1, linetype = 4) +
+	  labs(x = 'Time', y = 'Rolling Rate Ratio') + 
+	  ggtitle(paste(group, 'STL+PCA Rolling Rate Ratio')) +
+	  coord_cartesian(ylim = min_max) +
+	  theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
+	  theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
 	#Plot cumulative sums
 	cumsum_prevented_plot <- ggplot(melt(as.data.frame(cumsum_prevented[, , group]), id.vars = NULL), mapping = aes_string(x = rep(time_points, ncol(cumsum_prevented[, , group])), y = 'value', linetype = 'variable')) + 
@@ -46,14 +74,21 @@ for (group in groups) {
 		labs(x = 'Time', y = 'Cumulative Sum Prevented') + 
 		ggtitle(paste(group, 'Cumulative Number of Cases Prevented')) + 
 		theme_bw() +
+	  theme(axis.line = element_line(colour = "black"),
+	        panel.grid.major = element_blank(),
+	        panel.grid.minor = element_blank(),
+	        panel.border = element_blank(),
+	        panel.background = element_blank()) +
 		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
 	plot_list[[group]] <- list(covar_plot = covar_plot, 
-															pred_full_plot = pred_full_plot, 
+	                           	pred_full_plot = pred_full_plot, 
 															pred_time_plot = pred_time_plot, 
+															pred_pca_plot = pred_pca_plot, 
 															pred_sensitivity_plot = pred_sensitivity_plot, 
 															rr_roll_full_plot = rr_roll_full_plot, 
 															rr_roll_time_plot = rr_roll_time_plot, 
+															rr_roll_pca_plot = rr_roll_pca_plot, 
 															cumsum_prevented_plot = cumsum_prevented_plot)
 }
 
