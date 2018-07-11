@@ -63,7 +63,6 @@ eval_period       <- params$eval_period
 #```{r analysis, include = FALSE}
 #source('synthetic_control_analysis.R', local = TRUE)
 #```
-
 #`r country` Results
 
 ```{r sparse}
@@ -74,12 +73,16 @@ if (!is.null(names(sparse_groups[sparse_groups])) && length(names(sparse_groups[
 
 ##combine estimates
 ```{r Comparison of estimates from different models}
-kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')
+if (crossval){
+kable( cbind.data.frame(rr_mean_stack_intervals,rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')
+}else{
+kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')  
+}
 ```
 
 ##Plot of Rate ratios, with size proportional to cross validation weights
 ```{r fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
-#Compare rate ratios, with size of marker scaled to WAIC weights
+#Compare rate ratios, with size of marker scaled to cross val weights
 		ggplot(rr_mean_combo, aes(x=group.index, y=mean.rr, color=Model,group=Model)) + 
 	  geom_errorbar(aes(ymin=lcl, ymax=ucl), colour="gray", width=.0) +
 	  geom_point(aes(shape=Model, size=est.index))+
@@ -107,7 +110,7 @@ kable(stacking_weights.all, align = 'c')
       print("Cross-validation not performed")
     }
 ```
-
+  
 ##Inclusion Probabilities
 ```{r incl, include = FALSE}
 incl_probs <- NULL
