@@ -74,7 +74,11 @@ if (!is.null(names(sparse_groups[sparse_groups])) && length(names(sparse_groups[
 
 ##combine estimates
 ```{r Comparison of estimates from different models}
-kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')
+if (crossval){
+kable( cbind.data.frame(rr_mean_stack_intervals,rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')
+}else{
+kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')  
+}
 ```
 
 ##Plot of Rate ratios, with size proportional to cross validation weights

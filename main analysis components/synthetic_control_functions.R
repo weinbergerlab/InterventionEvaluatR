@@ -206,7 +206,17 @@ crossval.log.lik<- function(cv.impact){
   for(i in 1: ncol(pred.exclude)){
     point.ll1[,i]<-dpois(obs.exclude, lambda=pred.exclude[,i], log=TRUE )
   }
+
   return(point.ll1)
+}
+
+# cross validated predictions vs observed
+pred.cv<-function(cv.impact){
+  exclude.id<-cv.impact$exclude.indices
+  pred.exclude<- cv.impact$reg.mean[exclude.id,] #use predicted mean (which incorporates random effect)
+  cv.pred.q<- t(apply(pred.exclude,1,quantile, probs=c(0.025,0.5, 0.975)))
+  cv.pred.q<-cbind( cv.impact$observed.y[exclude.id],cv.pred.q) #combine observed and expected
+   return(cv.pred.q)
 }
 
 stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca){

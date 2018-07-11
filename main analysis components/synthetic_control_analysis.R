@@ -232,9 +232,24 @@ stopCluster(cl)
         quantiles_stack <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = stacked.ests[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
         pred_quantiles_stack <- sapply(quantiles_stack, getPred, simplify = 'array')
         rr_roll_stack <- sapply(quantiles_stack, FUN = function(quantiles_stack) {quantiles_stack$roll_rr}, simplify = 'array')
-        rr_mean_stack <- t(sapply(quantiles_stack, getRR))
+        rr_mean_stack <- round(t(sapply(quantiles_stack, getRR)),2)
         rr_mean_stack_intervals <- data.frame('Stacking Estimate (95% CI)'     = makeInterval(rr_mean_stack[, 2], rr_mean_stack[, 3], rr_mean_stack[, 1]), check.names = FALSE, row.names = groups)
         cumsum_prevented_stack <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_stack, simplify = 'array')
+        
+        #Preds: Compare observed and expected
+        pred.cv.full<-lapply(cv_impact_full, function(x) sapply(x,pred.cv,simplify='array'))
+        pred.cv.pca<-lapply(cv_impact_pca, function(x) sapply(x,pred.cv,simplify='array'))
+        
+        # # par(mfrow=c(3,2))
+        # plot.grp=9
+        # for(i in 1:6){
+        # matplot(pred.cv.full[[plot.grp]][,c(2:4),i], type='l', ylab='Count',col='#1b9e77', lty=c(2,1,2), bty='l', ylim=range(pred.cv.full[[plot.grp]][,c(1),i])*c(0.8,1.2))
+        # points(pred.cv.full[[plot.grp]][,c(1),i], pch=16)
+        # title("Synthetic controls: Cross validation")
+        # matplot(pred.cv.pca[[plot.grp]][,c(2:4),i], type='l',ylab='Count', col='#d95f02', lty=c(2,1,2), bty='l', ylim=range(pred.cv.full[[plot.grp]][,c(1),i])*c(0.8,1.2))
+        # points(pred.cv.pca[[plot.grp]][,c(1),i], pch=16)
+        # title("STL+PCA: Cross validation")
+        # }
         
         save.stack.est<-list(pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
         names(save.stack.est)<-c('pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
