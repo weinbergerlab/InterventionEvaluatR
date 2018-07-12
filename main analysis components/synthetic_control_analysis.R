@@ -26,6 +26,7 @@ auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson-master/main analys
 
 packages <- c('parallel', 'splines', 'lubridate','logistf','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
+sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
 #Detect if pogit package installed; if not download archive (no longer on cran)
 if("BayesLogit" %in% rownames(installed.packages())==FALSE){
@@ -47,7 +48,6 @@ if("pogit" %in% rownames(installed.packages())==FALSE){
   install.packages('logistf')
 }
 library(pogit)
-
 
 #Detects number of available cores on computers. Used for parallel processing to speed up analysis.
 n_cores <- detectCores()
