@@ -26,12 +26,12 @@ auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson-master/main analys
 
 packages <- c('parallel', 'splines', 'lubridate','logistf','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
-sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
 #Detect if pogit package installed; if not download archive (no longer on cran)
 if("BayesLogit" %in% rownames(installed.packages())==FALSE){
   if(.Platform$OS.type == "windows") {
-  url_BayesLogit<- "https://mran.microsoft.com/snapshot/2017-02-04/src/contrib/BayesLogit_0.6.tar.gz"
+  #url_BayesLogit<- "https://mran.microsoft.com/snapshot/2017-02-04/src/contrib/BayesLogit_0.6.tar.gz"
+  install_github("jwindle/BayesLogit")
   }else{
     url_BayesLogit<- "https://github.com/weinbergerlab/synthetic-control-poisson/blob/master/packages/BayesLogit_0.6_mac.tgz?raw=true"
   }
@@ -79,18 +79,19 @@ prelog_data <- setNames(lapply(groups, FUN = splitGroup, ungrouped_data = prelog
 ds <- setNames(lapply(prelog_data, FUN = logTransform, no_log = c(group_name, date_name,outcome_name)), groups)
 time_points <- unique(ds[[1]][, date_name])
 
-
 #Monthly dummies
-if(n_seasons==4){x<-quarter(as.Date(time_points))}
-if(n_seasons==12){x<-month(as.Date(time_points))}
+if(n_seasons==4){dt<-quarter(as.Date(time_points))}
+if(n_seasons==12){dt<-month(as.Date(time_points))}
 if(n_seasons==3){
-    x.m<-month(as.Date(time_points))
-    x<-x.m
-    x[x.m %in% c(1,2,3,4)]<-1
-    x[x.m %in% c(5,6,7,8)]<-2
-    x[x.m %in% c(9,10,11,12)]<-3
+  dt.m<-month(as.Date(time_points))
+  dt<-dt.m
+  dt[dt.m %in% c(1,2,3,4)]<-1
+  dt[dt.m %in% c(5,6,7,8)]<-2
+  dt[dt.m %in% c(9,10,11,12)]<-3
     }
-season.dummies<-dummy(x)
+season.dummies<-dummy(dt)
+season.dummies<-as.data.frame(season.dummies)
+names(season.dummies)<-paste0('s', 1:n_seasons)
 season.dummies<-season.dummies[,-n_seasons]
 
 ds <- lapply(ds, function(ds) {
@@ -107,7 +108,7 @@ ds <- ds[!sparse_groups]
 groups <- groups[!sparse_groups]
 
 #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
-covars_full <- setNames(lapply(ds, makeCovars, code_change = code_change,season.dummies=season.dummies,  intervention_date = intervention_date, time_points = time_points), groups)
+covars_full <- setNames(lapply(ds, makeCovars), groups)
 covars_full <- sapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
 covars_time <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), groups)
 covars_null <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), groups)

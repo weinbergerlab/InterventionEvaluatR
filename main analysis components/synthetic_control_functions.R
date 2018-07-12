@@ -67,7 +67,7 @@ getTrend <- function(covar_vector, data) {
 	return(trend)
 }
 
-makeCovars <- function(ds_group, code_change, intervention_date,season.dummies, time_points) {
+makeCovars <- function(ds_group) {
 	if (code_change) {
 		#Eliminates effects from 2008 coding change
 		covars <- ds_group[, 4:ncol(ds_group)]
