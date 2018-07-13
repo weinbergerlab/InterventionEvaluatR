@@ -26,9 +26,14 @@ for (group in groups) {
 	pred_pca_plot <-        plotPred(pred_quantiles_pca[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'STL+PCA estimate'))
 	if(crossval){
 	  pred_stack_plot <-        plotPred(pred_quantiles_stack[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Stacked estimate'))
- 
+	  pred_stack_plot_agg <-        plotPredAgg(ann_pred_quantiles_full[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Stacked estimate'))
+	  
 	}
-	pred_sensitivity_plot <- plotPred(pred_quantiles_full[, , group], time_points, post_period, min_max, outcome_plot[, group], sensitivity_pred_quantiles = sensitivity_pred_quantiles[[group]], sensitivity_title = paste(group, 'Sensitivity Plots'), plot_sensitivity = TRUE)
+	pred_full_plot_agg <-        plotPredAgg(ann_pred_quantiles_full[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Synthetic controls estimate'))
+	pred_time_plot_agg <-        plotPredAgg(ann_pred_quantiles_time[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Interupted time series estimate'))
+	pred_pca_plot_agg <-        plotPredAgg(ann_pred_quantiles_pca[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'STL+PCA estimate'))
+	
+		pred_sensitivity_plot <- plotPred(pred_quantiles_full[, , group], time_points, post_period, min_max, outcome_plot[, group], sensitivity_pred_quantiles = sensitivity_pred_quantiles[[group]], sensitivity_title = paste(group, 'Sensitivity Plots'), plot_sensitivity = TRUE)
 	
 	#matplot(pred_quantiles_full[, , 10], ylim=c(0,22000), type='l')	 ##Check
 	#points(prelog_data[[10]]$J12_18)
@@ -121,6 +126,10 @@ if(crossval){	plot_list[[group]] <- list(covar_plot = covar_plot,
 	                           	pred_full_plot = pred_full_plot, 
 															pred_time_plot = pred_time_plot, 
 															pred_pca_plot = pred_pca_plot, 
+															pred_stack_plot_agg=pred_stack_plot_agg,
+															pred_full_plot_agg = pred_full_plot_agg, 
+															pred_time_plot_agg = pred_time_plot_agg, 
+															pred_pca_plot_agg = pred_pca_plot_agg, 
 															pred_sensitivity_plot = pred_sensitivity_plot, 
 															rr_roll_stack_plot = rr_roll_stack_plot, 
 															rr_roll_full_plot = rr_roll_full_plot, 
@@ -133,6 +142,9 @@ if(crossval){	plot_list[[group]] <- list(covar_plot = covar_plot,
                              pred_full_plot = pred_full_plot, 
                              pred_time_plot = pred_time_plot, 
                              pred_pca_plot = pred_pca_plot, 
+                             pred_full_plot_agg = pred_full_plot_agg, 
+                             pred_time_plot_agg = pred_time_plot_agg, 
+                             pred_pca_plot_agg = pred_pca_plot_agg, 
                              pred_sensitivity_plot = pred_sensitivity_plot, 
                              rr_roll_full_plot = rr_roll_full_plot, 
                              rr_roll_time_plot = rr_roll_time_plot, 

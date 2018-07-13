@@ -298,9 +298,31 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   
   pred_eval_sum <- colSums(pred_samples[eval_indices, ])
   
-  
-    eval_obs <- sum(impact$observed.y[eval_indices] )
+  eval_obs <- sum(impact$observed.y[eval_indices] )
 
+  if(year_def=='epi_year'){
+    yr<-year(time_points)
+    month<-month(time_points)
+    yr[month<=6] <- yr[month<=6]-1
+    year<-as.factor(paste0(yr-1, '/',yr ))
+  }else{
+    year<-year(time_points)
+    }
+  #aggregate observed and predicted
+  obs.y.year<-tapply( impact$observed.y, year, sum)
+  pred.yr.spl<-split(as.data.frame(pred_samples),year)
+  pred.yr.spl.sum<-lapply(pred.yr.spl, function(x) apply(x, 2, sum)  )
+  pred.yr.spl.sum.q<-lapply(pred.yr.spl.sum, quantile, probs=c(0.025,0.50,0.975) )
+  pred.yr.sum.q<-as.data.frame(matrix(unlist(pred.yr.spl.sum.q), ncol = 3, byrow = TRUE)  )
+  names(pred.yr.sum.q)<-c('2.5%','50%','97.5%')
+  pred.yr.sum.q$obs<-obs.y.year
+  pred.yr.sum.q$year<-unique(year)
+  
+  # matplot(unique(year),pred.yr.sum.q[,1:3], type='l', col='lightgray', lty=c(3,1,3), bty='l', xlab="", ylab='Cases (N)', ylim=c(0,max(pred.yr.sum.q) ))
+  # points(unique(year),pred.yr.sum.q$obs, pch=16)
+  # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
+
+    
   eval_rr_sum <- eval_obs/pred_eval_sum
   rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975))
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
@@ -332,12 +354,16 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
-   quantiles <- list(log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
+   quantiles <- list(pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
    return(quantiles)
 }
 
 getPred <- function(quantiles) {
   return(quantiles$pred)
+}
+
+getAnnPred <- function(quantiles) {
+  return(quantiles$pred.yr.sum.q)
 }
 
 getRR <- function(quantiles) {
@@ -396,6 +422,39 @@ plotPred <- function(pred_quantiles, time_points, post_period, ylim, outcome_plo
       theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
     return(pred_plot)
   }
+}
+
+#Plot aggregated predictions.
+plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, outcome_plot, title = NULL, sensitivity_pred_quantiles = NULL, sensitivity_title = 'Sensitivity Plots', plot_sensitivity = FALSE) {
+  
+  if(year_def=='epi_year'){
+    month.int<-month(intervention_date)
+    year.int<-year(intervention_date)
+    epiyr.int<-year.int
+    epiyr.int[month.int<=6]<-year.int[month.int<=6]<-1
+    year.intervention<- which( as.numeric(substr(as.character(ann_pred_quantiles$year),1,4))==epiyr.int) - 0.5
+  }else{
+  year.intervention<-year(intervention_date )+0.5
+}
+    pred_plot <- ggplot() + 
+      #geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound', color='variable'), alpha = 0.3) +
+      geom_ribbon(data=ann_pred_quantiles, aes( x=as.numeric(year), ymin=ann_pred_quantiles$'2.5%', ymax=ann_pred_quantiles$'97.5%'), alpha=0.5, fill='lightgray')+
+      geom_point(data = ann_pred_quantiles, aes_string(x = as.numeric(ann_pred_quantiles$year), y = ann_pred_quantiles$obs)) +
+      geom_line(data = ann_pred_quantiles, aes_string(x = as.numeric(ann_pred_quantiles$year), y = ann_pred_quantiles$'50%'), linetype = 'solid', color = 'black') + 
+      labs(x = 'Year', y = 'Number of Cases') + 
+      geom_vline(xintercept = year.intervention, linetype='dashed', color='gray')+
+      ylim(0, max(ann_pred_quantiles$'97.5%')) +
+      ggtitle(title) + 
+      theme_bw() +
+      scale_x_continuous(breaks = 1:nrow(ann_pred_quantiles), labels = levels(ann_pred_quantiles$year)) + 
+      theme(axis.line = element_line(colour = "black"),
+            axis.text.x=element_text(angle = -45, hjust = 0),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank()) +
+      theme(plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+    return(pred_plot)
 }
 
 #Sensitivity analysis by dropping the top weighted covariates. 

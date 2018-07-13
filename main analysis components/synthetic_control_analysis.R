@@ -276,12 +276,17 @@ quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles
 quantiles_time_no_offset <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time_no_offset[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_pca <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_pca[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
 
-
 #Model predicitons
 pred_quantiles_full <- sapply(quantiles_full, getPred, simplify = 'array')
 pred_quantiles_time <- sapply(quantiles_time, getPred, simplify = 'array')
 pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getPred, simplify = 'array')
 pred_quantiles_pca <- sapply(quantiles_pca, getPred, simplify = 'array')
+
+#Predictions, aggregated by year
+ann_pred_quantiles_full <- sapply(quantiles_full, getAnnPred, simplify = FALSE)
+ann_pred_quantiles_time <- sapply(quantiles_time, getAnnPred, simplify = FALSE)
+ann_pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getAnnPred, simplify = FALSE)
+ann_pred_quantiles_pca <- sapply(quantiles_pca, getAnnPred, simplify = FALSE)
 
 #Pointwise RR and uncertainty for second stage meta analysis
 log_rr_quantiles   <- sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
