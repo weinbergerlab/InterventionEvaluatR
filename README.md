@@ -1,8 +1,11 @@
 # Synthetic Control
-#These scripts run synthetic control analyses where the input are vectors of count data representing a time series. The outcome variable should be a count variable. Bayesian variable selection (spike and Slab priors) is used to fit the models. Unlike the models described in Bruhn et al., these scripts use a Poisson regression with observation-level random effects to capture overdispersion. WAIC socres for each model are calculated
+#These scripts run synthetic control analyses where the input are vectors of count data representing a time series. The outcome variable should be a count variable. Bayesian variable selection (spike and Slab priors) is used to fit the models. Unlike the models described in Bruhn et al., these scripts use a Poisson regression with observation-level random effects to capture overdispersion. Leave-one-season-out cross validation is used to evaluate fit of the different models to pre-vaccine data, and this is used to generate model weights for stacking. 
 
 #GETTING STARTED:
 #Save all of the files to your desktop and open the synthetic_control_run.R file. Set the working directory as the "main analysis components" folder. To use the sample Brazil data (found in Datasets for PNAS), use all of the default settings, or specficy your data file. Change the dates as needed to set the training and evaluation periods.
+
+#NOTE TO MAC USERS: 
+If the code doesn't work and gives and error related to the BayesLogit package, you might need to first install clang and gfortran from here:  https://cran.r-project.org/bin/macosx/tools/ . Then try running the code again.
 
 ##Analysis files
 If you want to dig deeper, the functions and analysis code are found in the folder "main analysis components." The analysis code is split into several different files. The code in "synthetic_control_run.R" provides a template for defining initial constants, running analyses, and generating reports. The minimum files needed to run an analysis are the "synthetic_control_analysis.R" and "synthetic_control_functions.R", which contain the analysis code and functions necessary to run the analysis. Make sure these files, along with any additional code files, are in the same directory. See the table below for a short description of each file.
