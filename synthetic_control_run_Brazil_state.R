@@ -36,6 +36,8 @@ output_directory <- paste(output_directory,'_', country,"_",format(Sys.time(),'%
 #Import direct from github
 data_file <- paste0(input_directory, file_name)
 prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
+prelog_data<-prelog_data[substr(prelog_data$age_group,1,2)=='08',]  #Only 80+
+
 #prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
 
 #Import from local file
