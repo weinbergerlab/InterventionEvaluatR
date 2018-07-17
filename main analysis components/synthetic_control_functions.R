@@ -257,9 +257,10 @@ plot.stack.est<-function(stacked.ests){
 }
 
 reshape.arr<-function(point.ll3){
-  arr1=sapply(point.ll3, function(x) x, simplify='array') 
-  arr2<-aperm(arr1,perm=c(1,3,2))
-  mat1=matrix(arr2,nrow=dim(arr2)[1]*dim(arr2)[2],ncol=dim(arr2)[3] ) #f want to consider them ll together
+  mat1<-do.call(rbind,point.ll3)
+ # arr1=sapply(point.ll3, function(x) x, simplify='array') 
+ # arr2<-aperm(arr1,perm=c(1,3,2))
+ # mat1=matrix(arr2,nrow=dim(arr2)[1]*dim(arr2)[2],ncol=dim(arr2)[3] ) #f want to consider them ll together
   mean.mat<-apply(mat1,1,logmeanexp)  #want to take mean of the likelihood, not log-likelihood..so use logmean exp to avoid underflow
   return(mean.mat)
 }
