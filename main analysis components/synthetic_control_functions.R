@@ -270,6 +270,23 @@ inclusionProb <- function(impact) {
 	return(impact$inclusion_probs)
 }
 
+#Extract pointwise log likelihood matrix--could be used with LOO
+point.ll<-function(impact){
+  covars<-impact$covars
+  betas<-impact$beta.mat
+  re<-impact$rand.eff
+  obs.y.pre<-impact$observed.y[1:69]
+  covars<-cbind(rep(1,nrow(covars)),covars)[1:69,]
+  pred<- covars %*% t(betas)  + t(re)
+  ll.obs<-matrix(NA, nrow=nrow(pred), ncol=ncol(pred))
+  for(i in 1:ncol(pred)){
+    ll.obs[,i]<- dpois(obs.y.pre, lambda=exp(pred[,i]), log=TRUE)
+  }
+  ll.obs<-t(ll.obs)
+  return(ll.obs)
+}
+
+
 ##K-fold cross-validation
   #Create K-fold datasets
 makeCV<-function(ds){

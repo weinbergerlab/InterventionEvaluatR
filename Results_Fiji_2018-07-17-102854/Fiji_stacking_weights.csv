@@ -1,0 +1,12 @@
+"","groups","Synthetic Controls","Time trend","Time trend (no offset)","STL+PCA"
+"1","ac_pneumonia_Age1",0.882,0.001,0.118,0
+"2","ac_pneumonia_Age1_0",0.727,0.001,0.272,0
+"3","ac_pneumonia_Age1_1",0,0.485,0,0.515
+"4","ac_pneumonia_Age2",0.167,0,0.412,0.421
+"5","ac_pneumonia_Age3",0.768,0,0.232,0
+"6","ac_pneumonia_Age4",0.259,0,0.122,0.618
+"7","ac_pneumonia_Age5",0.265,0.735,0,0
+"8","ac_pneumonia_Age6",0.024,0,0,0.976
+"9","HP_all_raw_Age1",0.942,0,0.058,0
+"10","RP_all_raw_Age1",0.079,0,0,0.921
+"11","VS_SP_all_raw_Age1",0.982,0,0.018,0
