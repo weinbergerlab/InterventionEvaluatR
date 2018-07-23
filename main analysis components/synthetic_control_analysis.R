@@ -236,6 +236,7 @@ stopCluster(cl)
         rr_mean_stack <- round(t(sapply(quantiles_stack, getRR)),2)
         rr_mean_stack_intervals <- data.frame('Stacking Estimate (95% CI)'     = makeInterval(rr_mean_stack[, 2], rr_mean_stack[, 3], rr_mean_stack[, 1]), check.names = FALSE, row.names = groups)
         cumsum_prevented_stack <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_stack, simplify = 'array')
+        ann_pred_quantiles_stack <- sapply(quantiles_stack, getAnnPred, simplify = FALSE)
         
         #Preds: Compare observed and expected
         pred.cv.full<-lapply(cv_impact_full, function(x) sapply(x,pred.cv,simplify='array'))

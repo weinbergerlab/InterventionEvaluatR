@@ -26,7 +26,7 @@ for (group in groups) {
 	pred_pca_plot <-        plotPred(pred_quantiles_pca[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'STL+PCA estimate'))
 	if(crossval){
 	  pred_stack_plot <-        plotPred(pred_quantiles_stack[, , group], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Stacked estimate'))
-	  pred_stack_plot_agg <-        plotPredAgg(ann_pred_quantiles_full[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Stacked estimate'))
+	  pred_stack_plot_agg <-        plotPredAgg(ann_pred_quantiles_stack[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Stacked estimate'))
 	  
 	}
 	pred_full_plot_agg <-        plotPredAgg(ann_pred_quantiles_full[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Synthetic controls estimate'))
