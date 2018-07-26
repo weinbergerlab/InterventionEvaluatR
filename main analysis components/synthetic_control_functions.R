@@ -535,9 +535,9 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
     deltafix.mod[1:(n_seasons-1)]<-1 #fix  monthly dummies
     bsts_model  <- poissonBvs(y=y.pre , X=covar_df.pre, model = list(deltafix=deltafix.mod,ri = TRUE, clusterID = cID))
     
-    beta.mat<- bsts_model$samplesP$beta
+    beta.mat<- bsts_model$samplesP$beta[-c(1:2000),]
     #Generate  predictions with prediction interval
-    disp<-bsts_model$samplesP$thetaBeta
+    disp<-bsts_model$samplesP$thetaBeta[-c(1:2000),]
     disp.mat<-rnorm(n=length(disp)*length(y), mean=0, sd=abs(disp))
     disp.mat<-t(matrix(disp.mat, nrow=length(disp), ncol=length(y)))
     x.fit<-cbind(rep(1,nrow(covar_df)),covar_df)
