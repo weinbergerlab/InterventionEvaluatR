@@ -20,27 +20,22 @@ install_packages <- TRUE #Whether to install missing packages.
 install_pandoc   <- TRUE #Whether to install pandoc, which requires an external installer, and rmarkdown, a package that depends on pandoc's successful installation.
 
 #Assign variable values
-country       <- 'Brazil_state' #Country or region name.
+country       <- 'Brazil' #Country or region name.
 n_seasons     <- 12       #Number of months (seasons) per year. 12 for monthly, 4 for quarterly, 3 for trimester data.
 exclude_covar <- c()      #User-defined list of covariate columns to exclude from all analyses.
 exclude_group <- c()      #User-defined list of groups to exclude from analyses.
-if(country=="Brazil_state"){code_change   <- TRUE     #Used for Brazil data. Set to TRUE to adjust for year 2008 coding changes; otherwise, set to FALSE.
+if(country=="Brazil"){code_change   <- TRUE     #Used for Brazil data. Set to TRUE to adjust for year 2008 coding changes; otherwise, set to FALSE.
     }else{
     code_change   <- FALSE
   }
 
-input_directory  <- "https://raw.githubusercontent.com/weinbergerlab/Brazil_state/master/" #Directory or URL page containing input data file
-file_name="prelog_Brazil_state_processed_data.csv"
+input_directory  <- 'https://raw.githubusercontent.com/weinbergerlab/synthetic-control/master/Datasets%20for%20PNAS/' #Directory (or URL) containing input data file.
+file_name="Dataset%20S1%20Brazil.csv"
 output_directory <- '../Results'   #Directory where results will be saved.
-output_directory <- paste(output_directory,'_', country,"_",format(Sys.time(),'%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
-#Import direct from github
+output_directory <- paste(output_directory,'_',country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
 data_file <- paste0(input_directory, file_name)
-prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
-prelog_data<-prelog_data[substr(prelog_data$age_group,1,2)=='08',]  #Only 80+
-
 #prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
-
-#Import from local file
+prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
 
 group_name   <- 'age_group' #Name of column containing group labels.
 date_name    <- 'date'      #Name of column containing dates.
