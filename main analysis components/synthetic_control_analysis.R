@@ -69,6 +69,9 @@ if (exists('exclude_group')) {groups <- groups[!(groups %in% exclude_group)]}
 #                                             #
 ###############################################
 
+#Make sure we are in right format
+prelog_data[,date_name]<-as.Date(as.character(prelog_data[,date_name]), tryFormats=c("%m/%d/%Y",'%Y-%m-%d' ))
+
 #test<-split(prelog_data, factor(prelog_data[,group_name]))
 #outcome.na<-sapply(test, function(x) sum(is.na(x[,outcome_name])))
 prelog_data[, date_name] <- formatDate(prelog_data[, date_name])
