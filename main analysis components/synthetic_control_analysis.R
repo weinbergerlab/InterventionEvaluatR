@@ -112,7 +112,7 @@ groups <- groups[!sparse_groups]
 
 #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
 covars_full <- setNames(lapply(ds, makeCovars), groups)
-covars_full <- sapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
+covars_full <- lapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
 covars_time <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), groups)
 covars_null <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), groups)
 
@@ -126,7 +126,7 @@ offset<- sapply(ds, FUN=function(data) exp(data[, denom_name]) )  #offset term o
 ##SECTION 1: CREATING SMOOTHED VERSIONS OF CONTROL TIME SERIES AND APPENDING THEM ONTO ORIGINAL DATAFRAME OF CONTROLS
 #EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
 # Set a list of parameters for STL
-stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full) 
+stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full, SIMPLIFY=FALSE) 
 post.start.index<-which(time_points==post_period[1])
 stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds )  #list of lists that has covariates for each regression for each strata
 
