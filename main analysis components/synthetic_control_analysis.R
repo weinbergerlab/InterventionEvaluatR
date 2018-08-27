@@ -376,7 +376,7 @@ cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles
 # sensitivity_analysis_pred_2_intervals  <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_analysis_pred_2[, 2],  sensitivity_analysis_pred_2[, 3],  sensitivity_analysis_pred_2[, 1]),  row.names = groups, check.names = FALSE)
 # sensitivity_analysis_pred_10_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_analysis_pred_10[, 2], sensitivity_analysis_pred_10[, 3], sensitivity_analysis_pred_10[, 1]), row.names = groups, check.names = FALSE)
 # 
- bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= 3})
+bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= n_seasons-1+3})
  sensitivity_covars_full <- covars_full[!bad_sensitivity_groups]
  sensitivity_ds <- ds[!bad_sensitivity_groups]
  sensitivity_impact_full <- impact_full[!bad_sensitivity_groups]
