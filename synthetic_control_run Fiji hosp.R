@@ -50,7 +50,7 @@ pre_period        <- as.Date(c('2007-01-01', '2012-09-30')) #Range over which th
 post_period       <- as.Date(c('2012-10-01', '2015-12-01')) #Range from the intervention date to the end date.
 eval_period       <- as.Date(c('2014-01-01', '2015-12-01')) #Range over which rate ratio calculation will be performed.
 year_def   <-'cal_year'  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
-
+sensitivity=TRUE
 crossval=TRUE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
 #Run analysis, but don't generate HTML report
 # source('synthetic_control_analysis.R', local = TRUE)
