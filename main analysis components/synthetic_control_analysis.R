@@ -24,7 +24,7 @@ if(.Platform$OS.type == "windows") {
 auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson-master/main analysis components/'))
 #
 
-packages <- c('parallel', 'splines', 'lubridate','logistf','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'splines', 'lubridate','loo', 'RcppRoll','pomp','lme4', 'BoomSpikeSlab', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
@@ -244,7 +244,7 @@ stopCluster(cl)
         #Preds: Compare observed and expected
         pred.cv.full<-lapply(cv_impact_full, function(x) sapply(x,pred.cv,simplify='array'))
         pred.cv.pca<-lapply(cv_impact_pca, function(x) sapply(x,pred.cv,simplify='array'))
-        
+          
         # # par(mfrow=c(3,2))
         # plot.grp=9
         # for(i in 1:6){
@@ -376,6 +376,7 @@ cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles
 # sensitivity_analysis_pred_2_intervals  <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_analysis_pred_2[, 2],  sensitivity_analysis_pred_2[, 3],  sensitivity_analysis_pred_2[, 1]),  row.names = groups, check.names = FALSE)
 # sensitivity_analysis_pred_10_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_analysis_pred_10[, 2], sensitivity_analysis_pred_10[, 3], sensitivity_analysis_pred_10[, 1]), row.names = groups, check.names = FALSE)
 # 
+if(sensitivity){
  bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= 3})
  sensitivity_covars_full <- covars_full[!bad_sensitivity_groups]
  sensitivity_ds <- ds[!bad_sensitivity_groups]
@@ -411,3 +412,4 @@ sensitivity_table_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sen
 																					'Control 3 Estimate (95% CI)' = makeInterval(sensitivity_table[, 17],  sensitivity_table[, 18],  sensitivity_table[, 16]), check.names = FALSE)
 rr_table <- cbind.data.frame(round(rr_mean_time[!bad_sensitivity_groups, ],2), sensitivity_table)
 rr_table_intervals <- cbind('ITS Estimate (95% CI)' = rr_mean_time_intervals[!bad_sensitivity_groups, ], sensitivity_table_intervals)
+}
