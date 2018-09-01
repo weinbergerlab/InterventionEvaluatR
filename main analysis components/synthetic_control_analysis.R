@@ -112,7 +112,7 @@ groups <- groups[!sparse_groups]
 
 #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
 covars_full <- setNames(lapply(ds, makeCovars), groups)
-covars_full <- sapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
+covars_full <- lapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
 covars_time <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), groups)
 covars_null <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), groups)
 
@@ -126,7 +126,7 @@ offset<- sapply(ds, FUN=function(data) exp(data[, denom_name]) )  #offset term o
 ##SECTION 1: CREATING SMOOTHED VERSIONS OF CONTROL TIME SERIES AND APPENDING THEM ONTO ORIGINAL DATAFRAME OF CONTROLS
 #EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
 # Set a list of parameters for STL
-stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full) 
+stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full, SIMPLIFY=FALSE) 
 post.start.index<-which(time_points==post_period[1])
 stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds )  #list of lists that has covariates for each regression for each strata
 
@@ -377,7 +377,8 @@ cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles
 # sensitivity_analysis_pred_10_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_analysis_pred_10[, 2], sensitivity_analysis_pred_10[, 3], sensitivity_analysis_pred_10[, 1]), row.names = groups, check.names = FALSE)
 # 
 if(sensitivity){
- bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= 3})
+
+bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= n_seasons-1+3})
  sensitivity_covars_full <- covars_full[!bad_sensitivity_groups]
  sensitivity_ds <- ds[!bad_sensitivity_groups]
  sensitivity_impact_full <- impact_full[!bad_sensitivity_groups]

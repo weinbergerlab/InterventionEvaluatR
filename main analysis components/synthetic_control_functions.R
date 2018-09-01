@@ -515,7 +515,7 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
   covar_df <- as.matrix(covars[[group]])
   #colnames(covar_df)<-substring(colnames(covar_df), 2)
   
-  incl_prob <- impact[[group]]$inclusion_probs[-c(1:n_seasons),]
+  incl_prob <- impact[[group]]$inclusion_probs[-c(1:(n_seasons-1)),]
   incl_prob<-incl_prob[order(incl_prob$inclusion_probs),]
   max_var <- as.character(incl_prob$covar.names[nrow(incl_prob)])
   max_prob <- round(incl_prob$inclusion_probs[nrow(incl_prob)],2)

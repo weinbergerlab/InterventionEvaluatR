@@ -45,6 +45,7 @@ end_date          <- as.Date('2012-12-01') #"YYYY-MM-01" Indicates the date of t
 pre_period        <- as.Date(c('2001-01-01', '2009-12-31')) #Range over which the data is trained for the CausalImpact model.
 post_period       <- as.Date(c('2011-01-01', '2012-12-01')) #Range from the intervention date to the end date.
 eval_period       <- as.Date(c('2012-01-01', '2012-12-01')) #Range over which rate ratio calculation will be performed.
+sensitivity=TRUE
 crossval=TRUE                               #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
 year_def   <-'cal_year'  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
 
