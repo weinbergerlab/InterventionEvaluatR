@@ -395,7 +395,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # obs_full[obs_full==0]<-0.5 #continuity correction for small sampls
    #  pred_quantiles<-t(apply(pred_samples, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
    #  matplot(impact$observed.y/pred_quantiles, type='l')
-  log_rr_full_t_samples <- t(log(obs_full/pred_samples) )
+  log_rr_full_t_samples <- t(log( (obs_full+0.5)/(pred_samples+0.5) ) ) #Continuity correction for 0s
   log_rr_full_t_quantiles<-t(apply(log_rr_full_t_samples, 2, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
   log_rr_full_t_sd<-t(apply(log_rr_full_t_samples, 2, sd, na.rm = TRUE))
 # 	
