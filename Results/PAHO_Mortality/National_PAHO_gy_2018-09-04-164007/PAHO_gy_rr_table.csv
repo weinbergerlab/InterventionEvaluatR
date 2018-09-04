@@ -1,4 +1,0 @@
-"","round(rr_mean_time[!bad_sensitivity_groups, ], 2)","Lower CI","Point Estimate","Upper CI","Top Control 1","Inclusion Probability of Control 1","Lower CI 1","Point Estimate 1","Upper CI 1","Top Control 2","Inclusion Probability of Control 2","Lower CI 2","Point Estimate 2","Upper CI 2","Top Control 3","Inclusion Probability of Control 3","Lower CI 3","Point Estimate 3","Upper CI 3"
-"Time_trend Lower CI",0.71,"0.5","1","2.42857142857143","acm_noj_prim","0.48","0.46","1","2.83","A00_B99_prim","0.31","0.44","0.85","1.89","Q00_Q99_prim","0.16","0.44","0.85","1.89"
-"Time_trend Point Estimate",1.55,"0.5","1","2.42857142857143","acm_noj_prim","0.48","0.46","1","2.83","A00_B99_prim","0.31","0.44","0.85","1.89","Q00_Q99_prim","0.16","0.44","0.85","1.89"
-"Time_trend Upper CI",4.25,"0.5","1","2.42857142857143","acm_noj_prim","0.48","0.46","1","2.83","A00_B99_prim","0.31","0.44","0.85","1.89","Q00_Q99_prim","0.16","0.44","0.85","1.89"
