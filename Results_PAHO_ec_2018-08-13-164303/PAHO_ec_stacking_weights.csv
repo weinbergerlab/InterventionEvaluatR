@@ -1,0 +1,4 @@
+"","groups","Synthetic Controls","Time trend","Time trend (no offset)","STL+PCA"
+"1","ec_1_AA",0.235,0,0,0.765
+"2","ec_2_AA",0.203,0,0.017,0.78
+"3","ec_3_AA",0.783,0.217,0,0

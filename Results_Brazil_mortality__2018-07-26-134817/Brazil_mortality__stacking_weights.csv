@@ -1,0 +1,10 @@
+"","groups","Synthetic Controls","Time trend","Time trend (no offset)","STL+PCA"
+"1","3-<12mo_high",1,0,0,0
+"2","3-<12mo_low",1,0,0,0
+"3","3-<12mo_medium",1,0,0,0
+"4","3-<24mo_high",0.947,0,0.053,0
+"5","3-<24mo_low",1,0,0,0
+"6","3-<24mo_medium",1,0,0,0
+"7","3-<60mo_high",0.933,0,0,0.067
+"8","3-<60mo_low",1,0,0,0
+"9","3-<60mo_medium",1,0,0,0

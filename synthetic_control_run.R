@@ -51,6 +51,8 @@ eval_period       <- as.Date(c('2012-01-01', '2013-12-01')) #Range over which ra
 year_def   <-'cal_year'  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
 sensitivity=TRUE
 crossval=TRUE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
+prelog_data<-prelog_data[!is.na(prelog_data$outcome_name),]#If outcome is missing, delete 
+
 #Run analysis, but don't generate HTML report
 # source('synthetic_control_analysis.R', local = TRUE)
 # source('synthetic_control_write_results.R', local = TRUE)

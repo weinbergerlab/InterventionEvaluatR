@@ -128,7 +128,12 @@ offset<- sapply(ds, FUN=function(data) exp(data[, denom_name]) )  #offset term o
 # Set a list of parameters for STL
 stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full, SIMPLIFY=FALSE) 
 post.start.index<-which(time_points==post_period[1])
+
+if (length(groups)>1){ 
 stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds )  #list of lists that has covariates for each regression for each strata
+}else{
+  stl.data.setup <- list(mapply(stl_data_fun,covars=stl.covars, ds.sub=ds ))
+}
 
 ##SECTION 2: run first stage models
 n_cores <- detectCores()-1
@@ -137,6 +142,7 @@ cl1 <- makeCluster(n_cores)
 clusterEvalQ(cl1, {library(lme4, quietly = TRUE)})
 clusterExport(cl1, c('stl.data.setup',  'glm.fun', 'time_points', 'n_seasons','post.start.index'), environment())
 for(i in 1:length(stl.data.setup)){
+  print(i)
   glm.results[[i]]<-parLapply(cl=cl1 ,     stl.data.setup[[i]], fun=glm.fun )
 }
 stopCluster(cl1)
@@ -378,7 +384,7 @@ cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles
 # sensitivity_analysis_pred_2_intervals  <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_analysis_pred_2[, 2],  sensitivity_analysis_pred_2[, 3],  sensitivity_analysis_pred_2[, 1]),  row.names = groups, check.names = FALSE)
 # sensitivity_analysis_pred_10_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_analysis_pred_10[, 2], sensitivity_analysis_pred_10[, 3], sensitivity_analysis_pred_10[, 1]), row.names = groups, check.names = FALSE)
 # 
-if(sensitivity){
+
 
 bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= n_seasons-1+3})
  sensitivity_covars_full <- covars_full[!bad_sensitivity_groups]
@@ -415,4 +421,4 @@ sensitivity_table_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sen
 																					'Control 3 Estimate (95% CI)' = makeInterval(sensitivity_table[, 17],  sensitivity_table[, 18],  sensitivity_table[, 16]), check.names = FALSE)
 rr_table <- cbind.data.frame(round(rr_mean_time[!bad_sensitivity_groups, ],2), sensitivity_table)
 rr_table_intervals <- cbind('ITS Estimate (95% CI)' = rr_mean_time_intervals[!bad_sensitivity_groups, ], sensitivity_table_intervals)
-}
+

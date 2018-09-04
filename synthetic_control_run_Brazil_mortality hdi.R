@@ -22,7 +22,8 @@ install_pandoc   <- TRUE #Whether to install pandoc, which requires an external 
 #Assign variable values
 country       <- 'Brazil_mortality_' #Country or region name.
 n_seasons     <- 4       #Number of months (seasons) per year. 12 for monthly, 4 for quarterly, 3 for trimester data.
-exclude_covar <- c()      #User-defined list of covariate columns to exclude from all analyses.
+exclude_covar <- c("A00_A09","A30_49","G00_G09" ,"J00_J06"  , "J09_J18" ,  "J20_J22"  , "J30_J39"  , "J40_J47"   ,"J60_J70"  , "J80_J84" , 
+ "J85_J86" ,  "J90_J94"  , "J95_J99")      #User-defined list of covariate columns to exclude from all analyses.
 exclude_group <- c()      #User-defined list of groups to exclude from analyses.
 if(country=="Brazil_state"){code_change   <- TRUE     #Used for Brazil data. Set to TRUE to adjust for year 2008 coding changes; otherwise, set to FALSE.
     }else{

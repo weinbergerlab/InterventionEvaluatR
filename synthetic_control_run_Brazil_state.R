@@ -36,7 +36,7 @@ output_directory <- paste(output_directory,'_', country,"_",format(Sys.time(),'%
 #Import direct from github
 data_file <- paste0(input_directory, file_name)
 prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
-prelog_data<-prelog_data[substr(prelog_data$age_group,1,2)=='08',]  #Only 80+
+prelog_data<-prelog_data[substr(prelog_data$age_group,1,2)=='09',]  #Only <12m
 
 #prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
 
@@ -55,7 +55,7 @@ pre_period        <- as.Date(c('2004-01-01', '2009-12-31')) #Range over which th
 post_period       <- as.Date(c('2010-01-01', '2013-12-01')) #Range from the intervention date to the end date.
 eval_period       <- as.Date(c('2012-01-01', '2013-12-01')) #Range over which rate ratio calculation will be performed.
 year_def   <-'cal_year'  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
-
+sensitivity=TRUE
 crossval=TRUE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
 #Run analysis, but don't generate HTML report
 # source('synthetic_control_analysis.R', local = TRUE)

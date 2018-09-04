@@ -651,7 +651,7 @@ stl_data_fun<-function(covars,ds.sub){
 
 glm.fun<-function(ds.fit){
   names(ds.fit)<-paste0('c',names(ds.fit))
-  covars.fit<-ds.fit[-1]
+  covars.fit<-ds.fit[,-1]
   pre.index<-1:(post.start.index-1)
   fixed.effects<-paste(names(covars.fit), collapse="+")
   ds.fit$obs<-as.factor(1:nrow(ds.fit))

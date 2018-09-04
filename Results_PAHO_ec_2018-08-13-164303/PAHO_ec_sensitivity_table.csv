@@ -1,0 +1,4 @@
+"","Lower CI","Point Estimate","Upper CI","Top Control 1","Inclusion Probability of Control 1","Lower CI 1","Point Estimate 1","Upper CI 1","Top Control 2","Inclusion Probability of Control 2","Lower CI 2","Point Estimate 2","Upper CI 2","Top Control 3","Inclusion Probability of Control 3","Lower CI 3","Point Estimate 3","Upper CI 3"
+"ec_1_AA","0.626237623762376","0.707362534948742","0.813504823151125","P00_P96_prim","0.65","0.61","0.7","0.82","E00_E90_prim","0.55","0.62","0.71","0.83","V00_Y98_prim","0.12","0.62","0.71","0.83"
+"ec_2_AA","0.595454545454545","0.759420289855072","0.939068100358423","R00_R99_prim","0.26","0.59","0.76","0.93","V00_Y98_prim","0.24","0.63","0.77","0.93","pandemic","0.13","0.64","0.78","0.94"
+"ec_3_AA","0.57311320754717","0.662125340599455","0.771428571428571","R00_R99_prim","0.1","0.57","0.66","0.77","C00_D48_prim","0.09","0.57","0.66","0.77","V00_Y98_prim","0.07","0.57","0.66","0.77"
