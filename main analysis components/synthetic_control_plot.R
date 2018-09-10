@@ -33,8 +33,11 @@ for (group in groups) {
 	pred_time_plot_agg <-        plotPredAgg(ann_pred_quantiles_time[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Interupted time series estimate'))
 	pred_pca_plot_agg <-        plotPredAgg(ann_pred_quantiles_pca[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'STL+PCA estimate'))
 	
+	if (!is.na(sensitivity_table_intervals)) {
 		pred_sensitivity_plot <- plotPred(pred_quantiles_full[, , group], time_points, post_period, min_max, outcome_plot[, group], sensitivity_pred_quantiles = sensitivity_pred_quantiles[[group]], sensitivity_title = paste(group, 'Sensitivity Plots'), plot_sensitivity = TRUE)
-	
+	} else {
+	  pred_sensitivity_plot <- NA
+	}
 	#matplot(pred_quantiles_full[, , 10], ylim=c(0,22000), type='l')	 ##Check
 	#points(prelog_data[[10]]$J12_18)
 	
