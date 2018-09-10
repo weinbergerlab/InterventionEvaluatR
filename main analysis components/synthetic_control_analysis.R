@@ -392,6 +392,7 @@ bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= n
  sensitivity_impact_full <- impact_full[!bad_sensitivity_groups]
  sensitivity_groups <- groups[!bad_sensitivity_groups]
 
+if (length(sensitivity_groups)!=0) {
  #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
 cl <- makeCluster(n_cores)
 clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
@@ -421,4 +422,6 @@ sensitivity_table_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sen
 																					'Control 3 Estimate (95% CI)' = makeInterval(sensitivity_table[, 17],  sensitivity_table[, 18],  sensitivity_table[, 16]), check.names = FALSE)
 rr_table <- cbind.data.frame(round(rr_mean_time[!bad_sensitivity_groups, ],2), sensitivity_table)
 rr_table_intervals <- cbind('ITS Estimate (95% CI)' = rr_mean_time_intervals[!bad_sensitivity_groups, ], sensitivity_table_intervals)
-
+} else {
+  sensitivity_table_intervals <- NA
+}
