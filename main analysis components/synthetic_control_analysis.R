@@ -130,7 +130,7 @@ stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=covars_full, SIMPLIFY=FALSE
 post.start.index<-which(time_points==post_period[1])
 
 if (length(groups)>1){ 
-stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds )  #list of lists that has covariates for each regression for each strata
+  stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds ,SIMPLIFY=FALSE)  #list of lists that has covariates for each regression for each strata
 }else{
   stl.data.setup <- list(mapply(stl_data_fun,covars=stl.covars, ds.sub=ds ))
 }
