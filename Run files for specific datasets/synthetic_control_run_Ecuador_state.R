@@ -29,8 +29,8 @@ if(country=="Brazil"){code_change   <- TRUE     #Used for Brazil data. Set to TR
   code_change   <- FALSE
 }
 
-input_directory  <- 'C:/Users/dmw63/Dropbox (Personal)/Meta analysis datasets/Mexico_state/' #Directory (or URL) containing input data file.
-file_name="prelogNEW_Mexico_state.csv"
+input_directory  <- 'C:/Users/dmw63/Dropbox (Personal)/Meta analysis datasets/Ecuador_state/' #Directory (or URL) containing input data file.
+file_name="prelog_Ecuador_state_v2.csv"
 output_directory <- '../Results'   #Directory where results will be saved.
 output_directory <- paste(output_directory,'_',country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '')                     #Adds a subfolder to output directory to organize results by date and time run.
 data_file <- paste0(input_directory, file_name)
@@ -40,6 +40,15 @@ prelog_data<-prelog_data[substr(prelog_data$age_group,1,1)=='9',]  #Only <12m
 prelog_data$age_group<-factor(prelog_data$age_group)
 prelog_data<-prelog_data[!is.na(prelog_data$J12_18),]#If outcome is missing, delete
 
+
+# spl1<-split(prelog_data,prelog_data$age_group)
+# for(i in 1:length(spl1)){
+# plot(spl1[[i]]$J12_18)
+#   title(i)
+# }
+'%!in%' <- function(x,y)!('%in%'(x,y))
+prelog_data<-prelog_data[prelog_data$age_group %!in% c('9_16','9_17'),]
+prelog_data$age_group<-factor(prelog_data$age_group)
 
 group_name   <- 'age_group' #Name of column containing group labels.
 date_name    <- 'date'      #Name of column containing dates.
