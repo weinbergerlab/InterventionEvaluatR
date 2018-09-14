@@ -478,8 +478,7 @@ plotPred <- function(pred_quantiles, time_points, post_period, ylim, outcome_plo
 
 #Plot aggregated predictions.
 plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, outcome_plot, title = NULL, sensitivity_pred_quantiles = NULL, sensitivity_title = 'Sensitivity Plots', plot_sensitivity = FALSE) {
-  intervention_date<-d1$post_period[1]
-  
+
   if(year_def=='epi_year'){
     month.int<-month(intervention_date)
     year.int<-year(intervention_date)
