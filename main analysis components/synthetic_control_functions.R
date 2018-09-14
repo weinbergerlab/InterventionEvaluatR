@@ -487,7 +487,7 @@ plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, out
     epiyr.int[month.int<=6]<-year.int[month.int<=6]<-1
     year.intervention<- which( as.numeric(substr(as.character(ann_pred_quantiles$year),1,4))==epiyr.int) - 0.5
   }else{
-  year.intervention<-year(intervention_date )+0.5
+  year.intervention<-year(intervention_date )-0.5
 }
     pred_plot <- ggplot() + 
       #geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound', color='variable'), alpha = 0.3) +
@@ -499,7 +499,7 @@ plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, out
       ylim(0, max(ann_pred_quantiles$'97.5%')) +
       ggtitle(title) + 
       theme_bw() +
-      scale_x_continuous(breaks = 1:nrow(ann_pred_quantiles), labels = levels(ann_pred_quantiles$year)) + 
+      #scale_x_continuous(breaks = 1:nrow(ann_pred_quantiles), labels = levels(ann_pred_quantiles$year)) + 
       theme(axis.line = element_line(colour = "black"),
             axis.text.x=element_text(angle = -45, hjust = 0),
             panel.grid.major = element_blank(),

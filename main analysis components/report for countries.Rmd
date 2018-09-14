@@ -2,8 +2,8 @@
 title: "Estimated change in pneumonia mortality associated with the introduction of PCV10 In Brazil"
 author: "PAHO/Yale analysis team"
 date: "September 13, 2018"
-output:
-  github_document:
+output: 
+  pdf_document:
     toc: true
     toc_depth: 2
 ---
@@ -17,6 +17,8 @@ library(knitr)
 d1<-readRDS('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/Results_Brazil_2018-09-13-213318/BrazilStack estimates.rds')
 ```
 
+In these analyses, we use time series analyses of monthly hospitalization data to evaluate changes associated with the introduction of PCVs. This is part of a collaborative project spearheaded by PAHO and funded by the Bill and Melinda Gates Foundation.
+
 ##Comparison of observed and expected number of cases
 
 ```{r echo=FALSE,message = FALSE, warning = FALSE}
@@ -24,7 +26,7 @@ d1<-readRDS('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/Results_B
 #Plot aggregated predictions.
 plotPredAgg <- function(ann_pred_quantiles,  time_points, year_def='cal_year' ,post_period,  outcome_plot, title = NULL, sensitivity_pred_quantiles = NULL, sensitivity_title = 'Sensitivity Plots', plot_sensitivity = FALSE) {
   library(lubridate)
-  invisible(library(ggplot2))
+  library(ggplot2)
     intervention_date<-d1$post_period[1]
 
     if(year_def=='epi_year'){
@@ -34,25 +36,26 @@ plotPredAgg <- function(ann_pred_quantiles,  time_points, year_def='cal_year' ,p
     epiyr.int[month.int<=6]<-year.int[month.int<=6]<-1
     year.intervention<- which( as.numeric(substr(as.character(ann_pred_quantiles$year),1,4))==epiyr.int) - 0.5
   }else{
-  year.intervention<-year(intervention_date )+0.5
+  year.intervention<-year(intervention_date )-0.5
 }
     pred_plot <- ggplot() + 
         geom_ribbon(data=ann_pred_quantiles, aes( x=as.numeric(year), ymin=ann_pred_quantiles$'2.5%', ymax=ann_pred_quantiles$'97.5%'), alpha=0.5, fill='lightgray')+
       geom_point(data = ann_pred_quantiles, aes_string(x = as.numeric(ann_pred_quantiles$year), y = ann_pred_quantiles$obs)) +
-      geom_line(data = ann_pred_quantiles, aes_string(x = as.numeric(ann_pred_quantiles$year), y = ann_pred_quantiles$'50%'), linetype = 'solid', color = 'black') + 
+      geom_line(data = ann_pred_quantiles, aes_string(x = as.numeric(ann_pred_quantiles$year), y =    ann_pred_quantiles$'50%'), linetype = 'solid', color = 'black') + 
       labs(x = 'Year', y = 'Number of Cases') + 
       geom_vline(xintercept = year.intervention, linetype='dashed', color='gray')+
       ylim(0, max(ann_pred_quantiles$'97.5%')) +
       ggtitle(title) + 
       theme_bw() +
-      scale_x_continuous(breaks = 1:nrow(ann_pred_quantiles), labels = levels(ann_pred_quantiles$year)) + 
+     # scale_x_continuous(breaks = 1:nrow(ann_pred_quantiles), labels = unique(ann_pred_quantiles$year)) + 
       theme(axis.line = element_line(colour = "black"),
             axis.text.x=element_text(angle = -45, hjust = 0),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             panel.border = element_blank(),
+           # axis.line.x = element_line(color="black", size = 2),
             panel.background = element_blank()) +
-      theme(plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+      theme(plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor =                         element_blank())
     return(pred_plot)
 }
 plot1<-lapply(d1$ann_pred_quantiles_stack, plotPredAgg,  post_period=d1$post_period, time_points=d1$time_points)
