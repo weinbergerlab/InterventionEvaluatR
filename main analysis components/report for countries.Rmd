@@ -69,7 +69,13 @@ plot1[[10]]
 ```{r echo=FALSE, fig.width=6, fig.height=4}
 cusum.prevented<-d1$cumsum_prevented_stack
 pre.period<- cusum.prevented[,1,10] == cusum.prevented[,3,10] & cusum.prevented[,1,10]==0
-matplot(cusum.prevented[!pre.period,,10], type='l', col='black', lty=c(2,1,2), bty='l', xlab= 'Months since introduction of PCV',ylab='Cases averted')
+index1<- 1: length(cusum.prevented[!pre.period,2,10])
+cis.yy<- c(cusum.prevented[!pre.period,1,10], rev(cusum.prevented[!pre.period,3,10]))
+cis.xx<- c(index1, rev(index1))
+
+plot(cusum.prevented[!pre.period,2,10], type='l', col='black', lty=c(1), bty='l', xlab= 'Months since introduction of PCV',ylab='Cases averted')
+polygon(cis.xx,cis.yy, col='gray90', border=NA)
+points( cusum.prevented[!pre.period,2,10], type='l',col='black', lty=c(1), lwd=2)
 abline(h=0, lty=3)
 ```
 
