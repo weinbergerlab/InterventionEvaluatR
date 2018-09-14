@@ -262,8 +262,8 @@ stopCluster(cl)
         # title("STL+PCA: Cross validation")
         # }
         
-        save.stack.est<-list(pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
-        names(save.stack.est)<-c('pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
+        save.stack.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_stack, pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
+        names(save.stack.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_stack', 'pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
         saveRDS(save.stack.est, file=paste0(output_directory, country, "Stack estimates.rds"))
         
         #Pointwise RR and uncertainty for second stage meta analysis
@@ -278,7 +278,7 @@ stopCluster(cl)
 ##########################################################################
 ##########################################################################
 
-#Save the inclusion probabilities from each of the models.
+#Save the inclusion probabilities from each of the models
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
 inclusion_prob_time <- setNames(lapply(impact_time, inclusionProb), groups)
 

@@ -57,11 +57,11 @@ denom_name   <- 'ach_noj'   #Name of column containing denominator to be used in
 
 #MOST DATES MUST BE IN FORMAT "YYYY-MM-01", exception is end of pre period, which is 1 day before end of post period
 start_date        <- as.Date('2001-01-01') #Indicates the date of the first data point.
-intervention_date <- as.Date('2009-12-31') #Indicates the date of intervention in the data.
-end_date          <- as.Date('2012-12-01') #Indicates the date of the last data point.
+intervention_date <- as.Date('2010-07-31') #Indicates the date of intervention in the data.
+end_date          <- as.Date('2016-12-01') #Indicates the date of the last data point.
 pre_period        <- as.Date(c('2001-01-01', '2009-12-31')) #Range over which the data is trained for the CausalImpact model.
-post_period       <- as.Date(c('2010-01-01', '2012-12-01')) #Range from the intervention date to the end date.
-eval_period       <- as.Date(c('2012-01-01', '2012-12-01')) #Range over which rate ratio calculation will be performed.
+post_period       <- as.Date(c('2010-08-01', '2016-12-01')) #Range from the intervention date to the end date.
+eval_period       <- as.Date(c('2012-01-01', '2016-12-01')) #Range over which rate ratio calculation will be performed.
 year_def   <-'cal_year'  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
 sensitivity=TRUE
 crossval=TRUE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores#Run analysis, but don't generate HTML report
