@@ -61,5 +61,15 @@ data_file <- paste0(input_directory, file_name)
 #prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
 prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM URL
 #Run analysis and generate HTML report
+
+state.vec<- unique(prelog_data$age_group)
+par(mfrow=c(5,3), mar=c(1,1,1,1))
+for(i in 1:length(state.vec)){
+  state.sel<-state.vec[i]
+  plot1.ds<-prelog_data[prelog_data$age_group==state.sel,]
+  plot( as.Date(as.character(plot1.ds$date)) , plot1.ds$J12_18, type='l', bty='l')
+  title(state.sel)
+}
+
 source('synthetic_control_report.R', local = TRUE)
 source('synthetic_control_write_results.R', local = TRUE) #save .csv files with output tables

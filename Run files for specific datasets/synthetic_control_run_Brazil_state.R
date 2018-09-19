@@ -38,6 +38,16 @@ data_file <- paste0(input_directory, file_name)
 prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
 prelog_data<-prelog_data[substr(prelog_data$age_group,1,2)=='09',]  #Only <12m
 
+#check data
+# state.vec<- unique(prelog_data$age_group)
+# par(mfrow=c(6,6), mar=c(1,1,1,1))
+# for(i in 1:length(state.vec)){
+#   state.sel<-state.vec[i]
+#   plot1.ds<-prelog_data[prelog_data$age_group==state.sel,]
+#   plot( as.Date(as.character(plot1.ds$date)) , plot1.ds$J12_18, type='l', bty='l')
+#   title(state.sel)
+# }
+
 #prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
 
 #Import from local file
