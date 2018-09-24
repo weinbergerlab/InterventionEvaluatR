@@ -99,10 +99,10 @@ makeTimeSeries <- function(group, outcome,  covars, trend=FALSE) {
 
 
 #Main analysis function.
-doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_points,crossval=FALSE, var.select.on=TRUE, n_iter = 10000, trend = FALSE) {
+doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_points,crossval.stage=FALSE, var.select.on=TRUE, n_iter = 10000, trend = FALSE) {
 	
   #Format outcome and covariates for regular and cross-validations
-  if(crossval){
+  if(crossval.stage){
     #Data for cross-validation
     y.pre<-zoo_data$cv.data[,1]
     y.full<-zoo_data$full.data[,1]
