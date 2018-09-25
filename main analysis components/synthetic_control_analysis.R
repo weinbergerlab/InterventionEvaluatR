@@ -269,10 +269,10 @@ stopCluster(cl)
         #Pointwise RR and uncertainty for second stage meta analysis
         log_rr_quantiles_stack   <- sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
         dimnames(log_rr_quantiles_stack)[[1]] <- time_points
-        log_rr_full_t_samples.stack.prec<-sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec}, simplify = 'array')
+        log_rr_full_t_samples.stack.prec<-sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec.post}, simplify = 'array')
         #log_rr_sd.stack   <- sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_sd}, simplify = 'array')
         
-         saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, country, "_log_rr_quantiles_stack.rds"))
+        saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, country, "_log_rr_quantiles_stack.rds"))
         saveRDS(log_rr_full_t_samples.stack.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.stack.prec.rds"))
       }
 ##########################################################################
