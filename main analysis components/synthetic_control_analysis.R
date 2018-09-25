@@ -336,7 +336,8 @@ rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  s
         if(crossval){
           point.weights2<-stacking_weights.all.m
         }else{
-          point.weights2<-rep(1,nrow(rr_mean_combo))
+          point.weights2<-as.data.frame(matrix(rep(1,nrow(rr_mean_combo)), ncol=1))
+          names(point.weights2)<-'value'
         }
         rr_mean_combo$point.weights<-point.weights2$value
         rr_mean_combo$group.index<-as.numeric(as.character(rr_mean_combo$group.index))
