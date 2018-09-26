@@ -221,34 +221,6 @@ pred.cv<-function(cv.impact){
    return(cv.pred.q)
 }
 
-# stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca){
-#   #Averaged--multiply each log(mean) by weight, then add, then exponentiate and draw from Poisson
-#     weights<-as.numeric(as.vector(stacking_weights.all[stacking_weights.all$groups==group,]))
-#     rm.full<-log(impact_full$reg.mean)*weights[2]
-#     rm.time<-log(impact_time$reg.mean)*weights[3]
-#     rm.time_no_offset<-log(impact_time_no_offset$reg.mean)*weights[4]
-#     rm.pca<-log(impact_pca$reg.mean)*weights[5]
-#     
-#     pred.full<-apply(impact_full$reg.mean, 1, median)
-#     pred.time<-apply(impact_time$reg.mean, 1, median)
-#     pred.time.no_offset<-apply(impact_time_no_offset$reg.mean, 1, median)
-#     pred.pca<-apply(impact_pca$reg.mean, 1, median)
-#     all.preds<-cbind(pred.full,pred.time,pred.time.no_offset,pred.pca)
-#     
-#     stack<-rm.full+rm.time+rm.time_no_offset+rm.pca
-#     pred.stack.count<-rpois(n=length(stack),lambda=exp(stack))
-#      pred.stack.count<-matrix(pred.stack.count, nrow=nrow(rm.full), ncol=ncol(rm.full))
-#       pred.stack.q<- t(apply(pred.stack.count,1,quantile, probs=c(0.025,0.5,0.975)))
-#      # log.rr.stack.q<-log((outcome[,group]+0.5)/pred.stack.q)
-#     # log.rr.iter<- log((outcome[,group]+0.5)/pred.stack.count)
-#     # log_rr_stack.cov<-cov(t(log.rr.iter))
-#     # log_rr_stack.prec<-solve(log_rr_stack.cov) #NOT INVERTIBLE?
-#     # #log_rr_stack.prec=log_rr_stack.cov
-#     stacked.est<-list(pred.stack.count, pred.stack.q,outcome[,group] )
-#     names(stacked.est)<-list('predict.bsts','pred.stack.q', 'observed.y' )
-#     return(stacked.est)
-# }
-
 stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca){
   #Averaged--multiply each log(mean) by weight, then add, then exponentiate and draw from Poisson
     weights<-as.numeric(as.vector(stacking_weights.all[stacking_weights.all$groups==group,]))
@@ -305,23 +277,6 @@ reshape.arr<-function(point.ll3){
 inclusionProb <- function(impact) {
 	return(impact$inclusion_probs)
 }
-
-#Extract pointwise log likelihood matrix--could be used with LOO
-# point.ll<-function(impact){
-#   covars<-impact$covars
-#   betas<-impact$beta.mat
-#   re<-impact$rand.eff
-#   obs.y.pre<-impact$observed.y[1:69]
-#   covars<-cbind(rep(1,nrow(covars)),covars)[1:69,]
-#   pred<- covars %*% t(betas)  + t(re)
-#   ll.obs<-matrix(NA, nrow=nrow(pred), ncol=ncol(pred))
-#   for(i in 1:ncol(pred)){
-#     ll.obs[,i]<- dpois(obs.y.pre, lambda=exp(pred[,i]), log=TRUE)
-#   }
-#   ll.obs<-t(ll.obs)
-#   return(ll.obs)
-# }
-
 
 ##K-fold cross-validation
   #Create K-fold datasets
