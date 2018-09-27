@@ -33,7 +33,7 @@ for (group in groups) {
 	pred_time_plot_agg <-        plotPredAgg(ann_pred_quantiles_time[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'Interupted time series estimate'))
 	pred_pca_plot_agg <-        plotPredAgg(ann_pred_quantiles_pca[[group]], time_points, post_period, min_max, outcome_plot[, group], title = paste(group, 'STL+PCA estimate'))
 	
-	if (!is.na(sensitivity_table_intervals)) {
+	if (exists('sensitivity_table_intervals')) {
 		pred_sensitivity_plot <- plotPred(pred_quantiles_full[, , group], time_points, post_period, min_max, outcome_plot[, group], sensitivity_pred_quantiles = sensitivity_pred_quantiles[[group]], sensitivity_title = paste(group, 'Sensitivity Plots'), plot_sensitivity = TRUE)
 	} else {
 	  pred_sensitivity_plot <- NA
@@ -133,7 +133,7 @@ if(crossval){	plot_list[[group]] <- list(covar_plot = covar_plot,
 															pred_full_plot_agg = pred_full_plot_agg, 
 															pred_time_plot_agg = pred_time_plot_agg, 
 															pred_pca_plot_agg = pred_pca_plot_agg, 
-															pred_sensitivity_plot = pred_sensitivity_plot, 
+															#pred_sensitivity_plot = pred_sensitivity_plot, 
 															rr_roll_stack_plot = rr_roll_stack_plot, 
 															rr_roll_full_plot = rr_roll_full_plot, 
 															rr_roll_time_plot = rr_roll_time_plot, 
@@ -148,7 +148,7 @@ if(crossval){	plot_list[[group]] <- list(covar_plot = covar_plot,
                              pred_full_plot_agg = pred_full_plot_agg, 
                              pred_time_plot_agg = pred_time_plot_agg, 
                              pred_pca_plot_agg = pred_pca_plot_agg, 
-                             pred_sensitivity_plot = pred_sensitivity_plot, 
+                           #  pred_sensitivity_plot = pred_sensitivity_plot, 
                              rr_roll_full_plot = rr_roll_full_plot, 
                              rr_roll_time_plot = rr_roll_time_plot, 
                              rr_roll_pca_plot = rr_roll_pca_plot, 

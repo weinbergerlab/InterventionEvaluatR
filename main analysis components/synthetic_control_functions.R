@@ -202,7 +202,7 @@ doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_poin
 
 crossval.log.lik<- function(cv.impact){
   exclude.id<-cv.impact$exclude.indices
-  pred.exclude<- cv.impact$reg.mean[exclude.id,] #use predicted mean (which incorporates random effect)
+  pred.exclude<- cv.impact$reg.mean[exclude.id,, drop=FALSE] #use predicted mean (which incorporates random effect)
   obs.exclude<- cv.impact$observed.y[exclude.id]
   point.ll1<-matrix(NA, nrow=nrow(pred.exclude), ncol=ncol(pred.exclude))
   for(i in 1: ncol(pred.exclude)){
@@ -215,7 +215,7 @@ crossval.log.lik<- function(cv.impact){
 # cross validated predictions vs observed
 pred.cv<-function(cv.impact){
   exclude.id<-cv.impact$exclude.indices
-  pred.exclude<- cv.impact$reg.mean[exclude.id,] #use predicted mean (which incorporates random effect)
+  pred.exclude<- cv.impact$reg.mean[exclude.id,,drop=FALSE] #use predicted mean (which incorporates random effect)
   cv.pred.q<- t(apply(pred.exclude,1,quantile, probs=c(0.025,0.5, 0.975)))
   cv.pred.q<-cbind( cv.impact$observed.y[exclude.id],cv.pred.q) #combine observed and expected
    return(cv.pred.q)

@@ -21,7 +21,7 @@ write.csv(stacking_weights.all, paste(output_directory, country, '_stacking_weig
 }
   
 #Tables for rate ratios.
-if (!is.na(sensitivity_table_intervals)) {
+if (exists('sensitivity_table_intervals')) {
 write.csv(sensitivity_table, paste(output_directory, country, '_sensitivity_table.csv', sep = ''))
 write.csv(sensitivity_table_intervals, paste(output_directory, country, '_sensitivity_table_intervals.csv', sep = ''))
 write.csv(rr_table, paste(output_directory, country, '_rr_table.csv', sep = ''))

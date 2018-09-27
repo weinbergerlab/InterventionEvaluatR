@@ -132,7 +132,9 @@ kable(incl_probs, align = 'c')
 
 ##Weight Sensitivity Analysis
 ```{r sensitivity}
+if(exists('sensitivity_table_intervals')){
 kable(sensitivity_table_intervals, align = 'c')
+}
 ```
 
 
