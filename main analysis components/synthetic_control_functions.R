@@ -200,6 +200,14 @@ doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_poin
 	return(impact)
 }
 
+modelsize_func<-function(ds){
+  mod1<-ds$beta.mat
+  nonzero<-apply(mod1,1, function(x) sum(x!=0)-n_seasons ) #How many non-zero covariates, aside from seasonal dummies and intercept?
+  incl_prob<-apply(mod1,2, function(x) mean(x!=0) ) #How many non-zero covariates, aside from seasonal dummies and intercept?
+  modelsize<- round(mean(nonzero),2) #takes the mean model size among the 8000 MCMC iterations
+  return(modelsize)
+}
+
 crossval.log.lik<- function(cv.impact){
   exclude.id<-cv.impact$exclude.indices
   pred.exclude<- cv.impact$reg.mean[exclude.id,, drop=FALSE] #use predicted mean (which incorporates random effect)
