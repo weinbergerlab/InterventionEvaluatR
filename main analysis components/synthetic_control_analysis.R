@@ -369,8 +369,9 @@ cumsum_prevented_pca <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_
 cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_time, simplify = 'array')
 cumsum_prevented_best <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_best, simplify = 'array')
 
-
-
+save.best.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_best, pred_quantiles_best,rr_roll_best,rr_mean_best,rr_mean_best_intervals,cumsum_prevented_best)
+names(save.best.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
+saveRDS(save.best.est, file=paste0(output_directory, country, "best estimates.rds"))
 
 ################################
 #                              #
