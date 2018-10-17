@@ -396,7 +396,7 @@ getRR <- function(quantiles) {
   return(quantiles$rr)
 }
 getRR_unbias <- function(quantiles) {
-  return(unbias_rr_q)
+  return(quantiles$unbias_rr_q)
 }
 
 makeInterval <- function(point_estimate, upper_interval, lower_interval, digits = 2) {
