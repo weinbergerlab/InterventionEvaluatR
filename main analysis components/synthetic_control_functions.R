@@ -337,6 +337,15 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
   mean_rr <- mean(eval_rr_sum)
   
+  #Calculate RR for the N months prior to vaccine introduction as a bias corrrection factor
+  pre_indices<- which(time_points==(eval_period[1] %m+% months(12))):which(time_points==(eval_period[1] %m+% months(1)))
+  pred_pre_sum <- colSums(pred_samples[pre_indices, ])
+  pre_obs <- sum(impact$observed.y[pre_indices] )
+  rr_sum_pre<- pre_obs/pred_pre_sum  #Should be 0!
+  
+  unbias_rr<- rr/rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
+  unbias_rr_q<- quantile(unbias_rr, probs = c(0.025, 0.5, 0.975))
+  
   plot_rr_start <- which(time_points==post_period[1]) - n_seasons
   roll_rr_indices <- match(plot_rr_start, (1:length(impact$observed.y))):match(which(time_points==eval_period[2]), (1:length(impact$observed.y)))
  
@@ -363,7 +372,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
-   quantiles <- list(pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
+   quantiles <- list(unbias_rr_q=unbias_rr_q, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
    return(quantiles)
 }
 
@@ -377,6 +386,9 @@ getAnnPred <- function(quantiles) {
 
 getRR <- function(quantiles) {
   return(quantiles$rr)
+}
+getRR_unbias <- function(quantiles) {
+  return(unbias_rr_q)
 }
 
 makeInterval <- function(point_estimate, upper_interval, lower_interval, digits = 2) {
