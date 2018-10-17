@@ -351,7 +351,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   pre_obs <- sum(impact$observed.y[pre_indices] )
   rr_sum_pre<- pre_obs/pred_pre_sum  #Should be 0!
   
-  unbias_rr<- rr/rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
+  unbias_rr<- eval_rr_sum/rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
   unbias_rr_q<- quantile(unbias_rr, probs = c(0.025, 0.5, 0.975))
   
   plot_rr_start <- which(time_points==post_period[1]) - n_seasons
