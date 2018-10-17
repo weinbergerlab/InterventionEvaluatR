@@ -318,21 +318,17 @@ rr_roll_pca <- sapply(quantiles_pca, FUN = function(quantiles_pca) {quantiles_pc
 rr_roll_best <- sapply(quantiles_best, FUN = function(quantiles_best) {quantiles_best$roll_rr}, simplify = 'array')
 
 #Rate ratios for evaluation period.
-rr_mean_full <- t(sapply(quantiles_full, getRR_unbias))
-rr_mean_time <- t(sapply(quantiles_time, getRR_unbias))
-rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR_unbias))
-rr_mean_pca <- t(sapply(quantiles_pca, getRR_unbias))
-rr_mean_best <- t(sapply(quantiles_best, getRR_unbias))
-#rr_mean_best_unbias <- t(sapply(quantiles_best, getRR_unbias))
-
+rr_mean_full <- t(sapply(quantiles_full, getRR))
+rr_mean_time <- t(sapply(quantiles_time, getRR))
+rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR))
+rr_mean_pca <- t(sapply(quantiles_pca, getRR))
+rr_mean_best <- t(sapply(quantiles_best, getRR))
 
 rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_intervals <- data.frame('Time trend Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_no_offset_intervals <- data.frame('Time trend (no offset) Estimate (95% CI)' = makeInterval(rr_mean_time_no_offset[, 2], rr_mean_time_no_offset[, 3], rr_mean_time_no_offset[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_best_intervals <- data.frame('Best Estimate (95% CI)'     = makeInterval(rr_mean_best[, 2], rr_mean_best[, 3], rr_mean_best[, 1]), check.names = FALSE, row.names = groups)
-#rr_mean_best_intervals <- data.frame('Best Unbiased Estimate (95% CI)'     = makeInterval(rr_mean_best_unbias[, 2], rr_mean_best_unbias[, 3], rr_mean_best_unbias[, 1]), check.names = FALSE, row.names = groups)
-
 colnames(rr_mean_time) <- paste('Time_trend', colnames(rr_mean_time))
 
 #Combine RRs into 1 file for plotting
