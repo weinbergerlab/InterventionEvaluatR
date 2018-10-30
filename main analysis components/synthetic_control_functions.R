@@ -346,7 +346,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   mean_rr <- mean(eval_rr_sum)
   
   #Calculate RR for the N months prior to vaccine introduction as a bias corrrection factor
-  pre_indices<- which(time_points==(eval_period[1] %m+% months(12))):which(time_points==(eval_period[1] %m+% months(1)))
+  pre_indices<- which(time_points==(post_period[1] %m-% months(12))):which(time_points==(post_period[1] %m-% months(1)))
   pred_pre_sum <- colSums(pred_samples[pre_indices, ])
   pre_obs <- sum(impact$observed.y[pre_indices] )
   rr_sum_pre<- pre_obs/pred_pre_sum  #Should be 0!
