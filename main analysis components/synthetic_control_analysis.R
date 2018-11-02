@@ -282,6 +282,8 @@ stopCluster(cl)
 inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
 inclusion_prob_time <- setNames(lapply(impact_time, inclusionProb), groups)
 
+model.size.sc<-sapply(impact_full,modelsize_func)
+
 #All model results combined
 quantiles_full <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_full[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
