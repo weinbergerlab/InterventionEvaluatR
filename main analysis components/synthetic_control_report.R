@@ -43,12 +43,14 @@ param_list <- list(update_packages = update_packages,
 							eval_period       = eval_period)
 run_pandoc <- rmarkdown::pandoc_available()
 if (run_pandoc) {
-	rmarkdown::render('./main analysis components/synthetic_control_report.Rmd', output_file = 'Synthetic Control Report.html', output_dir = output_directory, params = param_list, envir = environment())	
 
+  rmarkdown::render('./main analysis components/synthetic_control_report.Rmd', output_file = 'Synthetic Control Report.html', output_dir = output_directory, params = param_list, envir = environment())	
+  
 } else {
-	knitr::knit('./main analysis components/synthetic_control_report.Rmd', envir = environment())
-	markdown::markdownToHTML('synthetic_control_report.md', output = paste(output_directory, 'synthetic_control_report.html', sep = ''))
+  knitr::knit('./main analysis components/synthetic_control_report.Rmd', envir = environment())
+  markdown::markdownToHTML('synthetic_control_report.md', output = paste(output_directory, 'synthetic_control_report.html', sep = ''))
 	file.remove('synthetic_control_report.md')
 	unlink('figure/', recursive = TRUE)
 }
 source('./main analysis components/synthetic_control_write_results.R', local = TRUE)
+

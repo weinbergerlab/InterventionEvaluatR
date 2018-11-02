@@ -77,7 +77,7 @@ if (!is.null(names(sparse_groups[sparse_groups])) && length(names(sparse_groups[
 if (crossval){
 kable( cbind.data.frame(rr_mean_stack_intervals,rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')
 }else{
-kable( cbind.data.frame(rr_mean_best_intervals, rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')  
+kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')  
 }
 ```
 
@@ -112,12 +112,6 @@ kable(stacking_weights.all, align = 'c')
     }
 ```
   
-##Number of variables selected in SC analysis
-```{r modelsize}
-kable(model.size.sc, col.names=c('Model Size'))
-```
-
-
 ##Inclusion Probabilities
 ```{r incl_prob, include = FALSE}
 incl_probs <- NULL
@@ -147,5 +141,6 @@ kable(sensitivity_table_intervals, align = 'c')
 
 ##Plots
 ```{r plots2,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
+
 source('synthetic_control_plot.R')
 ```

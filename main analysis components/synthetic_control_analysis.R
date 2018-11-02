@@ -24,7 +24,9 @@ if(.Platform$OS.type == "windows") {
 auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson-master/main analysis components/'))
 #
 
+
 packages <- c('parallel', 'splines', 'lubridate','loo', 'RcppRoll','pomp','lme4',  'ggplot2', 'reshape','dummies')
+
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
@@ -168,14 +170,15 @@ data_time_no_offset <- setNames(lapply(groups, makeTimeSeries, outcome = outcome
 cl <- makeCluster(n_cores)
 clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE)})
 clusterExport(cl, c('doCausalImpact',  'intervention_date', 'time_points', 'n_seasons','crossval'), environment())
-  impact_full <- setNames(parLapply(cl, data_full, doCausalImpact, intervention_date = intervention_date, var.select.on=TRUE, time_points = time_points), groups)
-  impact_time <- setNames(parLapply(cl, data_time, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points, trend = TRUE), groups)
-  impact_time_no_offset <- setNames(parLapply(cl, data_time_no_offset, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points,  trend = FALSE), groups)
-  impact_pca <- setNames(parLapply(cl, data_pca, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points), groups)
+impact_full <- setNames(parLapply(cl, data_full, doCausalImpact, intervention_date = intervention_date, var.select.on=TRUE, time_points = time_points), groups)
+impact_time <- setNames(parLapply(cl, data_time, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points, trend = TRUE), groups)
+impact_time_no_offset <- setNames(parLapply(cl, data_time_no_offset, doCausalImpact, intervention_date = intervention_date,  var.select.on=FALSE,time_points = time_points,  trend = FALSE), groups)
+impact_pca <- setNames(parLapply(cl, data_pca, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points), groups)
+#No covariates, but with random intercept
+#impact_seas_only <- setNames(parLapply(cl, data_null, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE, time_points = time_points, n_seasons = n_seasons), groups)
+#No covariates except seasonal, no random intercept
+#impact_seas_only_no_re <- setNames(parLapply(cl, data_null, doCausalImpact, intervention_date = intervention_date, var.select.on=FALSE,ri.select=FALSE, time_points = time_points, n_seasons = n_seasons), groups)
 stopCluster(cl)
-
-##Model size for SC model
-model.size.sc<-sapply(impact_full,modelsize_func)
 
 ####################################################
 ####################################################
@@ -250,7 +253,18 @@ model.size.sc<-sapply(impact_full,modelsize_func)
         pred.cv.full<-lapply(cv_impact_full, function(x) sapply(x,pred.cv,simplify='array'))
         pred.cv.pca<-lapply(cv_impact_pca, function(x) sapply(x,pred.cv,simplify='array'))
           
-         save.stack.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_stack, pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
+        # # par(mfrow=c(3,2))
+        # plot.grp=9
+        # for(i in 1:6){
+        # matplot(pred.cv.full[[plot.grp]][,c(2:4),i], type='l', ylab='Count',col='#1b9e77', lty=c(2,1,2), bty='l', ylim=range(pred.cv.full[[plot.grp]][,c(1),i])*c(0.8,1.2))
+        # points(pred.cv.full[[plot.grp]][,c(1),i], pch=16)
+        # title("Synthetic controls: Cross validation")
+        # matplot(pred.cv.pca[[plot.grp]][,c(2:4),i], type='l',ylab='Count', col='#d95f02', lty=c(2,1,2), bty='l', ylim=range(pred.cv.full[[plot.grp]][,c(1),i])*c(0.8,1.2))
+        # points(pred.cv.pca[[plot.grp]][,c(1),i], pch=16)
+        # title("STL+PCA: Cross validation")
+        # }
+        
+        save.stack.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_stack, pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
         names(save.stack.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_stack', 'pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
         saveRDS(save.stack.est, file=paste0(output_directory, country, "Stack estimates.rds"))
         
@@ -275,25 +289,18 @@ quantiles_full <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles
 quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_time_no_offset <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time_no_offset[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_pca <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_pca[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
-#USE SC estimates if model size is at leatst 1, otherwise use STL+PCA
-quantiles_best<-vector("list", length(quantiles_full)) 
-quantiles_best[model.size.sc>=1]<-quantiles_full[model.size.sc>=1]
-quantiles_best[model.size.sc<1]<-quantiles_pca[model.size.sc<1]
-quantiles_best<-setNames(quantiles_best,groups)
 
 #Model predicitons
 pred_quantiles_full <- sapply(quantiles_full, getPred, simplify = 'array')
 pred_quantiles_time <- sapply(quantiles_time, getPred, simplify = 'array')
 pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getPred, simplify = 'array')
 pred_quantiles_pca <- sapply(quantiles_pca, getPred, simplify = 'array')
-pred_quantiles_best <- sapply(quantiles_best, getPred, simplify = 'array')
 
 #Predictions, aggregated by year
 ann_pred_quantiles_full <- sapply(quantiles_full, getAnnPred, simplify = FALSE)
 ann_pred_quantiles_time <- sapply(quantiles_time, getAnnPred, simplify = FALSE)
 ann_pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getAnnPred, simplify = FALSE)
 ann_pred_quantiles_pca <- sapply(quantiles_pca, getAnnPred, simplify = FALSE)
-ann_pred_quantiles_best<-sapply(quantiles_best, getAnnPred, simplify = FALSE)
 
 #Pointwise RR and uncertainty for second stage meta analysis
 log_rr_quantiles   <- sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
@@ -304,35 +311,22 @@ saveRDS(log_rr_quantiles, file=paste0(output_directory, country, "_log_rr_quanti
 saveRDS(log_rr_sd, file=paste0(output_directory, country, "_log_rr_sd.rds"))
 saveRDS(log_rr_full_t_samples.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.prec.rds"))
 
-log_rr_quantiles_best   <- sapply(quantiles_best,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
-dimnames(log_rr_quantiles_best)[[1]] <- time_points
-log_rr_best_t_samples.prec<-sapply(quantiles_best,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec}, simplify = 'array')
-saveRDS(log_rr_quantiles_best, file=paste0(output_directory, country, "_log_rr_quantiles_best.rds"))
-saveRDS(log_rr_best_t_samples.prec, file=paste0(output_directory, country, "_log_rr_best_t_samples.prec.rds"))
-
 #Rolling rate ratios
 rr_roll_full <- sapply(quantiles_full, FUN = function(quantiles_full) {quantiles_full$roll_rr}, simplify = 'array')
 rr_roll_time <- sapply(quantiles_time, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
 rr_roll_time_no_offset <- sapply(quantiles_time_no_offset, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
 rr_roll_pca <- sapply(quantiles_pca, FUN = function(quantiles_pca) {quantiles_pca$roll_rr}, simplify = 'array')
-rr_roll_best <- sapply(quantiles_best, FUN = function(quantiles_best) {quantiles_best$roll_rr}, simplify = 'array')
 
 #Rate ratios for evaluation period.
-rr_mean_full <- t(sapply(quantiles_full, getRR_unbias))
-rr_mean_time <- t(sapply(quantiles_time, getRR_unbias))
-rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR_unbias))
-rr_mean_pca <- t(sapply(quantiles_pca, getRR_unbias))
-rr_mean_best <- t(sapply(quantiles_best, getRR_unbias))
-#rr_mean_best_unbias <- t(sapply(quantiles_best, getRR_unbias))
-
+rr_mean_full <- t(sapply(quantiles_full, getRR))
+rr_mean_time <- t(sapply(quantiles_time, getRR))
+rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR))
+rr_mean_pca <- t(sapply(quantiles_pca, getRR))
 
 rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_intervals <- data.frame('Time trend Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_no_offset_intervals <- data.frame('Time trend (no offset) Estimate (95% CI)' = makeInterval(rr_mean_time_no_offset[, 2], rr_mean_time_no_offset[, 3], rr_mean_time_no_offset[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
-rr_mean_best_intervals <- data.frame('Best Estimate (95% CI)'     = makeInterval(rr_mean_best[, 2], rr_mean_best[, 3], rr_mean_best[, 1]), check.names = FALSE, row.names = groups)
-#rr_mean_best_intervals <- data.frame('Best Unbiased Estimate (95% CI)'     = makeInterval(rr_mean_best_unbias[, 2], rr_mean_best_unbias[, 3], rr_mean_best_unbias[, 1]), check.names = FALSE, row.names = groups)
-
 colnames(rr_mean_time) <- paste('Time_trend', colnames(rr_mean_time))
 
 #Combine RRs into 1 file for plotting
@@ -345,7 +339,6 @@ rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  s
           point.weights2<-stacking_weights.all.m
         }else{
           point.weights2<-as.data.frame(matrix(rep(1,nrow(rr_mean_combo)), ncol=1))
-          #point.weights2[]<-1.5
           names(point.weights2)<-'value'
         }
         rr_mean_combo$point.weights<-point.weights2$value
@@ -371,11 +364,9 @@ rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  s
 cumsum_prevented <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_full, simplify = 'array')
 cumsum_prevented_pca <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_pca, simplify = 'array')
 cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_time, simplify = 'array')
-cumsum_prevented_best <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_best, simplify = 'array')
 
-save.best.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_best, pred_quantiles_best,rr_roll_best,rr_mean_best,rr_mean_best_intervals,cumsum_prevented_best)
-names(save.best.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
-saveRDS(save.best.est, file=paste0(output_directory, country, "best estimates.rds"))
+
+
 
 ################################
 #                              #
