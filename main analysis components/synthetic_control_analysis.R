@@ -287,18 +287,25 @@ quantiles_full <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles
 quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_time_no_offset <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time_no_offset[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
 quantiles_pca <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_pca[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
+quantiles_best<-vector("list", length(quantiles_full)) 
+quantiles_best[model.size.sc>=1]<-quantiles_full[model.size.sc>=1]
+quantiles_best[model.size.sc<1]<-quantiles_pca[model.size.sc<1]
+quantiles_best<-setNames(quantiles_best,groups)
+
 
 #Model predicitons
 pred_quantiles_full <- sapply(quantiles_full, getPred, simplify = 'array')
 pred_quantiles_time <- sapply(quantiles_time, getPred, simplify = 'array')
 pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getPred, simplify = 'array')
 pred_quantiles_pca <- sapply(quantiles_pca, getPred, simplify = 'array')
+pred_quantiles_best <- sapply(quantiles_best, getPred, simplify = 'array')
 
 #Predictions, aggregated by year
 ann_pred_quantiles_full <- sapply(quantiles_full, getAnnPred, simplify = FALSE)
 ann_pred_quantiles_time <- sapply(quantiles_time, getAnnPred, simplify = FALSE)
 ann_pred_quantiles_time_no_offset <- sapply(quantiles_time_no_offset, getAnnPred, simplify = FALSE)
 ann_pred_quantiles_pca <- sapply(quantiles_pca, getAnnPred, simplify = FALSE)
+ann_pred_quantiles_best<-sapply(quantiles_best, getAnnPred, simplify = FALSE)
 
 #Pointwise RR and uncertainty for second stage meta analysis
 log_rr_quantiles   <- sapply(quantiles_full,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
@@ -309,23 +316,32 @@ saveRDS(log_rr_quantiles, file=paste0(output_directory, country, "_log_rr_quanti
 saveRDS(log_rr_sd, file=paste0(output_directory, country, "_log_rr_sd.rds"))
 saveRDS(log_rr_full_t_samples.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.prec.rds"))
 
+log_rr_quantiles_best   <- sapply(quantiles_best,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
+dimnames(log_rr_quantiles_best)[[1]] <- time_points
+log_rr_best_t_samples.prec<-sapply(quantiles_best,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec}, simplify = 'array')
+saveRDS(log_rr_quantiles_best, file=paste0(output_directory, country, "_log_rr_quantiles_best.rds"))
+saveRDS(log_rr_best_t_samples.prec, file=paste0(output_directory, country, "_log_rr_best_t_samples.prec.rds"))
+
 #Rolling rate ratios
 rr_roll_full <- sapply(quantiles_full, FUN = function(quantiles_full) {quantiles_full$roll_rr}, simplify = 'array')
 rr_roll_time <- sapply(quantiles_time, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
 rr_roll_time_no_offset <- sapply(quantiles_time_no_offset, FUN = function(quantiles_time) {quantiles_time$roll_rr}, simplify = 'array')
 rr_roll_pca <- sapply(quantiles_pca, FUN = function(quantiles_pca) {quantiles_pca$roll_rr}, simplify = 'array')
+rr_roll_best <- sapply(quantiles_best, FUN = function(quantiles_best) {quantiles_best$roll_rr}, simplify = 'array')
 
 #Rate ratios for evaluation period.
 rr_mean_full <- t(sapply(quantiles_full, getRR))
 rr_mean_time <- t(sapply(quantiles_time, getRR))
 rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR))
 rr_mean_pca <- t(sapply(quantiles_pca, getRR))
+rr_mean_best  <- t(sapply(quantiles_best, getRR))
 
 rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_intervals <- data.frame('Time trend Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_no_offset_intervals <- data.frame('Time trend (no offset) Estimate (95% CI)' = makeInterval(rr_mean_time_no_offset[, 2], rr_mean_time_no_offset[, 3], rr_mean_time_no_offset[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
 colnames(rr_mean_time) <- paste('Time_trend', colnames(rr_mean_time))
+rr_mean_best_intervals <- data.frame('Best Estimate (95% CI)'     = makeInterval(rr_mean_best[, 2], rr_mean_best[, 3], rr_mean_best[, 1]), check.names = FALSE, row.names = groups)
 
 #Combine RRs into 1 file for plotting
 rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_full),
@@ -362,9 +378,14 @@ rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  s
 cumsum_prevented <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_full, simplify = 'array')
 cumsum_prevented_pca <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_pca, simplify = 'array')
 cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_time, simplify = 'array')
+cumsum_prevented_best <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_best, simplify = 'array')
 
+save.best.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_best, pred_quantiles_best,rr_roll_best,rr_mean_best,rr_mean_best_intervals,cumsum_prevented_best)
+names(save.best.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
+saveRDS(save.best.est, file=paste0(output_directory, country, "best estimates.rds"))
 
-
+##Model size for SC model
+model.size.sc<-sapply(impact_full,modelsize_func)
 
 ################################
 #                              #

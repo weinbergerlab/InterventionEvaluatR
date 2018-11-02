@@ -331,7 +331,6 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   # points(unique(year),pred.yr.sum.q$obs, pch=16)
   # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
 
-    
   eval_rr_sum <- eval_obs/pred_eval_sum
   rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975))
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
@@ -363,8 +362,8 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
-   quantiles <- list(pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
-   return(quantiles)
+ 	quantiles <- list( pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
+ 	return(quantiles)
 }
 
 getPred <- function(quantiles) {
@@ -604,6 +603,14 @@ stl_data_fun<-function(covars,ds.sub){
     comment(ds.fit[[p]])<-combos3[p]
   }
   return(ds.fit)
+}
+
+modelsize_func<-function(ds){
+  mod1<-ds$beta.mat
+  nonzero<-apply(mod1,1, function(x) sum(x!=0)-n_seasons ) #How many non-zero covariates, aside from seasonal dummies and intercept?
+  incl_prob<-apply(mod1,2, function(x) mean(x!=0) ) #How many non-zero covariates, aside from seasonal dummies and intercept?
+  modelsize<- round(mean(nonzero),2) #takes the mean model size among the 8000 MCMC iterations
+  return(modelsize)
 }
 
 glm.fun<-function(ds.fit){
