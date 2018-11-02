@@ -1,5 +1,5 @@
 #Call this file after defining the relevant variables to generate the HTML report.
-source('synthetic_control_functions.R', local = TRUE)
+source('./main analysis components/synthetic_control_functions.R', local = TRUE)
 packages <- c('curl', 'evaluate', 'digest', 'formatR', 'highr', 'markdown', 'stringr', 'yaml', 'Rcpp', 'htmltools', 'caTools', 'bitops', 'knitr', 'jsonlite', 'base64enc', 'rprojroot', 'rmarkdown')
 packageHandler(packages, update_packages, install_packages)
 if (install_pandoc) {
@@ -51,4 +51,4 @@ if (run_pandoc) {
 	file.remove('synthetic_control_report.md')
 	unlink('figure/', recursive = TRUE)
 }
-source('synthetic_control_write_results.R', local = TRUE)
+source('./main analysis components/synthetic_control_write_results.R', local = TRUE)

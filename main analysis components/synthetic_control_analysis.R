@@ -9,7 +9,7 @@
 #                           #
 #############################
 
-source('synthetic_control_functions.R', local = TRUE)
+source('synthetic_control_functions.R', local = FALSE)
 
 #############################
 #Automatically set working directory to desktop
