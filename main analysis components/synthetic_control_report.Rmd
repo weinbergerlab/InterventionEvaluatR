@@ -73,7 +73,7 @@ if (!is.null(names(sparse_groups[sparse_groups])) && length(names(sparse_groups[
 ```
 
 ##combine estimates
-```{r model_comp}
+```{r Comparison of estimates from different models}
 if (crossval){
 kable( cbind.data.frame(rr_mean_stack_intervals,rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals, rr_mean_pca_intervals), align = 'c')
 }else{
@@ -82,7 +82,7 @@ kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_ti
 ```
 
 ##Plot of Rate ratios, with size proportional to cross validation weights
-```{r figs1, fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
+```{r fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
 #Compare rate ratios, with size of marker scaled to cross val weights
 		ggplot(rr_mean_combo, aes(x=group.index, y=mean.rr, color=Model,group=Model)) + 
 	  geom_errorbar(aes(ymin=lcl, ymax=ucl), colour="gray", width=.0) +
@@ -104,7 +104,7 @@ kable( cbind.data.frame(rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_ti
 ```
 
 ##Weights for each of the models from cross validation
-```{r crossval1}
+```{r Comparison of Cross validation Weights from different models}
 if(crossval){
 kable(stacking_weights.all, align = 'c')
 } else{
@@ -113,7 +113,7 @@ kable(stacking_weights.all, align = 'c')
 ```
   
 ##Inclusion Probabilities
-```{r incl_prob, include = FALSE}
+```{r incl, include = FALSE}
 incl_probs <- NULL
 	for (group in groups) {
 	    incl_prob=impact_full[[group]]$inclusion_probs[-c(1:(n_seasons-1)),]
@@ -132,7 +132,7 @@ kable(incl_probs, align = 'c')
 ```
 
 ##Weight Sensitivity Analysis
-```{r sensitivity1}
+```{r sensitivity}
 if (exists('sensitivity_table_intervals')) {
 kable(sensitivity_table_intervals, align = 'c')
 }
@@ -140,7 +140,6 @@ kable(sensitivity_table_intervals, align = 'c')
 
 
 ##Plots
-```{r plots2,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
-
+```{r plots,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
 source('synthetic_control_plot.R')
 ```

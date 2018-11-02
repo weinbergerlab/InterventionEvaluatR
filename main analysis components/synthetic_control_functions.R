@@ -337,18 +337,6 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
   mean_rr <- mean(eval_rr_sum)
   
-
-  #Calculate RR for the N months prior to vaccine introduction as a bias corrrection factor
-  if(n_seasons==12){pre_indices<- which(time_points==(post_period[1] %m-% months(12))):which(time_points==(post_period[1] %m-% months(1)))}
-  if(n_seasons==4){pre_indices<- which(time_points==(post_period[1] %m-% months(12))):which(time_points==(post_period[1] %m-% months(3)))}
-  
-  pred_pre_sum <- colSums(pred_samples[pre_indices, ])
-  pre_obs <- sum(impact$observed.y[pre_indices] )
-  rr_sum_pre<- pre_obs/pred_pre_sum  #Should be 0!
-  
-  unbias_rr<- eval_rr_sum/rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
-  unbias_rr_q<- quantile(unbias_rr, probs = c(0.025, 0.5, 0.975))
-  
   plot_rr_start <- which(time_points==post_period[1]) - n_seasons
   roll_rr_indices <- match(plot_rr_start, (1:length(impact$observed.y))):match(which(time_points==eval_period[2]), (1:length(impact$observed.y)))
  
@@ -390,12 +378,6 @@ getAnnPred <- function(quantiles) {
 getRR <- function(quantiles) {
   return(quantiles$rr)
 }
-
-getRR_unbias <- function(quantiles) {
-  return(quantiles$unbias_rr_q)
-}
-=======
-
 
 makeInterval <- function(point_estimate, upper_interval, lower_interval, digits = 2) {
   return(paste(round(as.numeric(point_estimate), digits), ' (', round(as.numeric(lower_interval), digits), ', ', round(as.numeric(upper_interval), digits), ')', sep = ''))
