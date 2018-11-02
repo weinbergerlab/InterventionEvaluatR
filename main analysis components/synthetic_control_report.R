@@ -43,7 +43,6 @@ param_list <- list(update_packages = update_packages,
 							eval_period       = eval_period)
 run_pandoc <- rmarkdown::pandoc_available()
 if (run_pandoc) {
-
   rmarkdown::render('./main analysis components/synthetic_control_report.Rmd', output_file = 'Synthetic Control Report.html', output_dir = output_directory, params = param_list, envir = environment())	
   
 } else {
@@ -53,4 +52,3 @@ if (run_pandoc) {
 	unlink('figure/', recursive = TRUE)
 }
 source('./main analysis components/synthetic_control_write_results.R', local = TRUE)
-
