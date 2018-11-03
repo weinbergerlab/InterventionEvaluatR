@@ -10,6 +10,7 @@
 #############################
 
 source('synthetic_control_functions.R', local = FALSE)
+#source('synthetic_control_functions.R', local = FALSE)
 
 #############################
 #Automatically set working directory to desktop

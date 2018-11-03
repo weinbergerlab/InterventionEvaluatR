@@ -321,7 +321,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   obs.y.year<-tapply( impact$observed.y, year, sum)
   pred.yr.spl<-split(as.data.frame(pred_samples),year)
   pred.yr.spl.sum<-lapply(pred.yr.spl, function(x) apply(x, 2, sum)  )
-  pred.yr.spl.sum.q<-lapply(pred.yr.spl.sum, quantile, probs=c(0.025,0.50,0.975) )
+  pred.yr.spl.sum.q<-lapply(pred.yr.spl.sum, quantile, probs=c(0.025,0.50,0.975), na.rm=TRUE )
   pred.yr.sum.q<-as.data.frame(matrix(unlist(pred.yr.spl.sum.q), ncol = 3, byrow = TRUE)  )
   names(pred.yr.sum.q)<-c('2.5%','50%','97.5%')
   pred.yr.sum.q$obs<-obs.y.year
@@ -332,7 +332,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
 
   eval_rr_sum <- eval_obs/pred_eval_sum
-  rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975))
+  rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
   mean_rr <- mean(eval_rr_sum)
   
