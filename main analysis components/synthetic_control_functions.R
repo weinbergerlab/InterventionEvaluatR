@@ -443,7 +443,19 @@ plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, out
     year.intervention<- which( as.numeric(substr(as.character(ann_pred_quantiles$year),1,4))==epiyr.int) - 0.5
   }else{
   year.intervention<-year(intervention_date )-0.5
-}
+  }
+  #how mny time points in each aggregation period?
+ if( year_def=='epi_year'){
+   yrvec<-year(time_points)
+   monthvec<-month(time_points)
+   epiyrvec=yrvec
+   epiyrvec[monthvec<=6]=yrvec[monthvec<=6]-1
+   n.months.year<-as.vector(table(epiyrvec))
+  }else{
+   n.months.year<-as.vector(table(year(time_points)))
+  } 
+  
+  ann_pred_quantiles[,c('2.5%','50%','97.5%','obs')]<-ann_pred_quantiles[,c('2.5%','50%','97.5%','obs')]*12/n.months.year # for partial years, inflate the counts proportional to N months
     pred_plot <- ggplot() + 
       #geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound', color='variable'), alpha = 0.3) +
       geom_ribbon(data=ann_pred_quantiles, aes( x=as.numeric(year), ymin=ann_pred_quantiles$'2.5%', ymax=ann_pred_quantiles$'97.5%'), alpha=0.5, fill='lightgray')+
