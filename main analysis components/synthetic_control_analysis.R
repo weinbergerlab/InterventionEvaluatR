@@ -395,7 +395,7 @@ model.size.sc<-sapply(impact_full,modelsize_func)
 #     Sensitivity Analyses     #
 #                              #
 ################################
-
+if(sensitivity){
 #Pred Sensitivity Analysis--tests effect of changing prior on Ncovars from 3 to 2 to 10
 # cl <- makeCluster(n_cores)
 # clusterEvalQ(cl, {library(CausalImpact, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
@@ -449,4 +449,5 @@ rr_table <- cbind.data.frame(round(rr_mean_time[!bad_sensitivity_groups, ],2), s
 rr_table_intervals <- cbind('ITS Estimate (95% CI)' = rr_mean_time_intervals[!bad_sensitivity_groups, ], sensitivity_table_intervals)
 } else {
   sensitivity_table_intervals <- NA
+}
 }
