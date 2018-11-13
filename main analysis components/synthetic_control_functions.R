@@ -693,3 +693,45 @@ cumsum_func<-function(group, quantiles) {
   cumsum_cases_prevented <- rbind(cumsum_cases_prevented_pre, cumsum_cases_prevented_post)
   cumsum_prevented <- t(apply(cumsum_cases_prevented, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
 }
+		   
+		   #Classic its setup
+its_func<-function(ds1){
+  ds1$post1<-0
+  ds1$post1[time_points>= post_period[1] & time_points< eval_period[1]] <-1
+  ds1$post2<-0
+  ds1$post2[time_points>=eval_period[1]]<-1
+  ds1$time_index<-ds1$time_index/max(ds1$time_index)
+  ds1$obs<-1:nrow(ds1)
+  ds1$log.offset<-scale(ds1$log.offset)
+  #Fit classic ITS model
+  mod1<-glmer(outcome~ s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+log.offset +time_index + post1 +post2 +
+                time_index*post1 +time_index*post2 + (1|obs),data=ds1, family=poisson(link=log),control=glmerControl(optimizer="bobyqa",
+                                                                                                                     optCtrl=list(maxfun=2e5)) )
+  #GENERATE PREDICTIONS
+  covars3<-as.matrix(cbind(ds1[,c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','log.offset',
+                                  'time_index','post1','post2')], ds1$time_index*ds1$post1, 
+                           ds1$time_index*ds1$post2)) 
+  covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
+  names(covars3)[1]<-"Intercept"
+  pred.coefs.reg.mean<- mvrnorm(n = 10000, mu=fixef(mod1), Sigma=vcov( mod1))
+  preds.stage1.regmean<- exp(as.matrix(covars3) %*% t(pred.coefs.reg.mean))
+  #re.sd<-as.numeric(sqrt(VarCorr(mod1)[[1]]))
+  #preds.stage1<-rnorm(n<-length(preds.stage1.regmean), mean=preds.stage1.regmean, sd=re.sd)
+  #preds.stage1<-exp(matrix(preds.stage1, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)))
+  
+  #Then for counterfactual, set post-vax effects to 0.
+  covars3.cf<-as.matrix(cbind(ds1[,c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','log.offset',
+                                     'time_index')], matrix(0, nrow=nrow(ds1), ncol=4)))
+  covars3.cf<-cbind.data.frame(rep(1, times=nrow(covars3.cf)), covars3.cf)
+  preds.stage1.regmean.cf<- exp(as.matrix(covars3.cf) %*% t(pred.coefs.reg.mean))
+  #preds.stage1.cf<-rnorm(n<-length(preds.stage1.regmean.cf), mean=preds.stage1.regmean.cf, sd=re.sd)
+  #preds.stage1.cf<-exp(matrix(preds.stage1.cf, nrow=nrow(preds.stage1.regmean.cf), ncol=ncol(preds.stage1.regmean.cf)))
+  
+  rr.t<-preds.stage1.regmean/preds.stage1.regmean.cf
+  rr.q.t<-t(apply(rr.t,1,quantile, probs=c(0.025,0.5,0.975)))
+  #matplot(rr.q, type='l', bty='l', lty=c(2,1,2), col='gray')
+  #abline(h=1)
+  
+  # rr.q.last<- rr.q.t[nrow(rr.q.t),]
+  return(rr.q.t)
+}
