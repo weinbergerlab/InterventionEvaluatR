@@ -346,6 +346,12 @@ rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterv
 colnames(rr_mean_time) <- paste('Time_trend', colnames(rr_mean_time))
 rr_mean_best_intervals <- data.frame('Best Estimate (95% CI)'     = makeInterval(rr_mean_best[, 2], rr_mean_best[, 3], rr_mean_best[, 1]), check.names = FALSE, row.names = groups)
 
+			    
+#Run a classic ITS analysis and save output (rr at last time point) as .csv
+rr.its<-sapply(data_time,its_func, simplify='array')
+rr.end<-t(rr.its[length(time_points),,])
+write.csv(rr.end, paste(output_directory, country, 'rr_classic_its.csv', sep = ''))
+
 #Combine RRs into 1 file for plotting
 rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_full),
                        cbind(rep(2, nrow(rr_mean_time)),groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)), rr_mean_time),
