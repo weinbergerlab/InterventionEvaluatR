@@ -348,8 +348,11 @@ rr_mean_best_intervals <- data.frame('Best Estimate (95% CI)'     = makeInterval
 
 			    
 #Run a classic ITS analysis and save output (rr at last time point) as .csv
-rr.its<-sapply(data_time,its_func, simplify='array')
-rr.end<-t(rr.its[length(time_points),,])
+rr.its1<-lapply(data_time,its_func)
+rr.t<-sapply(rr.its1, `[[`, "rr.q.t", simplify='array')
+rr.end<-t(sapply(rr.its1, `[[`, "rr.q.post", simplify='array')) 
+#matplot(rr.t[,,10], bty='l', type='l', lty=c(2,1,2), col='gray')
+#abline(h=1)
 write.csv(rr.end, paste(output_directory, country, 'rr_classic_its.csv', sep = ''))
 
 #Combine RRs into 1 file for plotting
