@@ -695,6 +695,7 @@ cumsum_func<-function(group, quantiles) {
 }
 		   
 		   #Classic its setup
+
 its_func<-function(ds1){
   ds1$post1<-0
   ds1$post1[time_points>= post_period[1] & time_points< eval_period[1]] <-1
@@ -703,7 +704,8 @@ its_func<-function(ds1){
   ds1$time_index<-ds1$time_index/max(ds1$time_index)
   ds1$obs<-1:nrow(ds1)
   ds1$log.offset<-scale(ds1$log.offset)
-  #Fit classic ITS model
+  eval_indices <- match(which(time_points==eval_period[1]), (1:length(ds1$obs))):match(which(time_points==eval_period[2]), (1:length(ds1$obs)))
+    #Fit classic ITS model
   mod1<-glmer(outcome~ s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+log.offset +time_index + post1 +post2 +
                 time_index*post1 +time_index*post2 + (1|obs),data=ds1, family=poisson(link=log),control=glmerControl(optimizer="bobyqa",
                                                                                                                      optCtrl=list(maxfun=2e5)) )
@@ -729,9 +731,15 @@ its_func<-function(ds1){
   
   rr.t<-preds.stage1.regmean/preds.stage1.regmean.cf
   rr.q.t<-t(apply(rr.t,1,quantile, probs=c(0.025,0.5,0.975)))
+
+  preds.stage1.regmean.SUM<-apply(preds.stage1.regmean[eval_indices,],2,sum)
+  preds.stage1.regmean.cf.SUM<-apply(preds.stage1.regmean.cf[eval_indices,],2,sum)
+  rr.post<-preds.stage1.regmean.SUM/preds.stage1.regmean.cf.SUM
+  rr.q.post<-quantile(rr.post,probs=c(0.025,0.5,0.975))
   #matplot(rr.q, type='l', bty='l', lty=c(2,1,2), col='gray')
   #abline(h=1)
   
   # rr.q.last<- rr.q.t[nrow(rr.q.t),]
-  return(rr.q.t)
+  rr.out<-list(rr.q.post=rr.q.post, rr.q.t=rr.q.t)
+  return(rr.out)
 }
