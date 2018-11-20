@@ -335,7 +335,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
   mean_rr <- mean(eval_rr_sum)
-  sd_rr<-sd(eval_rr_sum)			  
+  sd_log_rr<-sd(log(eval_rr_sum))			  
   
   plot_rr_start <- which(time_points==post_period[1]) - n_seasons
   roll_rr_indices <- match(plot_rr_start, (1:length(impact$observed.y))):match(which(time_points==eval_period[2]), (1:length(impact$observed.y)))
@@ -363,7 +363,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
- 	quantiles <- list( sd_rr=sd_rr, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
+ 	quantiles <- list( sd_log_rr=sd_log_rr, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
  	return(quantiles)
 }
 
@@ -382,7 +382,7 @@ getmeanRR <- function(quantiles) {
   return(quantiles$mean_rr)
 }
 getsdRR <- function(quantiles) {
-  return(quantiles$sd_rr)
+  return(quantiles$sd_log_rr)
 }
 
 			  
