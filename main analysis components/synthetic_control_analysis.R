@@ -339,6 +339,9 @@ rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR))
 rr_mean_pca <- t(sapply(quantiles_pca, getRR))
 rr_mean_best  <- t(sapply(quantiles_best, getRR))
 
+rr_sd_best  <- t(sapply(quantiles_best, getsdRR))
+ 			    
+			    
 rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_intervals <- data.frame('Time trend Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_no_offset_intervals <- data.frame('Time trend (no offset) Estimate (95% CI)' = makeInterval(rr_mean_time_no_offset[, 2], rr_mean_time_no_offset[, 3], rr_mean_time_no_offset[, 1]), check.names = FALSE, row.names = groups)
@@ -392,8 +395,8 @@ cumsum_prevented_pca <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_
 cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_time, simplify = 'array')
 cumsum_prevented_best <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_best, simplify = 'array')
 
-save.best.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_best, pred_quantiles_best,rr_roll_best,rr_mean_best,rr_mean_best_intervals,cumsum_prevented_best)
-names(save.best.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
+save.best.est<-list(rr_sd_best,post_period,outcome_plot, time_points,ann_pred_quantiles_best, pred_quantiles_best,rr_roll_best,rr_mean_best,rr_mean_best_intervals,cumsum_prevented_best)
+names(save.best.est)<-c('rr_sd_best','post_period','outcome_plot','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
 saveRDS(save.best.est, file=paste0(output_directory, country, "best estimates.rds"))
 
 ##Model size for SC model
