@@ -21,7 +21,7 @@ rm(list = ls(all = TRUE))
 
 
 #select what you want to plot : "best" estimate; full (sc) estimates, time-trend, or stl_pca
-ds.select<-'rr_best'  #rr_best, rr_full, rr_time_trend, rr_pca
+ds.select<-'rr_time_trend'  #rr_best, rr_full, rr_time_trend, rr_pca
 
 
 # Load dataset for each country and merge 10 files to create one big file.
@@ -184,7 +184,7 @@ dt <- dt[order(dt$agegrp,dt$country),]
 newrow <- matrix(rep(NA,4*ncol(dt)), nrow=4, ncol=ncol(dt))
 colnames(newrow) <- colnames(dt)
 
-dt<-dt[dt$age!='2-59m' & dt$age !='2-23m',] #Exclude the aggregated groups
+dt<-dt[dt$age=='2-59m' | dt$age =='2-23m',] #Exclude the aggregated groups
 dt$country.grp<-NA
 dt$country.grp[dt$country %in% c('ar','br','co','pr','mx')]<-3
 dt$country.grp[dt$country %in% c('ec','hr','nc')]<-2
@@ -205,7 +205,7 @@ dt$country.name[dt$country=='gy']<-'Guyana'
 #Metafor analysis and plotting
 #install.packages('metafor')
 library(metafor)
-age.list<-c( "<2m","2-11m","12-23m","24-59m")
+age.list<-c( '2-23m','2-59m')
 par(mfrow=c(1,1), mar=c(4,1,1,1))
 for(i in 1: length(age.list)){
 age.plot<-dt[dt$age==age.list[i],]
@@ -224,10 +224,8 @@ overall.plot<-dt[!is.na(dt$Median),]
 #ma.all<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country )
 overall.plot$log.rr<-log(overall.plot$Median)
 overall.plot$approx.var<- ((log(overall.plot$Upper) - log(overall.plot$Median))/1.96)^2
-ma.u2<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='<2m'))
-ma.2_11m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='2-11m'))
-ma.12_23m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='12-23m'))
-ma.24_59m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='24-59m'))
+ma.2_23m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='2-23m'))
+ma.2_59m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='2-59m'))
 
 #simple plot, unstratified
 #par(mfrow=c(1,1), mar=c(1,1,1,1))
@@ -240,17 +238,14 @@ plot.spl<-lapply(plot.spl, function(x) x<-x[order(x$country.grp, x$country),])
 n.country.grp<-sapply(plot.spl, function(x) nrow(x) )
 #Specify where each group starts and ends, providing space between groups
 start.grp1<-3
-start.grp2<-start.grp1+n.country.grp[4]+4
-start.grp3<-start.grp2+n.country.grp[3]+4
-start.grp4<-start.grp3+n.country.grp[2]+4
-plot.indices<-c(start.grp1:(start.grp1+n.country.grp[4]-1) ,
-                start.grp2:(start.grp2+n.country.grp[3]-1),
-                start.grp3:(start.grp3+n.country.grp[2]-1),
-                start.grp4:(start.grp4+n.country.grp[1]-1)
+start.grp2<-start.grp1+n.country.grp[2]+4
+
+plot.indices<-c(start.grp1:(start.grp1+n.country.grp[2]-1) ,
+                start.grp2:(start.grp2+n.country.grp[1]-1)
                 )
 overall.plot.sorted<-overall.plot[order(-overall.plot$agegrp, -overall.plot$country.grp, overall.plot$country),]
 ### decrease margins so the full space is used
-tiff(paste0('C:/Users/dmw63/Weinberger Lab Dropbox/PAHO mortality/Results/Forest plots/forest.natl_',ds.select,'.tiff'),
+tiff(paste0('C:/Users/dmw63/Weinberger Lab Dropbox/PAHO mortality/Results/Forest plots/forest.natl_agg',ds.select,'.tiff'),
         width=5, height=6, units='in', res=200)
 par(mar=c(4,4,1,2))
 forest(x=overall.plot.sorted$Median,rows=plot.indices, 
@@ -263,29 +258,23 @@ forest(x=overall.plot.sorted$Median,rows=plot.indices,
           at=c(0.4,0.6,0.8,1,1.2,1.4,1.6),
             cex=0.75)
 ### add summary polygons for the three subgroups
-addpoly(ma.24_59m, row=start.grp1-1.5, cex=0.75, transf=exp, mlab="")
-addpoly(ma.12_23m, row= start.grp2-1.5, cex=0.75, transf=exp, mlab="")
-addpoly(ma.2_11m, row= start.grp3-1.5, cex=0.75, transf=exp, mlab="")
-addpoly(ma.u2, row= start.grp4-1.5, cex=0.75, transf=exp, mlab="")
+addpoly(ma.2_59m, row=start.grp1-1.5, cex=0.75, transf=exp, mlab="")
+addpoly(ma.2_23m, row= start.grp2-1.5, cex=0.75, transf=exp, mlab="")
 
 ### add text for the subgroups
 ### set font expansion factor (as in forest() above) and use bold italic
 ### font and save original settings in object 'op'
 op <- par(cex=0.75, font=4)
-text(0, c((start.grp4+n.country.grp[1]+0.5),
-            (start.grp3+n.country.grp[2]+0.5),
-            (start.grp2+n.country.grp[3]+0.5),
-            (start.grp1+n.country.grp[4]+0.5)), 
-            pos=4, c("<2m",'2-11m','12-23m','24-59m'), cex=0.9)
+text(0, c((start.grp2+n.country.grp[1]+0.5),
+            (start.grp1+n.country.grp[2]+0.5)), 
+            pos=4, c("2-23m",'2-59m'), cex=0.9)
 ### switch to bold fonts
 par(font=2)
 text(0,                (max(plot.indices)+4), "Country",  pos=4)
 text(2, (max(plot.indices)+4), "Rate Ratio [95% CrI]", pos=2)
 
-text(0,start.grp1-1.5, 'RE Model 24-59m' ,  pos=4,cex=0.75)
-text(0,start.grp2-1.5, 'RE Model 12-23m' ,  pos=4, cex=0.75)
-text(0,start.grp3-1.5, 'RE Model 2-11m' ,  pos=4, cex=0.75)
-text(0,start.grp4-1.5, 'RE Model <2m' ,  pos=4, cex=0.75)
+text(0,start.grp1-1.5, 'RE Model 2-59m' ,  pos=4,cex=0.75)
+text(0,start.grp2-1.5, 'RE Model 2-23m' ,  pos=4, cex=0.75)
 dev.off()
 
 
