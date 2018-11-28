@@ -271,7 +271,7 @@ text(0, c((start.grp4+n.country.grp[1]+0.5),
             (start.grp2+n.country.grp[3]+0.5),
             (start.grp1+n.country.grp[4]+0.5)), 
             pos=4, c("<2m",'2-11m','12-23m','24-59m'), cex=0.9)
-### switch to bold font
+### switch to bold fonts
 par(font=2)
 text(0,                (max(plot.indices)+4), "Country",  pos=4)
 text(2, (max(plot.indices)+4), "Rate Ratio [95% CrI]", pos=2)
