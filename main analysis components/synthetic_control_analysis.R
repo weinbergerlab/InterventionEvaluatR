@@ -339,12 +339,24 @@ rr_mean_time_no_offset <- t(sapply(quantiles_time_no_offset, getRR))
 rr_mean_pca <- t(sapply(quantiles_pca, getRR))
 rr_mean_best  <- t(sapply(quantiles_best, getRR))
 
+log_rr_sd_best  <- t(sapply(quantiles_best, getsdRR))
+ 			    
+			    
 rr_mean_full_intervals <- data.frame('SC Estimate (95% CI)'     = makeInterval(rr_mean_full[, 2], rr_mean_full[, 3], rr_mean_full[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_intervals <- data.frame('Time trend Estimate (95% CI)' = makeInterval(rr_mean_time[, 2], rr_mean_time[, 3], rr_mean_time[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_time_no_offset_intervals <- data.frame('Time trend (no offset) Estimate (95% CI)' = makeInterval(rr_mean_time_no_offset[, 2], rr_mean_time_no_offset[, 3], rr_mean_time_no_offset[, 1]), check.names = FALSE, row.names = groups)
 rr_mean_pca_intervals <- data.frame('STL+PCA Estimate (95% CI)'     = makeInterval(rr_mean_pca[, 2], rr_mean_pca[, 3], rr_mean_pca[, 1]), check.names = FALSE, row.names = groups)
 colnames(rr_mean_time) <- paste('Time_trend', colnames(rr_mean_time))
 rr_mean_best_intervals <- data.frame('Best Estimate (95% CI)'     = makeInterval(rr_mean_best[, 2], rr_mean_best[, 3], rr_mean_best[, 1]), check.names = FALSE, row.names = groups)
+
+			    
+#Run a classic ITS analysis and save output (rr at last time point) as .csv
+rr.its1<-lapply(data_time,its_func)
+rr.t<-sapply(rr.its1, `[[`, "rr.q.t", simplify='array')
+rr.end<-t(sapply(rr.its1, `[[`, "rr.q.post", simplify='array')) 
+#matplot(rr.t[,,10], bty='l', type='l', lty=c(2,1,2), col='gray')
+#abline(h=1)
+write.csv(rr.end, paste(output_directory, country, 'rr_classic_its.csv', sep = ''))
 
 #Combine RRs into 1 file for plotting
 rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_full),
@@ -383,8 +395,8 @@ cumsum_prevented_pca <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_
 cumsum_prevented_time <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_time, simplify = 'array')
 cumsum_prevented_best <- sapply(groups, FUN = cumsum_func, quantiles = quantiles_best, simplify = 'array')
 
-save.best.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_best, pred_quantiles_best,rr_roll_best,rr_mean_best,rr_mean_best_intervals,cumsum_prevented_best)
-names(save.best.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
+save.best.est<-list(log_rr_sd_best,post_period,outcome_plot, time_points,ann_pred_quantiles_best, pred_quantiles_best,rr_roll_best,rr_mean_best,rr_mean_best_intervals,cumsum_prevented_best)
+names(save.best.est)<-c('log_rr_sd_best','post_period','outcome_plot','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
 saveRDS(save.best.est, file=paste0(output_directory, country, "best estimates.rds"))
 
 ##Model size for SC model

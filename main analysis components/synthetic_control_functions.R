@@ -335,6 +335,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
   mean_rr <- mean(eval_rr_sum)
+  sd_log_rr<-sd(log(eval_rr_sum))			  
   
   plot_rr_start <- which(time_points==post_period[1]) - n_seasons
   roll_rr_indices <- match(plot_rr_start, (1:length(impact$observed.y))):match(which(time_points==eval_period[2]), (1:length(impact$observed.y)))
@@ -362,7 +363,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
- 	quantiles <- list( pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
+ 	quantiles <- list( sd_log_rr=sd_log_rr, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
  	return(quantiles)
 }
 
@@ -377,7 +378,14 @@ getAnnPred <- function(quantiles) {
 getRR <- function(quantiles) {
   return(quantiles$rr)
 }
+getmeanRR <- function(quantiles) {
+  return(quantiles$mean_rr)
+}
+getsdRR <- function(quantiles) {
+  return(quantiles$sd_log_rr)
+}
 
+			  
 makeInterval <- function(point_estimate, upper_interval, lower_interval, digits = 2) {
   return(paste(round(as.numeric(point_estimate), digits), ' (', round(as.numeric(lower_interval), digits), ', ', round(as.numeric(upper_interval), digits), ')', sep = ''))
 }
@@ -692,4 +700,54 @@ cumsum_func<-function(group, quantiles) {
   cumsum_cases_prevented_pre <- matrix(0, nrow = nrow(cases_prevented[is_pre_period, ]), ncol = ncol(cases_prevented[is_pre_period, ]))
   cumsum_cases_prevented <- rbind(cumsum_cases_prevented_pre, cumsum_cases_prevented_post)
   cumsum_prevented <- t(apply(cumsum_cases_prevented, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
+}
+		   
+		   #Classic its setup
+
+its_func<-function(ds1){
+  ds1$post1<-0
+  ds1$post1[time_points>= post_period[1] & time_points< eval_period[1]] <-1
+  ds1$post2<-0
+  ds1$post2[time_points>=eval_period[1]]<-1
+  ds1$time_index<-ds1$time_index/max(ds1$time_index)
+  ds1$obs<-1:nrow(ds1)
+  ds1$log.offset<-scale(ds1$log.offset)
+  eval_indices <- match(which(time_points==eval_period[1]), (1:length(ds1$obs))):match(which(time_points==eval_period[2]), (1:length(ds1$obs)))
+    #Fit classic ITS model
+  mod1<-glmer(outcome~ s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+log.offset +time_index + post1 +post2 +
+                time_index*post1 +time_index*post2 + (1|obs),data=ds1, family=poisson(link=log),control=glmerControl(optimizer="bobyqa",
+                                                                                                                     optCtrl=list(maxfun=2e5)) )
+  #GENERATE PREDICTIONS
+  covars3<-as.matrix(cbind(ds1[,c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','log.offset',
+                                  'time_index','post1','post2')], ds1$time_index*ds1$post1, 
+                           ds1$time_index*ds1$post2)) 
+  covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
+  names(covars3)[1]<-"Intercept"
+  pred.coefs.reg.mean<- mvrnorm(n = 10000, mu=fixef(mod1), Sigma=vcov( mod1))
+  preds.stage1.regmean<- exp(as.matrix(covars3) %*% t(pred.coefs.reg.mean))
+  #re.sd<-as.numeric(sqrt(VarCorr(mod1)[[1]]))
+  #preds.stage1<-rnorm(n<-length(preds.stage1.regmean), mean=preds.stage1.regmean, sd=re.sd)
+  #preds.stage1<-exp(matrix(preds.stage1, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)))
+  
+  #Then for counterfactual, set post-vax effects to 0.
+  covars3.cf<-as.matrix(cbind(ds1[,c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','log.offset',
+                                     'time_index')], matrix(0, nrow=nrow(ds1), ncol=4)))
+  covars3.cf<-cbind.data.frame(rep(1, times=nrow(covars3.cf)), covars3.cf)
+  preds.stage1.regmean.cf<- exp(as.matrix(covars3.cf) %*% t(pred.coefs.reg.mean))
+  #preds.stage1.cf<-rnorm(n<-length(preds.stage1.regmean.cf), mean=preds.stage1.regmean.cf, sd=re.sd)
+  #preds.stage1.cf<-exp(matrix(preds.stage1.cf, nrow=nrow(preds.stage1.regmean.cf), ncol=ncol(preds.stage1.regmean.cf)))
+  
+  rr.t<-preds.stage1.regmean/preds.stage1.regmean.cf
+  rr.q.t<-t(apply(rr.t,1,quantile, probs=c(0.025,0.5,0.975)))
+
+  preds.stage1.regmean.SUM<-apply(preds.stage1.regmean[eval_indices,],2,sum)
+  preds.stage1.regmean.cf.SUM<-apply(preds.stage1.regmean.cf[eval_indices,],2,sum)
+  rr.post<-preds.stage1.regmean.SUM/preds.stage1.regmean.cf.SUM
+  rr.q.post<-quantile(rr.post,probs=c(0.025,0.5,0.975))
+  #matplot(rr.q, type='l', bty='l', lty=c(2,1,2), col='gray')
+  #abline(h=1)
+  
+  # rr.q.last<- rr.q.t[nrow(rr.q.t),]
+  rr.out<-list(rr.q.post=rr.q.post, rr.q.t=rr.q.t)
+  return(rr.out)
 }
