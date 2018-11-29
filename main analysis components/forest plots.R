@@ -250,8 +250,8 @@ plot.indices<-c(start.grp1:(start.grp1+n.country.grp[4]-1) ,
                 )
 overall.plot.sorted<-overall.plot[order(-overall.plot$agegrp, -overall.plot$country.grp, overall.plot$country),]
 ### decrease margins so the full space is used
-tiff(paste0('C:/Users/dmw63/Weinberger Lab Dropbox/PAHO mortality/Results/Forest plots/forest.natl_',ds.select,'.tiff'),
-        width=5, height=6, units='in', res=200)
+tiff(paste0('C:/Users/dmw63/Weinberger Lab Dropbox/PAHO mortality/Results/Forest plots/without unbiasing/forest.natl_',ds.select,'.tiff'),
+        width=5.5, height=6, units='in', res=200)
 par(mar=c(4,4,1,2))
 forest(x=overall.plot.sorted$Median,rows=plot.indices, 
        ci.lb=overall.plot.sorted$Lower, 
@@ -259,7 +259,9 @@ forest(x=overall.plot.sorted$Median,rows=plot.indices,
         ci.ub=overall.plot.sorted$Upper,
        refline=1, 
           slab=overall.plot.sorted$country.name,
-            ylim=c(0,(max(plot.indices)+4.5)), clim=c(0.4, 1.5),xlim=c(0, 2), 
+            ylim=c(0,(max(plot.indices)+4.5)), 
+       #clim=c(0.4, 1.5),
+       xlim=c(0, 2), 
           at=c(0.4,0.6,0.8,1,1.2,1.4,1.6),
             cex=0.75)
 ### add summary polygons for the three subgroups
