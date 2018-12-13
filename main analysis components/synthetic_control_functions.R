@@ -372,13 +372,9 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
-<<<<<<< HEAD
+
    quantiles <- list(unbias_rr_q=unbias_rr_q, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
    return(quantiles)
-=======
- 	quantiles <- list( sd_log_rr=sd_log_rr, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
- 	return(quantiles)
->>>>>>> 3022428274974ad07c9eb305005fddd5c18d25fa
 }
 
 getPred <- function(quantiles) {
@@ -392,16 +388,15 @@ getAnnPred <- function(quantiles) {
 getRR <- function(quantiles) {
   return(quantiles$rr)
 }
-<<<<<<< HEAD
+
 getRR_unbias <- function(quantiles) {
   return(unbias_rr_q)
-=======
+
 getmeanRR <- function(quantiles) {
   return(quantiles$mean_rr)
 }
 getsdRR <- function(quantiles) {
   return(quantiles$sd_log_rr)
->>>>>>> 3022428274974ad07c9eb305005fddd5c18d25fa
 }
 
 			  
