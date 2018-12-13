@@ -321,7 +321,7 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   obs.y.year<-tapply( impact$observed.y, year, sum)
   pred.yr.spl<-split(as.data.frame(pred_samples),year)
   pred.yr.spl.sum<-lapply(pred.yr.spl, function(x) apply(x, 2, sum)  )
-  pred.yr.spl.sum.q<-lapply(pred.yr.spl.sum, quantile, probs=c(0.025,0.50,0.975) )
+  pred.yr.spl.sum.q<-lapply(pred.yr.spl.sum, quantile, probs=c(0.025,0.50,0.975), na.rm=TRUE )
   pred.yr.sum.q<-as.data.frame(matrix(unlist(pred.yr.spl.sum.q), ncol = 3, byrow = TRUE)  )
   names(pred.yr.sum.q)<-c('2.5%','50%','97.5%')
   pred.yr.sum.q$obs<-obs.y.year
@@ -331,11 +331,11 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
   # points(unique(year),pred.yr.sum.q$obs, pch=16)
   # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
 
-    
   eval_rr_sum <- eval_obs/pred_eval_sum
-  rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975))
+  rr <- quantile(eval_rr_sum, probs = c(0.025, 0.5, 0.975), na.rm=TRUE)
   names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
   mean_rr <- mean(eval_rr_sum)
+  sd_log_rr<-sd(log(eval_rr_sum))			  
   
   #Calculate RR for the N months prior to vaccine introduction as a bias corrrection factor
   pre_indices<- which(time_points==(eval_period[1] %m+% months(12))):which(time_points==(eval_period[1] %m+% months(1)))
@@ -372,8 +372,13 @@ rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period
 # 	
   # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
  # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
+<<<<<<< HEAD
    quantiles <- list(unbias_rr_q=unbias_rr_q, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
    return(quantiles)
+=======
+ 	quantiles <- list( sd_log_rr=sd_log_rr, pred.yr.sum.q=pred.yr.sum.q,log_rr_full_t_samples.prec.post=log_rr_full_t_samples.prec.post,pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr, pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, rr = rr)
+ 	return(quantiles)
+>>>>>>> 3022428274974ad07c9eb305005fddd5c18d25fa
 }
 
 getPred <- function(quantiles) {
@@ -387,10 +392,19 @@ getAnnPred <- function(quantiles) {
 getRR <- function(quantiles) {
   return(quantiles$rr)
 }
+<<<<<<< HEAD
 getRR_unbias <- function(quantiles) {
   return(unbias_rr_q)
+=======
+getmeanRR <- function(quantiles) {
+  return(quantiles$mean_rr)
+}
+getsdRR <- function(quantiles) {
+  return(quantiles$sd_log_rr)
+>>>>>>> 3022428274974ad07c9eb305005fddd5c18d25fa
 }
 
+			  
 makeInterval <- function(point_estimate, upper_interval, lower_interval, digits = 2) {
   return(paste(round(as.numeric(point_estimate), digits), ' (', round(as.numeric(lower_interval), digits), ', ', round(as.numeric(upper_interval), digits), ')', sep = ''))
 }
@@ -456,7 +470,19 @@ plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, out
     year.intervention<- which( as.numeric(substr(as.character(ann_pred_quantiles$year),1,4))==epiyr.int) - 0.5
   }else{
   year.intervention<-year(intervention_date )-0.5
-}
+  }
+  #how mny time points in each aggregation period?
+ if( year_def=='epi_year'){
+   yrvec<-year(time_points)
+   monthvec<-month(time_points)
+   epiyrvec=yrvec
+   epiyrvec[monthvec<=6]=yrvec[monthvec<=6]-1
+   n.months.year<-as.vector(table(epiyrvec))
+  }else{
+   n.months.year<-as.vector(table(year(time_points)))
+  } 
+  
+  ann_pred_quantiles[,c('2.5%','50%','97.5%','obs')]<-ann_pred_quantiles[,c('2.5%','50%','97.5%','obs')]*12/n.months.year # for partial years, inflate the counts proportional to N months
     pred_plot <- ggplot() + 
       #geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound', color='variable'), alpha = 0.3) +
       geom_ribbon(data=ann_pred_quantiles, aes( x=as.numeric(year), ymin=ann_pred_quantiles$'2.5%', ymax=ann_pred_quantiles$'97.5%'), alpha=0.5, fill='lightgray')+
@@ -618,6 +644,14 @@ stl_data_fun<-function(covars,ds.sub){
   return(ds.fit)
 }
 
+modelsize_func<-function(ds){
+  mod1<-ds$beta.mat
+  nonzero<-apply(mod1,1, function(x) sum(x!=0)-n_seasons ) #How many non-zero covariates, aside from seasonal dummies and intercept?
+  incl_prob<-apply(mod1,2, function(x) mean(x!=0) ) #How many non-zero covariates, aside from seasonal dummies and intercept?
+  modelsize<- round(mean(nonzero),2) #takes the mean model size among the 8000 MCMC iterations
+  return(modelsize)
+}
+
 glm.fun<-function(ds.fit){
   names(ds.fit)<-paste0('c',names(ds.fit))
   covars.fit<-ds.fit[,-1]
@@ -685,4 +719,54 @@ cumsum_func<-function(group, quantiles) {
   cumsum_cases_prevented_pre <- matrix(0, nrow = nrow(cases_prevented[is_pre_period, ]), ncol = ncol(cases_prevented[is_pre_period, ]))
   cumsum_cases_prevented <- rbind(cumsum_cases_prevented_pre, cumsum_cases_prevented_post)
   cumsum_prevented <- t(apply(cumsum_cases_prevented, 1, quantile, probs = c(0.025, 0.5, 0.975), na.rm = TRUE))
+}
+		   
+		   #Classic its setup
+
+its_func<-function(ds1){
+  ds1$post1<-0
+  ds1$post1[time_points>= post_period[1] & time_points< eval_period[1]] <-1
+  ds1$post2<-0
+  ds1$post2[time_points>=eval_period[1]]<-1
+  ds1$time_index<-ds1$time_index/max(ds1$time_index)
+  ds1$obs<-1:nrow(ds1)
+  ds1$log.offset<-scale(ds1$log.offset)
+  eval_indices <- match(which(time_points==eval_period[1]), (1:length(ds1$obs))):match(which(time_points==eval_period[2]), (1:length(ds1$obs)))
+    #Fit classic ITS model
+  mod1<-glmer(outcome~ s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+log.offset +time_index + post1 +post2 +
+                time_index*post1 +time_index*post2 + (1|obs),data=ds1, family=poisson(link=log),control=glmerControl(optimizer="bobyqa",
+                                                                                                                     optCtrl=list(maxfun=2e5)) )
+  #GENERATE PREDICTIONS
+  covars3<-as.matrix(cbind(ds1[,c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','log.offset',
+                                  'time_index','post1','post2')], ds1$time_index*ds1$post1, 
+                           ds1$time_index*ds1$post2)) 
+  covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
+  names(covars3)[1]<-"Intercept"
+  pred.coefs.reg.mean<- mvrnorm(n = 10000, mu=fixef(mod1), Sigma=vcov( mod1))
+  preds.stage1.regmean<- exp(as.matrix(covars3) %*% t(pred.coefs.reg.mean))
+  #re.sd<-as.numeric(sqrt(VarCorr(mod1)[[1]]))
+  #preds.stage1<-rnorm(n<-length(preds.stage1.regmean), mean=preds.stage1.regmean, sd=re.sd)
+  #preds.stage1<-exp(matrix(preds.stage1, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)))
+  
+  #Then for counterfactual, set post-vax effects to 0.
+  covars3.cf<-as.matrix(cbind(ds1[,c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','log.offset',
+                                     'time_index')], matrix(0, nrow=nrow(ds1), ncol=4)))
+  covars3.cf<-cbind.data.frame(rep(1, times=nrow(covars3.cf)), covars3.cf)
+  preds.stage1.regmean.cf<- exp(as.matrix(covars3.cf) %*% t(pred.coefs.reg.mean))
+  #preds.stage1.cf<-rnorm(n<-length(preds.stage1.regmean.cf), mean=preds.stage1.regmean.cf, sd=re.sd)
+  #preds.stage1.cf<-exp(matrix(preds.stage1.cf, nrow=nrow(preds.stage1.regmean.cf), ncol=ncol(preds.stage1.regmean.cf)))
+  
+  rr.t<-preds.stage1.regmean/preds.stage1.regmean.cf
+  rr.q.t<-t(apply(rr.t,1,quantile, probs=c(0.025,0.5,0.975)))
+
+  preds.stage1.regmean.SUM<-apply(preds.stage1.regmean[eval_indices,],2,sum)
+  preds.stage1.regmean.cf.SUM<-apply(preds.stage1.regmean.cf[eval_indices,],2,sum)
+  rr.post<-preds.stage1.regmean.SUM/preds.stage1.regmean.cf.SUM
+  rr.q.post<-quantile(rr.post,probs=c(0.025,0.5,0.975))
+  #matplot(rr.q, type='l', bty='l', lty=c(2,1,2), col='gray')
+  #abline(h=1)
+  
+  # rr.q.last<- rr.q.t[nrow(rr.q.t),]
+  rr.out<-list(rr.q.post=rr.q.post, rr.q.t=rr.q.t)
+  return(rr.out)
 }
