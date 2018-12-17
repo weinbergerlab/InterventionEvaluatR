@@ -391,7 +391,7 @@ getRR <- function(quantiles) {
 
 getRR_unbias <- function(quantiles) {
   return(unbias_rr_q)
-
+}
 getmeanRR <- function(quantiles) {
   return(quantiles$mean_rr)
 }

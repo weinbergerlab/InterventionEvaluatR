@@ -25,7 +25,7 @@ if(.Platform$OS.type == "windows") {
 auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson-master/main analysis components/'))
 #
 
-packages <- c('parallel', 'splines', 'lubridate','loo', 'RcppRoll','pomp','lme4', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'splines', 'MASS','lubridate','loo', 'RcppRoll','pomp','lme4', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
