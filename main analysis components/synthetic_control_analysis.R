@@ -10,7 +10,7 @@
 #############################
 
 source('synthetic_control_functions.R', local = FALSE)
-#source('synthetic_control_functions.R', local = FALSE)
+#source('./main analysis components/synthetic_control_functions.R', local = T)
 
 #############################
 #Automatically set working directory to desktop
@@ -29,24 +29,13 @@ packages <- c('parallel', 'splines', 'MASS','lubridate','loo', 'RcppRoll','pomp'
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
-#Detect if pogit package installed; if not download archive (no longer on cran)
-if("BayesLogit" %in% rownames(installed.packages())==FALSE){
-  if(.Platform$OS.type == "windows") {
-  #url_BayesLogit<- "https://mran.microsoft.com/snapshot/2017-02-04/src/contrib/BayesLogit_0.6.tar.gz"
-  install_github("jwindle/BayesLogit")
-  }else{
-    url_BayesLogit<- "https://github.com/weinbergerlab/synthetic-control-poisson/blob/master/packages/BayesLogit_0.6_mac.tgz?raw=true"
-  }
-  pkgFile_BayesLogit <- "BayesLogit.tar.gz"
-  download.file(url = url_BayesLogit, destfile = pkgFile_BayesLogit)
-  install.packages(url_BayesLogit, type="source", repos=NULL)
-}
+#Detect if pogit package installed; if not download from Github
 if("pogit" %in% rownames(installed.packages())==FALSE){
-  url_pogit <- "https://cran.r-project.org/src/contrib/Archive/pogit/pogit_1.1.0.tar.gz"
-  pkgFile_pogit <- "pogit_1.1.0.tar.gz"
-  download.file(url = url_pogit, destfile = pkgFile_pogit)
-  install.packages(pkgs=pkgFile_pogit, type="source", repos=NULL)
-  install.packages('logistf')
+  if("devtools" %in% rownames(installed.packages())==FALSE){
+    install.packages('devtools')
+  }
+  library('devtools')
+  install_github("airbornemint/pogit", upgrade='never') #Did not update any of the dependencies (#24)
 }
 library(pogit)
 
