@@ -21,7 +21,7 @@ rm(list = ls(all = TRUE))
 
 
 #select what you want to plot : "best" estimate; full (sc) estimates, time-trend, or stl_pca
-ds.select<-'rr_time_trend'  #rr_best, rr_full, rr_time_trend, rr_pca
+ds.select<-'rr_best'  #rr_best, rr_full, rr_time_trend, rr_pca
 
 
 # Load dataset for each country and merge 10 files to create one big file.
@@ -245,7 +245,7 @@ plot.indices<-c(start.grp1:(start.grp1+n.country.grp[2]-1) ,
                 )
 overall.plot.sorted<-overall.plot[order(-overall.plot$agegrp, -overall.plot$country.grp, overall.plot$country),]
 ### decrease margins so the full space is used
-tiff(paste0('C:/Users/dmw63/Weinberger Lab Dropbox/PAHO mortality/Results/Forest plots/forest.natl_agg',ds.select,'.tiff'),
+tiff(paste0('C:/Users/dmw63/Weinberger Lab Dropbox/PAHO mortality/Results/Forest plots/agg without unbiasing/forest.natl_agg',ds.select,'.tiff'),
         width=5, height=6, units='in', res=200)
 par(mar=c(4,4,1,2))
 forest(x=overall.plot.sorted$Median,rows=plot.indices, 
@@ -258,8 +258,8 @@ forest(x=overall.plot.sorted$Median,rows=plot.indices,
           at=c(0.4,0.6,0.8,1,1.2,1.4,1.6),
             cex=0.75)
 ### add summary polygons for the three subgroups
-addpoly(ma.2_59m, row=start.grp1-1.5, cex=0.75, transf=exp, mlab="")
-addpoly(ma.2_23m, row= start.grp2-1.5, cex=0.75, transf=exp, mlab="")
+#addpoly(ma.2_59m, row=start.grp1-1.5, cex=0.75, transf=exp, mlab="")
+#addpoly(ma.2_23m, row= start.grp2-1.5, cex=0.75, transf=exp, mlab="")
 
 ### add text for the subgroups
 ### set font expansion factor (as in forest() above) and use bold italic
@@ -273,8 +273,8 @@ par(font=2)
 text(0,                (max(plot.indices)+4), "Country",  pos=4)
 text(2, (max(plot.indices)+4), "Rate Ratio [95% CrI]", pos=2)
 
-text(0,start.grp1-1.5, 'RE Model 2-59m' ,  pos=4,cex=0.75)
-text(0,start.grp2-1.5, 'RE Model 2-23m' ,  pos=4, cex=0.75)
+#text(0,start.grp1-1.5, 'RE Model 2-59m' ,  pos=4,cex=0.75)
+#text(0,start.grp2-1.5, 'RE Model 2-23m' ,  pos=4, cex=0.75)
 dev.off()
 
 
@@ -292,7 +292,7 @@ overall.plot$completeness[overall.plot$country=='mx']<-99
 overall.plot$completeness[overall.plot$country=='pe']<-69
 overall.plot$completeness[overall.plot$country=='gy']<- 81
 ages<-unique(overall.plot$age)
-par(mfrow=c(2,2))
+par(mfrow=c(1,2))
 for(i in ages){
 plot(overall.plot$completeness[overall.plot$age==i], overall.plot$log.rr[overall.plot$age==i], bty='l',ylim=c(-0.5,0.5))
   abline(h=0)
