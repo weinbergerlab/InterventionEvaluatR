@@ -24,7 +24,7 @@ if(.Platform$OS.type == "windows") {
 }
 auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson/'))
 
-packages <- c('parallel', 'splines', 'MASS','lubridate','loo', 'RcppRoll','pomp','lme4', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'splines', 'MASS','lubridate','loo', 'RcppRoll','lme4', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 
@@ -34,7 +34,7 @@ if("pogit" %in% rownames(installed.packages())==FALSE){
     install.packages('devtools')
   }
   library('devtools')
-  install_github("airbornemint/pogit", upgrade='never') #Did not update any of the dependencies (#24)
+  install_github("airbornemint/pogit") #Did not update any of the dependencies (#24)
 }
 library(pogit)
 
@@ -81,7 +81,7 @@ if(n_seasons==3){
   dt[dt.m %in% c(5,6,7,8)]<-2
   dt[dt.m %in% c(9,10,11,12)]<-3
     }
-season.dummies<-dummy(dt)
+season.dummies<-dummies::dummy(dt)
 season.dummies<-as.data.frame(season.dummies)
 names(season.dummies)<-paste0('s', 1:n_seasons)
 season.dummies<-season.dummies[,-n_seasons]

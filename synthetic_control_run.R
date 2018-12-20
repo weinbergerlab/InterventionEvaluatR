@@ -10,7 +10,7 @@ require(RCurl)
 #This step only works as written if this file is run using the source() command. Otherwise, skip this step and set manually.
 
 ###WORKING DIRECTORY Should be set as the directory where .Rmd file is saved  ####
-setwd(auto.wd) ##automatically set working directory to '~desktop/synthetic-control-poisson-master/main analysis components/'
+#setwd(auto.wd) ##automatically set working directory to '~desktop/synthetic-control-poisson-master/main analysis components/'
 #setwd('C:/Users/dmw63/Documents/GitHub/synthetic-control-poisson/main analysis components')
 
 #Used to check for relevant packages and update them if out of date or install them if not installed.
@@ -51,7 +51,7 @@ eval_period       <- as.Date(c('2012-01-01', '2013-12-01')) #Range over which ra
 year_def   <-'cal_year'  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
 sensitivity=TRUE
 crossval=TRUE #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
-prelog_data<-prelog_data[!is.na(prelog_data$outcome_name),]#If outcome is missing, delete 
+prelog_data<-prelog_data[!is.na(prelog_data[,outcome_name]),]#If outcome is missing, delete 
 
 #Run analysis, but don't generate HTML report
 # source('synthetic_control_analysis.R', local = TRUE)
@@ -59,5 +59,5 @@ prelog_data<-prelog_data[!is.na(prelog_data$outcome_name),]#If outcome is missin
 # source('synthetic_control_plot.R', local = TRUE)
 
 #Run analysis and generate HTML report
-source('synthetic_control_report.R', local = TRUE)
-source('synthetic_control_write_results.R', local = TRUE) #save .csv files with output tables
+source('./main analysis components/synthetic_control_report.R', local = TRUE)
+source('./main analysis components/synthetic_control_write_results.R', local = TRUE) #save .csv files with output tables
