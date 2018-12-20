@@ -9,20 +9,20 @@
 #                           #
 #############################
 
-source('synthetic_control_functions.R', local = FALSE)
+#source('./main analysis components/synthetic_control_functions.R', local = FALSE)
 #source('./main analysis components/synthetic_control_functions.R', local = T)
 
 #############################
 #Automatically set working directory to desktop
 #setwd('~/synthetic-control-master/main analysis components')  #directory where .Rmd file is saved
 #Set working directory: default to desktop--different path for windows vs Mac
-if(.Platform$OS.type == "windows") {
-  desktop<-file.path(Sys.getenv("USERPROFILE"),"Desktop")
-  desktop<-gsub(pattern='\\',replacement='/', desktop, fixed=TRUE)
-} else {
-  desktop<- "~/Desktop"
-}
-auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson/'))
+# if(.Platform$OS.type == "windows") {
+#   desktop<-file.path(Sys.getenv("USERPROFILE"),"Desktop")
+#   desktop<-gsub(pattern='\\',replacement='/', desktop, fixed=TRUE)
+# } else {
+#   desktop<- "~/Desktop"
+# }
+# auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson/'))
 
 packages <- c('parallel', 'splines', 'MASS','lubridate','loo', 'RcppRoll','lme4', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
@@ -57,7 +57,7 @@ if (exists('exclude_group')) {groups <- groups[!(groups %in% exclude_group)]}
 # Data and covariate preparation for analysis #
 #                                             #
 ###############################################
-
+print(1)
 #Make sure we are in right format
 prelog_data[,date_name]<-as.Date(as.character(prelog_data[,date_name]), tryFormats=c("%m/%d/%Y",'%Y-%m-%d' ))
 
@@ -66,10 +66,12 @@ prelog_data[,date_name]<-as.Date(as.character(prelog_data[,date_name]), tryForma
 prelog_data[, date_name] <- formatDate(prelog_data[, date_name])
 prelog_data <- setNames(lapply(groups, FUN = splitGroup, ungrouped_data = prelog_data, group_name = group_name, date_name = date_name, start_date = start_date, end_date = end_date, no_filter = c(group_name, date_name, outcome_name, denom_name)), groups)
 #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
+print(2)
 
 #Log-transform all variables, adding 0.5 to counts of 0.
 ds <- setNames(lapply(prelog_data, FUN = logTransform, no_log = c(group_name, date_name,outcome_name)), groups)
 time_points <- unique(ds[[1]][, date_name])
+print(3)
 
 #Monthly dummies
 if(n_seasons==4){dt<-quarter(as.Date(time_points))}
@@ -85,6 +87,7 @@ season.dummies<-dummies::dummy(dt)
 season.dummies<-as.data.frame(season.dummies)
 names(season.dummies)<-paste0('s', 1:n_seasons)
 season.dummies<-season.dummies[,-n_seasons]
+print(4)
 
 ds <- lapply(ds, function(ds) {
 	if (!(denom_name %in% colnames(ds))) {
@@ -92,6 +95,7 @@ ds <- lapply(ds, function(ds) {
 	}
 	return(ds)
 })
+print(5)
 
 sparse_groups <- sapply(ds, function(ds) {
 	return(ncol(ds[!(colnames(ds) %in% c(date_name, group_name, denom_name, outcome_name, exclude_covar))]) == 0)
@@ -104,6 +108,7 @@ covars_full <- setNames(lapply(ds, makeCovars), groups)
 covars_full <- lapply(covars_full, FUN = function(covars) {covars[, !(colnames(covars) %in% exclude_covar), drop = FALSE]})
 covars_time <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), groups)
 covars_null <- setNames(lapply(covars_full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), groups)
+print(6)
 
 #Standardize the outcome variable and save the original mean and SD for later analysis.
 outcome      <- sapply(ds, FUN = function(data) {data[, outcome_name]})

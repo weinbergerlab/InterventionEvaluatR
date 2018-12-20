@@ -59,5 +59,5 @@ prelog_data<-prelog_data[!is.na(prelog_data[,outcome_name]),]#If outcome is miss
 # source('synthetic_control_plot.R', local = TRUE)
 
 #Run analysis and generate HTML report
-source('./main analysis components/synthetic_control_report.R', local = TRUE)
-source('./main analysis components/synthetic_control_write_results.R', local = TRUE) #save .csv files with output tables
+source('./main analysis components/synthetic_control_report.R', local = FALSE)
+source('./main analysis components/synthetic_control_write_results.R', local = FALSE) #save .csv files with output tables

@@ -1,5 +1,5 @@
 #Call this file after defining the relevant variables to generate the HTML report.
-source('./main analysis components/synthetic_control_functions.R', local = TRUE)
+source('./main analysis components/synthetic_control_functions.R', local = FALSE)
 packages <- c('curl', 'evaluate', 'digest', 'formatR', 'highr', 'markdown', 'stringr', 'yaml', 'Rcpp', 'htmltools', 'caTools', 'bitops', 'knitr', 'jsonlite', 'base64enc', 'rprojroot', 'rmarkdown')
 packageHandler(packages, update_packages, install_packages)
 if (install_pandoc) {
@@ -43,12 +43,12 @@ param_list <- list(update_packages = update_packages,
 							eval_period       = eval_period)
 run_pandoc <- rmarkdown::pandoc_available()
 if (run_pandoc) {
-  rmarkdown::render('./main analysis components/synthetic_control_report.Rmd', output_file = 'Synthetic Control Report.html', output_dir = output_directory, params = param_list, envir = environment())	
+  rmarkdown::render('./main analysis components/synthetic_control_report.Rmd', output_file = 'Synthetic Control Report.html', output_dir = output_directory, params = param_list, envir = globalenv())	
   
 } else {
-  knitr::knit('./main analysis components/synthetic_control_report.Rmd', envir = environment())
+  knitr::knit('./main analysis components/synthetic_control_report.Rmd', envir = globalenv())
   markdown::markdownToHTML('synthetic_control_report.md', output = paste(output_directory, 'synthetic_control_report.html', sep = ''))
 	file.remove('synthetic_control_report.md')
 	unlink('figure/', recursive = TRUE)
 }
-source('./main analysis components/synthetic_control_write_results.R', local = TRUE)
+source('./main analysis components/synthetic_control_write_results.R', local = FALSE)

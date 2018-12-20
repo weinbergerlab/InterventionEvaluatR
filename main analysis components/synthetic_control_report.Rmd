@@ -61,7 +61,7 @@ eval_period       <- params$eval_period
 ```
 
 ```{r analysis, include = FALSE}
-source('synthetic_control_analysis.R')
+source('./main analysis components/synthetic_control_analysis.R', local=FALSE)
 ```
 
 #`r country` Results
@@ -146,5 +146,5 @@ kable(sensitivity_table_intervals, align = 'c')
 
 ##Plots
 ```{r plots,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
-source('synthetic_control_plot.R')
+source('./main analysis components/synthetic_control_plot.R', local=FALSE)
 ```

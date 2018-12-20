@@ -184,7 +184,7 @@ dt <- dt[order(dt$agegrp,dt$country),]
 newrow <- matrix(rep(NA,4*ncol(dt)), nrow=4, ncol=ncol(dt))
 colnames(newrow) <- colnames(dt)
 
-dt<-dt[dt$age=='2-59m' | dt$age =='2-23m',] #Exclude the aggregated groups
+dt<-dt[dt$age=='2-59m' ,] #Exclude the aggregated groups
 dt$country.grp<-NA
 dt$country.grp[dt$country %in% c('ar','br','co','pr','mx')]<-3
 dt$country.grp[dt$country %in% c('ec','hr','nc')]<-2
@@ -224,7 +224,7 @@ overall.plot<-dt[!is.na(dt$Median),]
 #ma.all<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country )
 overall.plot$log.rr<-log(overall.plot$Median)
 overall.plot$approx.var<- ((log(overall.plot$Upper) - log(overall.plot$Median))/1.96)^2
-ma.2_23m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='2-23m'))
+#ma.2_23m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='2-23m'))
 ma.2_59m<-rma.uni( yi=log.rr, vi=approx.var, data=overall.plot, slab=country , subset=(age=='2-59m'))
 
 #simple plot, unstratified
@@ -240,13 +240,12 @@ n.country.grp<-sapply(plot.spl, function(x) nrow(x) )
 start.grp1<-1
 start.grp2<-start.grp1+n.country.grp[2]+4
 
-plot.indices<-c(start.grp1:(start.grp1+n.country.grp[2]-1) ,
-                start.grp2:(start.grp2+n.country.grp[1]-1)
-                )
+plot.indices<-c(start.grp1:(start.grp1+n.country.grp[1]-1) )
 overall.plot.sorted<-overall.plot[order(-overall.plot$agegrp, -overall.plot$country.grp, overall.plot$country),]
 ### decrease margins so the full space is used
 tiff(paste0('C:/Users/dmw63/Weinberger Lab Dropbox/PAHO mortality/Results/Forest plots/agg without unbiasing/forest.natl_agg',ds.select,'.tiff'),
-        width=5, height=6, units='in', res=200)
+        width=5, height=4, units='in', res=200)
+cols<-c( '#d95f02','#7570b3','#1b9e77')
 par(mar=c(4,4,1,2))
 forest(x=overall.plot.sorted$Median,rows=plot.indices, 
        ci.lb=overall.plot.sorted$Lower, 
@@ -255,7 +254,7 @@ forest(x=overall.plot.sorted$Median,rows=plot.indices,
        refline=1, 
           slab=overall.plot.sorted$country.name,
             ylim=c(0,(max(plot.indices)+4.5)), clim=c(0.4, 1.5),xlim=c(0, 2), 
-          at=c(0.4,0.6,0.8,1,1.2,1.4,1.6),
+          at=c(0.4,0.6,0.8,1,1.2,1.4,1.6), col=cols[overall.plot.sorted$country.grp],
             cex=0.75)
 ### add summary polygons for the three subgroups
 #addpoly(ma.2_59m, row=start.grp1-1.5, cex=0.75, transf=exp, mlab="")
@@ -265,9 +264,9 @@ forest(x=overall.plot.sorted$Median,rows=plot.indices,
 ### set font expansion factor (as in forest() above) and use bold italic
 ### font and save original settings in object 'op'
 op <- par(cex=0.75, font=4)
-text(0, c((start.grp2+n.country.grp[1]+0.5),
-            (start.grp1+n.country.grp[2]+0.5)), 
-            pos=4, c("2-23m",'2-59m'), cex=0.9)
+text(0, c(
+            (start.grp1+n.country.grp[1]+0.5)), 
+            pos=4, c('2-59m'), cex=0.9)
 ### switch to bold fonts
 par(font=2)
 text(0,                (max(plot.indices)+4), "Country",  pos=4)
