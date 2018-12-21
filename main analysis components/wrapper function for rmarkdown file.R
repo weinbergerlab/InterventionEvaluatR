@@ -17,7 +17,7 @@ rmarkdown::render("./main analysis components/synthetic_control_report self cont
                               n_seasons = 12, #12 for monthly, 4 for quarterly
                               input_directory  = 'https://raw.githubusercontent.com/weinbergerlab/synthetic-control/master/Datasets%20for%20PNAS/', #Directory (or URL) containing input data file. ,
                               file_name="Dataset%20S1%20Brazil.csv", #name of csv file with data
-                              github.import=FALSE, #Import from github? or local
+                              github.import=TRUE, #Import from github? or local
                               update_packages= FALSE ,
                               install_packages= TRUE
                       ))
