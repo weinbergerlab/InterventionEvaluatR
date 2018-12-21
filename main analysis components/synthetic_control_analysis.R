@@ -24,7 +24,7 @@
 # }
 # auto.wd<-file.path(paste0(desktop,'/synthetic-control-poisson/'))
 
-packages <- c('parallel', 'splines', 'MASS','lubridate','loo', 'RcppRoll','lme4', 'ggplot2', 'reshape','dummies')
+packages <- c('parallel', 'pomp','splines', 'MASS','lubridate','loo', 'RcppRoll','lme4', 'ggplot2', 'reshape','dummies')
 packageHandler(packages, update_packages, install_packages)
 sapply(packages, library, quietly = TRUE, character.only = TRUE)
 

@@ -1,9 +1,12 @@
 #setwd("~/synthetic-control-poisson")
 rmarkdown::render("./main analysis components/synthetic_control_report self contained.Rmd", output_file ='br.html', 
                   params = list(country = "Brazil", 
-                              pre_period = as.Date(c('2004-01-01', '2009-12-31')), #Range over which the data is trained for the CausalImpact model.
-                              post_period = as.Date(c('2010-01-01', '2013-12-01')), #Range from the intervention date to the end date.
-                              eval_period =  as.Date(c('2012-01-01', '2013-12-01')), #Range over which rate ratio calculation will be performed.
+                                pre_period_start= '2004-01-01',
+                                period_period_end= '2009-12-31',
+                                post_period_start= '2010-01-01', #when is vaccine introduced?
+                                post_period_end= '2013-12-01',
+                                eval_period_start= '2012-01-01',#when do we start measuring the RR? (ie 12 or 24 months post intro) 
+                                eval_period_end= '2013-12-01',
                               year_def = 'cal_year',  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
                               sensitivity=TRUE, #Run sensitivity analyses?
                               crossval=TRUE, #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
