@@ -2,7 +2,7 @@
 rmarkdown::render("./main analysis components/synthetic_control_report self contained.Rmd", output_file ='br.html', 
                   params = list(country = "Brazil", 
                                 pre_period_start= '2004-01-01',
-                                period_period_end= '2009-12-31',
+                                pre_period_end= '2009-12-31',
                                 post_period_start= '2010-01-01', #when is vaccine introduced?
                                 post_period_end= '2013-12-01',
                                 eval_period_start= '2012-01-01',#when do we start measuring the RR? (ie 12 or 24 months post intro) 

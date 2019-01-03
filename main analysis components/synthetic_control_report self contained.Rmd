@@ -7,7 +7,7 @@ output:
 params:
    country: "Brazil"
    pre_period_start: '2004-01-01'
-   period_period_end: '2009-12-31'
+   pre_period_end: '2009-12-31'
    post_period_start: '2010-01-01'
    post_period_end: '2013-12-01'
    eval_period_start: '2012-01-01' 
