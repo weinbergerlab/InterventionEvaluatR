@@ -1,0 +1,10 @@
+Package: syncon
+Title: Synthetic Control
+Version: 0.1
+Date: 2018-01-15
+Author: Daniel Weinberger, Ben Artin
+Maintainer: Ben Artin <ben@artins.org>
+Description: Synthetic control package
+Imports: parallel, RCurl, pomp, splines, MASS, lubridate, loo, RcppRoll, lme4, reshape, dummies, ggplot2, pogit
+Suggests: knitr
+License: BSD_2_clause + file LICENSE

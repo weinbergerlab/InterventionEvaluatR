@@ -1,0 +1,6 @@
+.git
+.travis.yml
+main analysis components
+Results*
+data
+synthetic_control.Rproj
