@@ -13,8 +13,6 @@ syncon_factory <- R6Class(
 
     # Inputs
     input_data = NA,
-    file_name = NA,
-    github.import = NA,
 
     group_name = NA,
     date_name = NA,
@@ -191,8 +189,6 @@ syncon_factory <- R6Class(
 
       #Assign variable values
       private$input_data <- data
-      private$file_name <- file_name
-      private$github.import <- github.import
     },
 
     impact = function() {
