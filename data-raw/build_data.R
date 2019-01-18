@@ -1,4 +1,6 @@
 # Source this script in package root directory to (re)generate R data files from raw CSV files
+library(usethis)
+
 datasets = list(
   pnas_us_ipd="PNAS/S6-US-IPD.csv", 
   pnas_us_pneumonia="PNAS/S5-US-pneumonia.csv", 

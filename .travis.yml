@@ -1,5 +1,9 @@
 language: r
 warnings_are_errors: false
+r_packages:
+  - usethis
+before_install: 
+  - R --no-save < data-raw/build_data.R
 r:
   - oldrel
   - release
