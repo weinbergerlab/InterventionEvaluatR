@@ -221,7 +221,7 @@ pred.cv<-function(cv.impact){
    return(cv.pred.q)
 }
 
-stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca){
+stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca,stacking_weights.all){
   #Averaged--multiply each log(mean) by weight, then add, then exponentiate and draw from Poisson
     weights<-as.numeric(as.vector(stacking_weights.all[stacking_weights.all$groups==group,]))
     
@@ -298,7 +298,7 @@ makeCV<-function(ds){
 }
 
 #Estimate the rate ratios during the evaluation period and return to the original scale of the data.
-rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period) {
+rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period, year_def) {
   
   pred_samples <- impact$predict.bsts  
   
@@ -500,7 +500,7 @@ plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, out
 }
 
 #Sensitivity analysis by dropping the top weighted covariates. 
-weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, intervention_date, n_seasons, outcome,n_iter = 10000, eval_period = NULL, post_period = NULL) {
+weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, intervention_date, n_seasons, outcome,n_iter = 10000, eval_period = NULL, post_period = NULL, year_def) {
   par(mar = c(5, 4, 1, 2) + 0.1)
   covar_df <- as.matrix(covars[[group]])
   #colnames(covar_df)<-substring(colnames(covar_df), 2)
@@ -544,7 +544,7 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
     impact_sens <- list(predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=outcome[, group])
     names(impact_sens)<-c('predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
     sensitivity_analysis[[i]] <- list(removed_var = max_var, removed_prob = max_prob)
-      quantiles <- rrPredQuantiles(impact = impact_sens,  eval_period = eval_period, post_period = post_period)
+      quantiles <- rrPredQuantiles(impact = impact_sens,  eval_period = eval_period, post_period = post_period, year_def = year_def)
       sensitivity_analysis[[i]]$rr <- round(quantiles$rr,2)
       sensitivity_analysis[[i]]$pred <- quantiles$pred
 
@@ -557,13 +557,13 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
   return(sensitivity_analysis)
 }
 
-predSensitivityAnalysis <- function(group, ds, zoo_data, denom_name, outcome_mean, outcome_sd, intervention_date, eval_period, post_period, time_points, n_seasons , n_pred) {
-  impact <- doCausalImpact(zoo_data[[group]], intervention_date, time_points, n_seasons, n_pred = n_pred)
-  quantiles <- lapply(group, FUN = function(group) {rrPredQuantiles(impact = impact,  eval_period = eval_period, post_period = post_period)})
-  rr_mean <- t(sapply(quantiles, getRR))
-  return(rr_mean)
-}
-
+# predSensitivityAnalysis <- function(group, ds, zoo_data, denom_name, outcome_mean, outcome_sd, intervention_date, eval_period, post_period, time_points, n_seasons , n_pred, year_def) {
+#   impact <- doCausalImpact(zoo_data[[group]], intervention_date, time_points, n_seasons, n_pred = n_pred)
+#   quantiles <- lapply(group, FUN = function(group) {rrPredQuantiles(impact = impact,  eval_period = eval_period, post_period = post_period, year_def)})
+#   rr_mean <- t(sapply(quantiles, getRR))
+#   return(rr_mean)
+# }
+#
 sensitivityTable <- function(group, sensitivity_analysis, original_rr = NULL) {
   top_controls <- lapply(1:length(sensitivity_analysis[[group]]), FUN = function(i) {
     top_control <- c(sensitivity_analysis[[group]][[i]]$removed_var, sensitivity_analysis[[group]][[i]]$removed_prob, sensitivity_analysis[[group]][[i]]$rr)

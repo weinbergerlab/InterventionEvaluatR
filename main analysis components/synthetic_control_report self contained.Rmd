@@ -33,6 +33,8 @@ title: "Estimated change associated with the introduction of vaccine in `r param
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,message = FALSE, warnings = FALSE)
+source("synthetic_control_functions.R")
+source("../R/analysis.R")
 ```
 
 ```{r specify_inputs, include=FALSE}
@@ -103,6 +105,7 @@ prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
 prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
 }
 prelog_data<-prelog_data[!is.na(prelog_data[,outcome_name]),]#If outcome is missing, delete 
+prelog_data[, group_name] = prelog_data[, group_name] %% 2
 groups <- as.character(unique(unlist(prelog_data[, group_name], use.names = FALSE)))
 if (exists('exclude_group')) {groups <- groups[!(groups %in% exclude_group)]}
 
@@ -212,22 +215,23 @@ data_time_no_offset <- setNames(lapply(groups, makeTimeSeries, outcome = outcome
 
 
 ```{r main analysis, include = FALSE}
-list[impact_full, impact_time, impact_time_no_offset, impact_pca] <- syncon.impact(data_full, data_time, data_time_no_offset, data_pca, intervention_date, time_points, n_seasons, crossval)
+syncon = syncon_factory$new(data_full, data_time, data_time_no_offset, data_pca, intervention_date, time_points, n_seasons, year_def)
+syncon$impact()
 ```
 
 ```{r crossval, include = FALSE}
   if(crossval){
-    list[ann_pred_quantiles_stack, pred_quantiles_stack, rr_roll_stack, rr_mean_stack, rr_mean_stack_intervals, cumsum_prevented_stack] <- syncon.main(data_full, data_time, data_time_no_offset, data_pca, intervention_date, time_points, n_seasons, crossval)
+    syncon$crossval()
 
-    save.stack.est<-list(post_period,outcome_plot, time_points,ann_pred_quantiles_stack, pred_quantiles_stack,rr_roll_stack,rr_mean_stack,rr_mean_stack_intervals,cumsum_prevented_stack)
+    save.stack.est<-list(post_period,outcome_plot, time_points,syncon$ann_pred_quantiles_stack, syncon$pred_quantiles_stack,syncon$rr_roll_stack,syncon$rr_mean_stack,syncon$rr_mean_stack_intervals,syncon$cumsum_prevented_stack)
     names(save.stack.est)<-c('post_period','outcome_plot','time_points', 'ann_pred_quantiles_stack', 'pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
     saveRDS(save.stack.est, file=paste0(output_directory, country, "Stack estimates.rds"))
     
     #Pointwise RR and uncertainty for second stage meta analysis
-    log_rr_quantiles_stack   <- sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
+    log_rr_quantiles_stack   <- sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
     dimnames(log_rr_quantiles_stack)[[1]] <- time_points
-    log_rr_full_t_samples.stack.prec<-sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec.post}, simplify = 'array')
-    #log_rr_sd.stack   <- sapply(quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_sd}, simplify = 'array')
+    log_rr_full_t_samples.stack.prec<-sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec.post}, simplify = 'array')
+    #log_rr_sd.stack   <- sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_sd}, simplify = 'array')
     
     saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, country, "_log_rr_quantiles_stack.rds"))
     saveRDS(log_rr_full_t_samples.stack.prec, file=paste0(output_directory, country, "_log_rr_full_t_samples.stack.prec.rds"))
@@ -237,21 +241,20 @@ list[impact_full, impact_time, impact_time_no_offset, impact_pca] <- syncon.impa
 ```{r format_save_results, include = FALSE}
 
 #Save the inclusion probabilities from each of the models
-inclusion_prob_full <- setNames(lapply(impact_full, inclusionProb), groups)
-inclusion_prob_time <- setNames(lapply(impact_time, inclusionProb), groups)
+inclusion_prob_full <- setNames(lapply(syncon$impact_full, inclusionProb), groups)
+inclusion_prob_time <- setNames(lapply(syncon$impact_time, inclusionProb), groups)
 
-model.size.sc<-sapply(impact_full,modelsize_func)
+model.size.sc<-sapply(syncon$impact_full,modelsize_func)
 
 #All model results combined
-quantiles_full <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_full[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
-quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
-quantiles_time_no_offset <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_time_no_offset[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period)}), groups)
-quantiles_pca <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = impact_pca[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period)}), groups)
+quantiles_full <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = syncon$impact_full[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period, year_def)}), groups)
+quantiles_time <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = syncon$impact_time[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period, year_def)}), groups)
+quantiles_time_no_offset <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = syncon$impact_time_no_offset[[group]], denom_data = ds[[group]][, denom_name],  eval_period = eval_period, post_period = post_period, year_def)}), groups)
+quantiles_pca <- setNames(lapply(groups, FUN = function(group) {rrPredQuantiles(impact = syncon$impact_pca[[group]], denom_data = ds[[group]][, denom_name],        eval_period = eval_period, post_period = post_period, year_def)}), groups)
 quantiles_best<-vector("list", length(quantiles_full)) 
 quantiles_best[model.size.sc>=1]<-quantiles_full[model.size.sc>=1]
 quantiles_best[model.size.sc<1]<-quantiles_pca[model.size.sc<1]
 quantiles_best<-setNames(quantiles_best,groups)
-
 
 #Model predicitons
 pred_quantiles_full <- sapply(quantiles_full, getPred, simplify = 'array')
@@ -329,7 +332,7 @@ rr_mean_combo<- as.data.frame(rbind( cbind(rep(1, nrow(rr_mean_full)),groups,  s
                     cbind(rep(4, nrow(rr_mean_pca)), groups, seq(from=1, by=1, length.out=nrow(rr_mean_full)),rr_mean_pca)))
         names(rr_mean_combo)<-c('Model', 'groups', 'group.index','lcl','mean.rr','ucl')
         if(crossval){
-          point.weights2<-stacking_weights.all.m
+          point.weights2<-syncon$stacking_weights.all.m
         }else{
           point.weights2<-as.data.frame(matrix(rep(1,nrow(rr_mean_combo)), ncol=1))
           names(point.weights2)<-'value'
@@ -364,52 +367,13 @@ names(save.best.est)<-c('log_rr_sd_best','post_period','outcome_plot','time_poin
 saveRDS(save.best.est, file=paste0(output_directory, country, "best estimates.rds"))
 
 ##Model size for SC model
-model.size.sc<-sapply(impact_full,modelsize_func)
+model.size.sc<-sapply(syncon$impact_full,modelsize_func)
 
 ```
 
 ```{r sensitivity_analyses, include = FALSE}
 if(sensitivity){
-
-bad_sensitivity_groups <- sapply(covars_full, function (covar) {ncol(covar) <= n_seasons-1+3})
- sensitivity_covars_full <- covars_full[!bad_sensitivity_groups]
- sensitivity_ds <- ds[!bad_sensitivity_groups]
- sensitivity_impact_full <- impact_full[!bad_sensitivity_groups]
- sensitivity_groups <- groups[!bad_sensitivity_groups]
-
-if (length(sensitivity_groups)!=0) {
- #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
-cl <- makeCluster(n_cores)
-clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
-clusterExport(cl, c('sensitivity_ds', 'doCausalImpact', 'year_def', 'weightSensitivityAnalysis', 'rrPredQuantiles', 'sensitivity_groups', 'intervention_date', 'outcome', 'time_points', 'n_seasons',  'eval_period', 'post_period','crossval'), environment())
-  sensitivity_analysis_full <- setNames(parLapply(cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = time_points, intervention_date = intervention_date, n_seasons = n_seasons, outcome = outcome,  eval_period = eval_period, post_period = post_period), sensitivity_groups)
-stopCluster(cl)
-
-sensitivity_pred_quantiles  <- lapply(sensitivity_analysis_full, FUN = function(sensitivity_analysis) {
-	pred_list <- vector(mode = 'list', length = length(sensitivity_analysis))
-	for (sensitivity_index in 1:length(sensitivity_analysis)) {
-		pred_list[[sensitivity_index]] <- getPred(sensitivity_analysis[[sensitivity_index]])
-	}
-	return(pred_list)
-})
-
-#Table of rate ratios for each sensitivity analysis level
-sensitivity_table <- t(sapply(sensitivity_groups, sensitivityTable, sensitivity_analysis = sensitivity_analysis_full, original_rr = rr_mean_full))
-sensitivity_table_intervals <- data.frame('Estimate (95% CI)' = makeInterval(sensitivity_table[, 2],  sensitivity_table[, 3],  sensitivity_table[, 1]),
-																					'Top Control 1' = sensitivity_table[, 'Top Control 1'],
-																					'Inclusion Probability of Control 1' = sensitivity_table[, 'Inclusion Probability of Control 1'],
-																					'Control 1 Estimate (95% CI)' = makeInterval(sensitivity_table[, 7],  sensitivity_table[, 8],  sensitivity_table[, 6]),
-																					'Top Control 2' = sensitivity_table[, 'Top Control 2'],
-																					'Inclusion Probability of Control 2' = sensitivity_table[, 'Inclusion Probability of Control 2'],
-																					'Control 2 Estimate (95% CI)' = makeInterval(sensitivity_table[, 12],  sensitivity_table[, 13],  sensitivity_table[, 11]),
-																					'Top Control 3' = sensitivity_table[, 'Top Control 3'],
-																					'Inclusion Probability of Control 3' = sensitivity_table[, 'Inclusion Probability of Control 3'],
-																					'Control 3 Estimate (95% CI)' = makeInterval(sensitivity_table[, 17],  sensitivity_table[, 18],  sensitivity_table[, 16]), check.names = FALSE)
-rr_table <- cbind.data.frame(round(rr_mean_time[!bad_sensitivity_groups, ],2), sensitivity_table)
-rr_table_intervals <- cbind('Trend Estimate (95% CI)' = rr_mean_time_intervals[!bad_sensitivity_groups, ], sensitivity_table_intervals)
-} else {
-  sensitivity_table_intervals <- NA
-}
+  syncon$sensitivity()
 }
 
 ```
@@ -472,7 +436,7 @@ kable(model.size.sc, col.names=c('Model Size'))
 ```{r incl, include = FALSE}
 incl_probs <- NULL
 	for (group in groups) {
-	    incl_prob=impact_full[[group]]$inclusion_probs[-c(1:(n_seasons-1)),]
+	    incl_prob=syncon$impact_full[[group]]$inclusion_probs[-c(1:(n_seasons-1)),]
 	    incl_prob<- incl_prob[order(-incl_prob$inclusion_probs),]
 	    incl_prob<-incl_prob[c(1:3),]
 	    incl_prob2<-incl_prob[,2]
