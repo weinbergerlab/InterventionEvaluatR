@@ -12,7 +12,7 @@ syncon_factory <- R6Class(
     ),
 
     # Inputs
-    input_directory = NA,
+    input_data = NA,
     file_name = NA,
     github.import = NA,
 
@@ -30,13 +30,7 @@ syncon_factory <- R6Class(
 
     impact.pre = function() {
       # Setup data
-      data_file <- paste0(private$input_directory, private$file_name)
-      if(private$github.import == FALSE){
-        prelog_data <- read.csv(data_file, check.names = FALSE)# IF IMPORTING FROM LOCAL
-      } else {
-        prelog_data <- read.csv(text=getURL(data_file), check.names = FALSE)# IF IMPORTING FROM URL
-      }
-      prelog_data <- prelog_data[!is.na(prelog_data[, private$outcome_name]),]#If outcome is missing, delete 
+      prelog_data <- private$input_data[!is.na(private$input_data[, private$outcome_name]),]#If outcome is missing, delete 
       prelog_data[, private$group_name] = prelog_data[, private$group_name] %% 2
       self$groups <- as.character(unique(unlist(prelog_data[, private$group_name], use.names = FALSE)))
       if (exists('exclude_group')) {
@@ -166,7 +160,7 @@ syncon_factory <- R6Class(
     outcome = NA,
 
     initialize = function(
-      country, input_directory, file_name, github.import,
+      country, data,
       pre_period_start, pre_period_end,
       post_period_start, post_period_end,
       eval_period_start, eval_period_end,
@@ -196,7 +190,7 @@ syncon_factory <- R6Class(
       private$exclude_group <- c() #User-defined list of groups to exclude from analyses.
 
       #Assign variable values
-      private$input_directory <- input_directory
+      private$input_data <- data
       private$file_name <- file_name
       private$github.import <- github.import
     },
