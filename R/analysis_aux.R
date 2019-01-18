@@ -1,38 +1,3 @@
-
-#test
-#This is the function file. It is called directly from the analysis file.
-packageHandler <- function(packages, update_packages = TRUE, install_packages = TRUE) {
-	bad_packages <- list()
-	for (package in packages) {
-		if (install_packages) {
-			tryCatch({
-				find.package(package)
-			}, error = function(e) {
-									if (package %in% available.packages()) {
-						install.packages(package, repos = 'http://cran.rstudio.com/')
-					} else {
-						bad_packages <<- append(bad_packages, package)
-					}
-			}, warning = function(w) {
-				paste(w, 'Shouldn\'t be here.')
-			}, finally = {
-				if (update_packages) {
-					
-						update.packages(package, repos = 'http://cran.rstudio.com/')
-					}	
-			})
-		}
-	}
-	if (length(bad_packages) > 0) {
-		if (length(bad_packages) == 1) {
-			stop(paste('Package', paste('"', bad_packages, '"', sep = ''), 'is not available for', paste(version$version.string, '.', sep = '')))
-		} else {
-			stop(paste('Packages', paste(lapply(bad_packages, function(bad_package) {paste('"', bad_package, '"', sep = '')}), collapse = ', '), 'are not available for', paste(version$version.string, '.', sep = '')))
-		}
-	}
-	return()
-}
-
 #Rearrange date to YYYY-MM-DD format.
 formatDate <- function(time_points) {
 	time_points <- as_date(time_points)
@@ -69,8 +34,8 @@ getTrend <- function(covar_vector, data) {
 	return(trend)
 }
 
-makeCovars <- function(ds_group) {
-	if (code_change) {
+makeCovars <- function(country, time_points, intervention_date, season.dummies, ds_group) {
+  if(country == "Brazil"){
 		#Eliminates effects from 2008 coding change
 		covars <- ds_group[, 4:ncol(ds_group)]
 		month_i <- as.factor(as.numeric(format(time_points, '%m')))
@@ -87,19 +52,19 @@ makeCovars <- function(ds_group) {
 		covars$pandemic <- ifelse(time_points == '2009-08-01', 1, ifelse(time_points == '2009-09-01', 1, 0))
 	}
 	covars <- as.data.frame(lapply(covars[, apply(covars, 2, var) != 0, drop = FALSE], scale), check.names = FALSE)
-	covars<-cbind(season.dummies,covars)
+	covars<-cbind(season.dummies, covars)
 	return(covars)
 }
 
 #Combine the outcome and covariates.
-makeTimeSeries <- function(group, outcome,  covars, trend=FALSE) {
+makeTimeSeries <- function(group, outcome,  covars, trend=FALSE, offset=NA) {
   if(trend==FALSE){	return(cbind(outcome = outcome[, group],  covars[[group]]))}
   if(trend==TRUE){	return(cbind(outcome = outcome[, group],log.offset=log(offset[,group]+0.5),  covars[[group]]))}
 }
 
 
 #Main analysis function.
-doCausalImpact <- function(zoo_data, intervention_date, ri.select=TRUE,time_points,crossval.stage=FALSE, var.select.on=TRUE, n_iter = 10000, trend = FALSE) {
+doCausalImpact <- function(zoo_data, intervention_date, n_seasons, ri.select=TRUE,time_points,crossval.stage=FALSE, var.select.on=TRUE, n_iter = 10000, trend = FALSE) {
 	
   #Format outcome and covariates for regular and cross-validations
   if(crossval.stage){
@@ -221,7 +186,7 @@ pred.cv<-function(cv.impact){
    return(cv.pred.q)
 }
 
-stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca,stacking_weights.all){
+stack.mean<-function(outcome,group,impact_full,impact_time,impact_time_no_offset,impact_pca,stacking_weights.all){
   #Averaged--multiply each log(mean) by weight, then add, then exponentiate and draw from Poisson
     weights<-as.numeric(as.vector(stacking_weights.all[stacking_weights.all$groups==group,]))
     
@@ -280,7 +245,7 @@ inclusionProb <- function(impact) {
 
 ##K-fold cross-validation
   #Create K-fold datasets
-makeCV<-function(ds){
+makeCV<-function(ds, time_points, intervention_date){
   impact<-ds
   impact.pre<-ds[time_points<intervention_date,]
   year.pre<-year(time_points[time_points<intervention_date])
@@ -298,7 +263,7 @@ makeCV<-function(ds){
 }
 
 #Estimate the rate ratios during the evaluation period and return to the original scale of the data.
-rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period, year_def) {
+rrPredQuantiles <- function(impact, denom_data = NULL,  eval_period, post_period, n_seasons, year_def, time_points) {
   
   pred_samples <- impact$predict.bsts  
   
@@ -389,12 +354,10 @@ getRR <- function(quantiles) {
   return(quantiles$rr)
 }
 
-getRR_unbias <- function(quantiles) {
-  return(unbias_rr_q)
-}
 getmeanRR <- function(quantiles) {
   return(quantiles$mean_rr)
 }
+
 getsdRR <- function(quantiles) {
   return(quantiles$sd_log_rr)
 }
@@ -455,7 +418,7 @@ plotPred <- function(pred_quantiles, time_points, post_period, ylim, outcome_plo
 }
 
 #Plot aggregated predictions.
-plotPredAgg <- function(ann_pred_quantiles,  time_points, post_period, ylim, outcome_plot, title = NULL, sensitivity_pred_quantiles = NULL, sensitivity_title = 'Sensitivity Plots', plot_sensitivity = FALSE) {
+plotPredAgg <- function(ann_pred_quantiles,  time_points, year_def, intervention_date, post_period, ylim, outcome_plot, title = NULL, sensitivity_pred_quantiles = NULL, sensitivity_title = 'Sensitivity Plots', plot_sensitivity = FALSE) {
 
   if(year_def=='epi_year'){
     month.int<-month(intervention_date)
@@ -544,7 +507,7 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
     impact_sens <- list(predict.bsts,inclusion_probs, post.period.response = post_period_response, observed.y=outcome[, group])
     names(impact_sens)<-c('predict.bsts','inclusion_probs','post_period_response', 'observed.y' )
     sensitivity_analysis[[i]] <- list(removed_var = max_var, removed_prob = max_prob)
-      quantiles <- rrPredQuantiles(impact = impact_sens,  eval_period = eval_period, post_period = post_period, year_def = year_def)
+      quantiles <- rrPredQuantiles(impact=impact_sens, eval_period=eval_period, post_period=post_period, n_seasons=n_seasons, year_def=year_def, time_points=time_points)
       sensitivity_analysis[[i]]$rr <- round(quantiles$rr,2)
       sensitivity_analysis[[i]]$pred <- quantiles$pred
 
@@ -559,7 +522,7 @@ weightSensitivityAnalysis <- function(group, covars, ds, impact, time_points, in
 
 # predSensitivityAnalysis <- function(group, ds, zoo_data, denom_name, outcome_mean, outcome_sd, intervention_date, eval_period, post_period, time_points, n_seasons , n_pred, year_def) {
 #   impact <- doCausalImpact(zoo_data[[group]], intervention_date, time_points, n_seasons, n_pred = n_pred)
-#   quantiles <- lapply(group, FUN = function(group) {rrPredQuantiles(impact = impact,  eval_period = eval_period, post_period = post_period, year_def)})
+#   quantiles <- lapply(group, FUN = function(group) {rrPredQuantiles(impact = impact,  eval_period = eval_period, post_period = post_period, year_def, time_points)})
 #   rr_mean <- t(sapply(quantiles, getRR))
 #   return(rr_mean)
 # }
@@ -582,7 +545,7 @@ nextodd <- function(x){
   if(x%%2==0) x <- x+1
   as.integer(x)
 }
-DoSTL_trend <- function(new,t.windows,s.windows) {
+DoSTL_trend <- function(new,t.windows,s.windows,n_seasons) {
   trend <- as.data.frame(matrix(NA, nrow=nrow(new), ncol=ncol(new)))
   for (j in 1:ncol(new)) {
     ts <- ts(new[,j], frequency=n_seasons)
@@ -592,7 +555,7 @@ DoSTL_trend <- function(new,t.windows,s.windows) {
   return(trend)
 }
 
-smooth_func<-function(ds.list,covar.list){
+smooth_func<-function(ds.list,covar.list,n_seasons){
   t.windows <- c(nextodd(0.04*nrow(ds.list)),nextodd(0.2*nrow(ds.list)),nextodd(0.5*nrow(ds.list)))
   covars.raw.compile<- vector("list", length(t.windows)) 
   s.windows <- "periodic"
@@ -602,7 +565,7 @@ smooth_func<-function(ds.list,covar.list){
       t <- t.windows[value_t]
       s <- s.windows[value_s]
       covar.noseason<-covar.list[,-c(1:(n_seasons-1))]
-      stl.covars <- DoSTL_trend(covar.noseason,t,s)
+      stl.covars <- DoSTL_trend(covar.noseason,t,s,n_seasons)
       covars.raw.compile[[value_t]] <-stl.covars
     }
   }
@@ -611,7 +574,7 @@ smooth_func<-function(ds.list,covar.list){
   covars.stl<-covars.raw2 #COMBINE ALL VARIABLES WITH DIFFERENT SMOOTHING LEVELS, FROM RAW TO VERY SMOOTH
 }
 
-stl_data_fun<-function(covars,ds.sub){
+stl_data_fun<-function(covars,ds.sub,n_seasons,outcome_name,post.start.index){
   aic.test <- vector(mode="numeric", length=ncol(covars))
   V<- vector("list",  length=ncol(covars)) #combine models into a list
   pred.mean<- vector("list",  length=ncol(covars)) #combine models into a list
@@ -639,7 +602,7 @@ stl_data_fun<-function(covars,ds.sub){
   return(ds.fit)
 }
 
-modelsize_func<-function(ds){
+modelsize_func<-function(ds, n_seasons){
   mod1<-ds$beta.mat
   nonzero<-apply(mod1,1, function(x) sum(x!=0)-n_seasons ) #How many non-zero covariates, aside from seasonal dummies and intercept?
   incl_prob<-apply(mod1,2, function(x) mean(x!=0) ) #How many non-zero covariates, aside from seasonal dummies and intercept?
@@ -647,7 +610,7 @@ modelsize_func<-function(ds){
   return(modelsize)
 }
 
-glm.fun<-function(ds.fit){
+glm.fun<-function(ds.fit, post.start.index){
   names(ds.fit)<-paste0('c',names(ds.fit))
   covars.fit<-ds.fit[,-1]
   pre.index<-1:(post.start.index-1)
@@ -664,7 +627,7 @@ glm.fun<-function(ds.fit){
   return(glm.out)
 }
 
-pca_top_var<-function(glm.results.in, covars,ds.in){
+pca_top_var<-function(glm.results.in, covars,ds.in,outcome_name,season.dummies){
     #Extract AICs from list into dataframe
     aics<-unlist(lapply(glm.results.in, '[[', 'aic.test'))  # This returns a vector with AIC score
     vars<-unlist(lapply(glm.results.in, '[[', 'test.var'))  # This returns a vector with the variable names
@@ -704,7 +667,7 @@ pca_top_var<-function(glm.results.in, covars,ds.in){
     return(covar.matrix.pca)
 }
 
-cumsum_func<-function(group, quantiles) {
+cumsum_func<-function(group, quantiles, outcome, time_points, post_period) {
   is_post_period <- which(time_points >= post_period[1])
   is_pre_period <- which(time_points < post_period[1])
   
@@ -718,7 +681,7 @@ cumsum_func<-function(group, quantiles) {
 		   
 		   #Classic its setup
 
-its_func<-function(ds1){
+its_func<-function(ds1, time_points, post_period, eval_period){
   ds1$post1<-0
   ds1$post1[time_points>= post_period[1] & time_points< eval_period[1]] <-1
   ds1$post2<-0

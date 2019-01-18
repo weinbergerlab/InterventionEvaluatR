@@ -1,32 +1,38 @@
-#Use this script after running the analysis script to write important results to file.
+syncon.write_results <- function (syncon, output_directory, prefix) {
+  dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
 
-dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
+  prefix = paste0(output_directory, prefix)
 
-#Output the rate ratio estimates to a new file.
-write.csv(rr_mean_full, paste(output_directory, country, '_rr_full.csv', sep = ''))
-write.csv(rr_mean_time, paste(output_directory, country, '_rr_time_trend.csv', sep = ''))
-write.csv(rr_mean_pca, paste(output_directory, country, '_rr_pca.csv', sep = ''))
-write.csv(rr_mean_best, paste(output_directory, country, '_rr_best.csv', sep = ''))
+  with(syncon$results, {
+    # Output the rate ratio estimates to a new file.
+    write.csv(impact$full$rr_mean, paste0(prefix, '_rr_full.csv'))
+    write.csv(impact$full$rr_mean_intervals, paste0(prefix, '_rr_full_intervals.csv'))
+    write.csv(impact$full$rr_roll, paste0(prefix, '_rr_roll_full.csv'))
+      
+    write.csv(impact$time$rr_mean, paste0(prefix, '_rr_time_trend.csv'))
+    write.csv(impact$time$rr_mean_intervals, paste0(prefix, '_rr_time_trend_intervals.csv'))
+    write.csv(impact$time$rr_roll, paste0(prefix, '_rr_roll_time.csv'))
+      
+    write.csv(impact$pca$rr_mean, paste0(prefix, '_rr_pca.csv'))
+    write.csv(impact$pca$rr_mean_intervals, paste0(prefix, '_rr_pca_intervals.csv'))
+    write.csv(impact$pca$rr_roll, paste0(prefix, '_rr_roll_pca.csv'))
+      
+    write.csv(impact$best$rr_mean, paste0(prefix, '_rr_best.csv'))
+    write.csv(impact$best$rr_mean_intervals, paste0(prefix, '_rr_best_intervals.csv'))
+    write.csv(impact$best$rr_roll, paste0(prefix, '_rr_roll_best.csv'))
 
-write.csv(rr_mean_full_intervals, paste(output_directory, country, '_rr_full_intervals.csv', sep = ''))
-write.csv(rr_mean_time_intervals, paste(output_directory, country, '_rr_time_trend_intervals.csv', sep = ''))
-write.csv(rr_mean_pca_intervals, paste(output_directory, country, '_rr_pca_intervals.csv', sep = ''))
-write.csv(rr_mean_best_intervals, paste(output_directory, country, '_rr_best_intervals.csv', sep = ''))
-
-write.csv(rr_roll_full, paste(output_directory, country, '_rr_roll_full.csv', sep = ''))
-write.csv(rr_roll_time, paste(output_directory, country, '_rr_roll_time.csv', sep = ''))
-write.csv(rr_roll_pca, paste(output_directory, country, '_rr_roll_pca.csv', sep = ''))
-write.csv(rr_roll_best, paste(output_directory, country, '_rr_roll_best.csv', sep = ''))
-
-#STacking weights
-if(crossval){
-write.csv(stacking_weights.all, paste(output_directory, country, '_stacking_weights.csv', sep = ''))
-}
+    # Stacking weights
+    if(!is.na(cross_validation)) {
+      write.csv(cross_validation$stacking_weights.all, paste0(prefix, '_stacking_weights.csv'))
+    }
   
-#Tables for rate ratios.
-if (exists('sensitivity_table_intervals')) {
-write.csv(syncon$sensitivity_table, paste(output_directory, country, '_sensitivity_table.csv', sep = ''))
-write.csv(syncon$sensitivity_table_intervals, paste(output_directory, country, '_sensitivity_table_intervals.csv', sep = ''))
-write.csv(syncon$rr_table, paste(output_directory, country, '_rr_table.csv', sep = ''))
-write.csv(syncon$rr_table_intervals, paste(output_directory, country, '_rr_table_intervals.csv', sep = ''))
+    # Tables for rate ratios.
+    if (!is.na(sensitivity_analysis)) {
+      write.csv(sensitivity_analysis$sensitivity, paste0(prefix, '_sensitivity_table.csv'))
+      write.csv(sensitivity_analysis$sensitivity_intervals, paste0(prefix, '_sensitivity_table_intervals.csv'))
+      write.csv(sensitivity_analysis$rr, paste0(prefix, '_rr_table.csv'))
+      write.csv(sensitivity_analysis$rr_intervals, paste0(prefix, '_rr_table_intervals.csv'))
+    }
+  })
 }
+

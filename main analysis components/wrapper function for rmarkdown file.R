@@ -8,7 +8,7 @@ rmarkdown::render("./main analysis components/synthetic_control_report self cont
                                 eval_period_start= '2012-01-01',#when do we start measuring the RR? (ie 12 or 24 months post intro) 
                                 eval_period_end= '2013-12-01',
                               year_def = 'cal_year',  #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
-                              sensitivity=TRUE, #Run sensitivity analyses?
+                              sensitivity=FALSE, #Run sensitivity analyses?
                               crossval=FALSE, #run cross validation? Note this takes time...adds ~40 min with 10 age groups, 7 cores
                               group_name = 'age_group', #Name of column containing group labels.
                               date_name = 'date',      #Name of column containing dates.
