@@ -1,6 +1,8 @@
+^data-raw$
 .git
 .travis.yml
 main analysis components
 Results*
-data
 synthetic_control.Rproj
+^.*\.Rproj$
+^\.Rproj\.user$
