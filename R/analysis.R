@@ -50,8 +50,8 @@ syncon_factory <- R6Class(
       #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
 
       #Log-transform all variables, adding 0.5 to counts of 0.
-      ds <- setNames(lapply(prelog_data, FUN = logTransform, no_log = c(private$group_name, private$date_name, private$outcome_name)), self$groups)
-      self$time_points <- unique(ds[[1]][, private$date_name])
+      private$ds <- setNames(lapply(prelog_data, FUN = logTransform, no_log = c(self$group_name, self$date_name, self$outcome_name)), self$groups)
+      self$time_points <- unique(private$ds[[1]][, self$date_name])
       print(3)
 
       #Monthly dummies
@@ -74,42 +74,42 @@ syncon_factory <- R6Class(
       season.dummies <- season.dummies[,-self$n_seasons]
       print(4)
 
-      ds <- lapply(ds, function(ds) {
-        if (!(private$denom_name %in% colnames(ds))) {
-          ds[private$denom_name] <- 0
+      private$ds <- lapply(private$ds, function(ds) {
+        if (!(self$denom_name %in% colnames(ds))) {
+          ds[self$denom_name] <- 0
         }
         return(ds)
       })
       print(5)
 
-      self$sparse_groups <- sapply(ds, function(ds) {
-        return(ncol(ds[!(colnames(ds) %in% c(private$date_name, private$group_name, private$denom_name, private$outcome_name, private$exclude_covar))]) == 0)
+      self$sparse_groups <- sapply(private$ds, function(ds) {
+        return(ncol(ds[!(colnames(ds) %in% c(self$date_name, self$group_name, self$denom_name, self$outcome_name, private$exclude_covar))]) == 0)
       })
-      ds <- ds[!self$sparse_groups]
+      private$ds <- private$ds[!self$sparse_groups]
       self$groups <- self$groups[!self$sparse_groups]
 
       #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
       self$covars = list()
-      self$covars$full <- setNames(lapply(ds, function(group) { makeCovars(self$country, self$time_points, self$intervention_date, season.dummies, group) }), self$groups)
+      self$covars$full <- setNames(lapply(private$ds, function(group) { makeCovars(self$country, self$time_points, self$intervention_date, season.dummies, group) }), self$groups)
       self$covars$full <- lapply(self$covars$full, FUN = function(covars) {covars[, !(colnames(covars) %in% private$exclude_covar), drop = FALSE]})
       self$covars$time <- setNames(lapply(self$covars$full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), self$groups)
       self$covars$null <- setNames(lapply(self$covars$full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), self$groups)
       print(6)
 
       #Standardize the outcome variable and save the original mean and SD for later analysis.
-      self$outcome <- sapply(ds, FUN = function(data) {data[, private$outcome_name]})
-      offset <- sapply(ds, FUN=function(data) exp(data[, private$denom_name]) ) #offset term on original scale; 1 column per age group
+      self$outcome <- sapply(private$ds, FUN = function(data) {data[, self$outcome_name]})
+      offset <- sapply(private$ds, FUN=function(data) exp(data[, self$denom_name]) ) #offset term on original scale; 1 column per age group
 
       ##SECTION 1: CREATING SMOOTHED VERSIONS OF CONTROL TIME SERIES AND APPENDING THEM ONTO ORIGINAL DATAFRAME OF CONTROLS
       #EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
       # Set a list of parameters for STL
-      stl.covars<-mapply(smooth_func,ds.list=ds,covar.list=self$covars$full, SIMPLIFY=FALSE, MoreArgs=list(n_seasons=self$n_seasons)) 
+      stl.covars<-mapply(smooth_func,ds.list=private$ds,covar.list=self$covars$full, SIMPLIFY=FALSE, MoreArgs=list(n_seasons=self$n_seasons)) 
       post.start.index<-which(self$time_points==self$post_period[1])
 
       if (length(self$groups)>1){ 
-        stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=ds ,SIMPLIFY=FALSE, MoreArgs=list(n_seasons=self$n_seasons, outcome_name=private$outcome_name, post.start.index=post.start.index)) #list of lists that has covariates for each regression for each strata
+        stl.data.setup<-mapply(stl_data_fun,covars=stl.covars, ds.sub=private$ds ,SIMPLIFY=FALSE, MoreArgs=list(n_seasons=self$n_seasons, outcome_name=self$outcome_name, post.start.index=post.start.index)) #list of lists that has covariates for each regression for each strata
       }else{
-        stl.data.setup <- list(mapply(stl_data_fun,covars=stl.covars, ds.sub=ds, MoreArgs=list(n_seasons=self$n_seasons, outcome_name=private$outcome_name, post.start.index=post.start.index)))
+        stl.data.setup <- list(mapply(stl_data_fun,covars=stl.covars, ds.sub=private$ds, MoreArgs=list(n_seasons=self$n_seasons, outcome_name=self$outcome_name, post.start.index=post.start.index)))
       }
 
       ##SECTION 2: run first stage models
@@ -129,7 +129,7 @@ syncon_factory <- R6Class(
       #Combine the outcome, covariates, and time point information.
       private$data$full <- setNames(lapply(self$groups, makeTimeSeries, outcome=self$outcome, covars=self$covars$full), self$groups)
       private$data$time <- setNames(lapply(self$groups, makeTimeSeries, outcome=self$outcome, covars=self$covars$time, trend=TRUE, offset=offset), self$groups)
-      private$data$pca <- mapply(FUN=pca_top_var, glm.results.in=glm.results, covars=stl.covars, ds.in=ds, SIMPLIFY=FALSE, MoreArgs=list(outcome_name=private$outcome_name, season.dummies=season.dummies))
+      private$data$pca <- mapply(FUN=pca_top_var, glm.results.in=glm.results, covars=stl.covars, ds.in=private$ds, SIMPLIFY=FALSE, MoreArgs=list(outcome_name=self$outcome_name, season.dummies=season.dummies))
       names(private$data$pca) <- self$groups
       #Time trend model but without a denominator
       private$data$time_no_offset <- setNames(lapply(self$groups, makeTimeSeries, outcome=self$outcome, covars=self$covars$time, trend=FALSE), self$groups)
