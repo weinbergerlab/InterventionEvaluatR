@@ -1,70 +1,58 @@
 ---
-date: 'Report generated `r format(Sys.time(), "%A, %B %d, %Y")`'
-output:
- html_document:
-  toc: TRUE
-  toc_float: TRUE
+author: "Daniel Weinberger"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
-   country: "Brazil"
-   pre_period_start: '2004-01-01'
-   pre_period_end: '2009-12-31'
-   post_period_start: '2010-01-01'
-   post_period_end: '2013-12-01'
-   eval_period_start: '2012-01-01' 
-   eval_period_end: '2013-12-01'
-   year_def: 'cal_year'
-   sensitivity: FALSE
-   crossval: FALSE
-   group_name: 'age_group'
-   date_name: 'date'
-   outcome_name: 'J12_18'  
-   denom_name: 'ach_noj' 
-   n_seasons: 12
-   input_directory: 'https://raw.githubusercontent.com/weinbergerlab/synthetic-control/master/Datasets%20for%20PNAS/'
-   file_name: "Dataset%20S1%20Brazil.csv"
-   github.import: TRUE 
-   update_packages: FALSE 
-   install_packages: TRUE 
+  country: "Brazil"
+  pre_period_start: '2004-01-01'
+  pre_period_end: '2009-12-31'
+  post_period_start: '2010-01-01'
+  post_period_end: '2013-12-01'
+  eval_period_start: '2012-01-01' 
+  eval_period_end: '2013-12-01'
+  year_def: 'cal_year'
+  sensitivity: FALSE
+  crossval: FALSE
+  group_name: 'age_group'
+  date_name: 'date'
+  outcome_name: 'J12_18'  
+  denom_name: 'ach_noj' 
+  n_seasons: 12
+  input_directory: 'https://raw.githubusercontent.com/weinbergerlab/synthetic-control/master/Datasets%20for%20PNAS/'
+  file_name: "Dataset%20S1%20Brazil.csv"
+  github.import: TRUE 
+  update_packages: FALSE 
+  install_packages: TRUE 
+---
+  title: "Estimated change associated with the introduction of vaccine in `r params$country`"
 ---
 
+```{r setup, include = FALSE}
+# knitr::opts_chunk$set(echo = TRUE,message = FALSE, warnings = FALSE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
 ---
-title: "Estimated change associated with the introduction of vaccine in `r params$country`"
+
+```{r setup_packages, include=FALSE}
+library(syncon)
+library(knitr)
+library(ggplot2)
+```
+
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,message = FALSE, warnings = FALSE)
-source("synthetic_control_functions.R")
-source("../R/analysis.R")
-```
-
-```{r specify_inputs, include=FALSE}
-  update_packages  <- params$update_packages 
-  install_packages <- params$install_packages 
-  install_pandoc   <- FALSE
-```
-
-```{r load_packages, include = FALSE}
-
-packages <- c('knitr','parallel','RCurl' ,'pomp','splines', 'MASS', 'lubridate','loo', 'RcppRoll','lme4', 'ggplot2', 'reshape','dummies')
-packageHandler(packages, update_packages, install_packages)
-sapply(packages, library, quietly = TRUE, character.only = TRUE)
-
-#Detect if pogit package installed; if not download from Github
-if("pogit" %in% rownames(installed.packages())==FALSE){
-  if("devtools" %in% rownames(installed.packages())==FALSE){
-    install.packages('devtools')
-  }
-  library('devtools')
-  install_github("airbornemint/pogit") #Did not update any of the dependencies (#24)
-}
-library(pogit)
-library(gsubfn)
-```
 
 ```{r setup_data, include=FALSE}
-output_directory <- 'Results' #Directory where results will be saved.
-output_directory <- paste(output_directory,'_',params$country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '') #Adds a subfolder to output directory to organize results by date and time run.
-dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
+# output_directory <- 'Results' #Directory where results will be saved.
+# output_directory <- paste(output_directory,'_',params$country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '') #Adds a subfolder to output directory to organize results by date and time run.
+# dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
 
 syncon = with(params, {
   syncon_factory$new(
@@ -89,7 +77,7 @@ impact_results = syncon$impact()
 
     save.stack.est<-list(post_period,syncon$outcome, time_points,syncon$ann_pred_quantiles_stack, syncon$pred_quantiles_stack,syncon$rr_roll_stack,syncon$rr_mean_stack,syncon$rr_mean_stack_intervals,syncon$cumsum_prevented_stack)
     names(save.stack.est)<-c('post_period','outcome','time_points', 'ann_pred_quantiles_stack', 'pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
-    saveRDS(save.stack.est, file=paste0(output_directory, params$country, "Stack estimates.rds"))
+    # saveRDS(save.stack.est, file=paste0(output_directory, params$country, "Stack estimates.rds"))
     
     #Pointwise RR and uncertainty for second stage meta analysis
     log_rr_quantiles_stack   <- sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
@@ -97,21 +85,21 @@ impact_results = syncon$impact()
     log_rr_full_t_samples.stack.prec<-sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec.post}, simplify = 'array')
     #log_rr_sd.stack   <- sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_sd}, simplify = 'array')
     
-    saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, params$country, "_log_rr_quantiles_stack.rds"))
-    saveRDS(log_rr_full_t_samples.stack.prec, file=paste0(output_directory, params$country, "_log_rr_full_t_samples.stack.prec.rds"))
+    # saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, params$country, "_log_rr_quantiles_stack.rds"))
+    # saveRDS(log_rr_full_t_samples.stack.prec, file=paste0(output_directory, params$country, "_log_rr_full_t_samples.stack.prec.rds"))
   }
 ```
 
 ```{r format_save_results, include = FALSE}
 
 for (analysis in c('full', 'best')) {
-  saveRDS(impact_results[[analysis]]$log_rr_quantiles, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_quantiles.rds"))
-  saveRDS(impact_results[[analysis]]$log_rr_sd, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_sd.rds"))
-  saveRDS(impact_results[[analysis]]$log_rr_t_samples.prec, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_t_samples.prec.rds"))
+  # saveRDS(impact_results[[analysis]]$log_rr_quantiles, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_quantiles.rds"))
+  # saveRDS(impact_results[[analysis]]$log_rr_sd, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_sd.rds"))
+  # saveRDS(impact_results[[analysis]]$log_rr_t_samples.prec, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_t_samples.prec.rds"))
 }
 
 #Save output of ITS analysis (rr at last time point) as .csv
-write.csv(impact_results$its$rr_end, paste(output_directory, params$country, 'rr_classic_its.csv', sep = ''))
+#write.csv(impact_results$its$rr_end, paste(output_directory, params$country, 'rr_classic_its.csv', sep = ''))
 
 #Combine RRs into 1 file for plotting
 rr_mean_combo<- as.data.frame(rbind(
@@ -245,11 +233,19 @@ kable(sensitivity_table_intervals, align = 'c')
 
 ##Plots
 ```{r plots,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
-source('./synthetic_control_plot.R', local=FALSE)
+plots = syncon$generate_plots()
+for (group in names(plots)) {
+	cat('###', group, '\n', sep = '')
+	for (group_plot in plots[[group]]) {
+		print(group_plot)
+	}
+	cat('\n\n')
+}
+
 ```
 
 ##Print results
 ```{r save_results, echo=FALSE}
-source('./synthetic_control_write_results.R', local = FALSE)
+# source('./synthetic_control_write_results.R', local = FALSE)
 
 ```

@@ -411,6 +411,9 @@ syncon_factory <- R6Class(
       } else {
         results$sensitivity_table_intervals <- NA
       }
+    },
+    generate_plots = function() {
+      sc_plots(self)
     }
   )
 )
