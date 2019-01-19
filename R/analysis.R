@@ -11,14 +11,6 @@ syncon_factory <- R6Class(
     post_period = NA,
     eval_period = NA,
 
-    # Inputs
-    input_data = NA,
-
-    group_name = NA,
-    date_name = NA,
-    outcome_name = NA,
-    denom_name = NA,
-
     start_date = NA,
     end_date = NA,
 
@@ -195,9 +187,10 @@ syncon_factory <- R6Class(
         #Calculate pointwise log likelihood for cross-val prediction sample vs observed
         #These are N_iter*N_obs*N_cross_val array
         for (variant in names(private$variants)) {
-          ll.cv <- lapply(results$impact[[variant]], function(x) lapply(x, crossval.log.lik))
-          ll.cv[[variant]] <- lapply(ll.cv, reshape.arr)
+          ll.cv[[variant]] <- lapply(results$impact[[variant]], function(x) lapply(x, crossval.log.lik))
+          ll.cv[[variant]] <- lapply(ll.cv[[variant]], reshape.arr)
         }
+
         #Create list that has model result for each stratum
         ll.compare<- vector("list", length(ll.cv$pca)) 
         stacking_weights.all<-matrix(NA, nrow=length(ll.cv$pca), ncol=4)
@@ -242,8 +235,8 @@ syncon_factory <- R6Class(
         results$cumsum_prevented_stack <- sapply(self$groups, FUN = cumsum_func, quantiles = results$quantiles_stack, outcome=self$outcome, self$time_points, self$post_period, simplify = 'array')
         results$ann_pred_quantiles_stack <- sapply(results$quantiles_stack, getAnnPred, simplify = FALSE)
         #Preds: Compare observed and expected
-        results$pred$full <- lapply(results$impact$full, function(x) sapply(x,pred.cv,simplify='array'))
-        results$pred$pca <- lapply(results$impact$pca, function(x) sapply(x,pred.cv,simplify='array'))
+        results$pred$full <- lapply(self$results$impact$full, function(x) sapply(x,pred.cv,simplify='array'))
+        results$pred$pca <- lapply(self$results$impact$pca, function(x) sapply(x,pred.cv,simplify='array'))
       
         results
       })
@@ -305,9 +298,9 @@ syncon_factory <- R6Class(
     # Variants
     variants = list(
       full = list(var.select.on=TRUE, trend=FALSE, name="Synthetic controls"),
-      time = list(var.select.on=TRUE, trend=FALSE, name="Time trend"),
-      time_no_offset = list(var.select.on=TRUE, trend=FALSE, name="Time trend (no offset)"),
-      pca = list(var.select.on=TRUE, trend=FALSE, name="STL+PCA")
+      time = list(var.select.on=FALSE, trend=TRUE, name="Time trend"),
+      time_no_offset = list(var.select.on=FALSE, trend=FALSE, name="Time trend (no offset)"),
+      pca = list(var.select.on=FALSE, trend=FALSE, name="STL+PCA")
     ),
 
     exclude_covar = NA,
@@ -315,28 +308,30 @@ syncon_factory <- R6Class(
 
     # Computation state
     data = list(),
+    data.cv = list(),
     n_cores = NA,
+    ds = NA,
 
     impact.pre = function() {
       # Setup data
-      prelog_data <- private$input_data[!is.na(private$input_data[, private$outcome_name]),]#If outcome is missing, delete 
-      prelog_data[, private$group_name] = prelog_data[, private$group_name] %% 2
-      self$groups <- as.character(unique(unlist(prelog_data[, private$group_name], use.names = FALSE)))
+      prelog_data <- self$input_data[!is.na(self$input_data[, self$outcome_name]),]#If outcome is missing, delete 
+      prelog_data[, self$group_name] = prelog_data[, self$group_name] %% 2
+      self$groups <- as.character(unique(unlist(prelog_data[, self$group_name], use.names = FALSE)))
       if (exists('exclude_group')) {
         self$groups <- self$groups[!(self$groups %in% exclude_group)]
       }
 
       # Format covars
-      prelog_data[,private$date_name]<-as.Date(as.character(prelog_data[,private$date_name]), tryFormats=c("%m/%d/%Y",'%Y-%m-%d' ))
+      prelog_data[,self$date_name]<-as.Date(as.character(prelog_data[,self$date_name]), tryFormats=c("%m/%d/%Y",'%Y-%m-%d' ))
 
-      #test<-split(prelog_data, factor(prelog_data[,private$group_name]))
-      #outcome.na<-sapply(test, function(x) sum(is.na(x[,private$outcome_name])))
-      prelog_data[, private$date_name] <- formatDate(prelog_data[, private$date_name])
+      #test<-split(prelog_data, factor(prelog_data[,self$group_name]))
+      #outcome.na<-sapply(test, function(x) sum(is.na(x[,self$outcome_name])))
+      prelog_data[, self$date_name] <- formatDate(prelog_data[, self$date_name])
       prelog_data <- setNames(lapply(
         self$groups, FUN=splitGroup, 
-        ungrouped_data=prelog_data, group_name=private$group_name, date_name=private$date_name, 
+        ungrouped_data=prelog_data, group_name=self$group_name, date_name=self$date_name, 
         start_date=self$start_date, end_date=self$end_date, 
-        no_filter=c(private$group_name, private$date_name, private$outcome_name, private$denom_name)
+        no_filter=c(self$group_name, self$date_name, self$outcome_name, self$denom_name)
       ), self$groups)
       #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
 
