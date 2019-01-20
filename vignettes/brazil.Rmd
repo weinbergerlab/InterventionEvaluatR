@@ -64,7 +64,7 @@ set.seed(1)
 ```
 
 ```{r main analysis, include = FALSE}
-impact_results = syncon$impact()
+impact_results = syncon$impact(params$crossval)
 ```
 
 ```{r crossval, include = FALSE}

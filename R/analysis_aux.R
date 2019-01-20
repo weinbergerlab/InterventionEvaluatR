@@ -186,7 +186,7 @@ pred.cv<-function(cv.impact){
    return(cv.pred.q)
 }
 
-stack.mean<-function(outcome,group,impact_full,impact_time,impact_time_no_offset,impact_pca,stacking_weights.all){
+stack.mean<-function(group,impact_full,impact_time,impact_time_no_offset,impact_pca,stacking_weights.all,outcome){
   #Averaged--multiply each log(mean) by weight, then add, then exponentiate and draw from Poisson
     weights<-as.numeric(as.vector(stacking_weights.all[stacking_weights.all$groups==group,]))
     
