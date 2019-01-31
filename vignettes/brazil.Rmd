@@ -45,10 +45,6 @@ library(ggplot2)
 ---
 
 ```{r setup_data, include=FALSE}
-# output_directory <- 'Results' #Directory where results will be saved.
-# output_directory <- paste(output_directory,'_',params$country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), '/', sep = '') #Adds a subfolder to output directory to organize results by date and time run.
-# dir.create(output_directory, recursive = TRUE, showWarnings = FALSE)
-
 data(pnas_brazil, package="syncon")
 syncon = with(params, {
   syncon.init(
@@ -240,6 +236,9 @@ for (group in names(plots)) {
 
 ##Print results
 ```{r save_results, echo=FALSE}
-# source('./synthetic_control_write_results.R', local = FALSE)
+
+output_file <- 'Results' #Directory where results will be saved.
+output_file <- paste0(output_file,'_',params$country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), ".Rds")
+syncon.save(syncon, output_file)
 
 ```
