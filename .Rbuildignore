@@ -1,8 +1,8 @@
 ^data-raw$
-.git
-.travis.yml
-main analysis components
-Results*
-synthetic_control.Rproj
+^.git$
+^.travis.yml$
+^main analysis components$
+^Results.*\.Rmd$
+^synthetic_control.Rproj$
 ^.*\.Rproj$
 ^\.Rproj\.user$
