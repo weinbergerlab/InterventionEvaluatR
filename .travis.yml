@@ -8,4 +8,17 @@ before_install:
 r:
   - oldrel
   - release
-  
+script:
+  - travis_wait 60 R CMD build ${R_BUILD_ARGS} .
+  - rm -f travis_wait*.log
+  - R CMD check ${R_CHECK_ARGS} *.tar.gz; CHECK_RET=$? ;
+  - if [[ $CHECK_RET -ne 0 ]];
+    then
+      echo "R CMD check failed";
+      check_fail;
+      dump_logs;
+      check_warnings ;
+      travis_terminate 1;
+    fi
+
+
