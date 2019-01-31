@@ -51,7 +51,7 @@ library(ggplot2)
 
 data(pnas_brazil, package="syncon")
 syncon = with(params, {
-  syncon_factory$new(
+  syncon.init(
     country, pnas_brazil, 
     pre_period_start, pre_period_end, 
     post_period_start, post_period_end, 
@@ -64,12 +64,12 @@ set.seed(1)
 ```
 
 ```{r main analysis, include = FALSE}
-impact_results = syncon$impact(params$crossval)
+impact_results = syncon.impact(syncon)
 ```
 
 ```{r crossval, include = FALSE}
   if(params$crossval){
-    syncon$crossval()
+    syncon.crossval(syncon)
 
     save.stack.est<-list(post_period,syncon$outcome, time_points,syncon$ann_pred_quantiles_stack, syncon$pred_quantiles_stack,syncon$rr_roll_stack,syncon$rr_mean_stack,syncon$rr_mean_stack_intervals,syncon$cumsum_prevented_stack)
     names(save.stack.est)<-c('post_period','outcome','time_points', 'ann_pred_quantiles_stack', 'pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
@@ -141,7 +141,7 @@ rr_mean_combo$Model <- factor(rr_mean_combo$Model,levels(rr_mean_combo$Model)[c(
 
 ```{r sensitivity_analyses, include = FALSE}
 if(params$sensitivity){
-  syncon$sensitivity()
+  sensitivity_results = syncon.sensitivity(syncon)
 }
 
 ```
@@ -229,13 +229,11 @@ kable(sensitivity_table_intervals, align = 'c')
 
 ##Plots
 ```{r plots,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
-plots = syncon$generate_plots()
+plots = syncon.plots(syncon)
 for (group in names(plots)) {
-	cat('###', group, '\n', sep = '')
 	for (group_plot in plots[[group]]) {
 		print(group_plot)
 	}
-	cat('\n\n')
 }
 
 ```

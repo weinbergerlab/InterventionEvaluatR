@@ -19,6 +19,7 @@ Imports:
     dummies,
     ggplot2,
     pogit
+    listenv
 Suggests: 
     knitr,
     rmarkdown

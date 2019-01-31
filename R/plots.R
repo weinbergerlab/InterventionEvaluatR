@@ -1,4 +1,4 @@
-sc_plots <- function(syncon) {
+syncon.plots <- function(syncon) {
   plots = list()
 
   for (group in syncon$groups) {

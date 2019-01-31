@@ -1,4 +1,4 @@
-sc_save_results <- function (syncon, output_file) {
+syncon.save <- function (syncon, output_file) {
   dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
   
   saved = list(
