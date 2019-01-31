@@ -15,7 +15,7 @@ params:
   eval_period_start: '2012-01-01' 
   eval_period_end: '2013-12-01'
   year_def: 'cal_year'
-  sensitivity: FALSE
+  sensitivity: TRUE
   crossval: FALSE
   group_name: 'age_group'
   date_name: 'date'
@@ -221,8 +221,8 @@ kable(incl_probs, align = 'c')
 
 ##Weight Sensitivity Analysis
 ```{r sensitivity}
-if (exists('sensitivity_table_intervals')) {
-kable(sensitivity_table_intervals, align = 'c')
+if (exists('sensitivity_results')) {
+kable(sensitivity_results$sensitivity_table_intervals, align = 'c')
 }
 ```
 

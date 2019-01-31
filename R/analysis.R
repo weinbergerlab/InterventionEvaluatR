@@ -247,18 +247,18 @@ syncon.crossval = function(syncon) {
 
 syncon.sensitivity = function(syncon) {
   results = list()
-  bad_sensitivity_groups <- sapply(syncon$covars$full, function (covar) {ncol(covar) <= n_seasons-1+3})
+  bad_sensitivity_groups <- sapply(syncon$covars$full, function (covar) {ncol(covar) <= syncon$n_seasons-1+3})
   sensitivity_covars_full <- syncon$covars$full[!bad_sensitivity_groups]
   sensitivity_ds <- syncon$.private$ds[!bad_sensitivity_groups]
-  sensitivity_impact_full <- syncon$impact_full[!bad_sensitivity_groups]
+  sensitivity_impact_full <- syncon$results$impact$full$groups[!bad_sensitivity_groups]
   sensitivity_groups <- syncon$groups[!bad_sensitivity_groups]
 
   if (length(sensitivity_groups)!=0) {
     #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
     cl <- makeCluster(syncon$.private$n_cores)
     clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
-    clusterExport(cl, c('sensitivity_ds', 'weightSensitivityAnalysis', 'sensitivity_groups', 'outcome', 'time_points', 'n_seasons', 'eval_period', 'post_period', 'rrPredQuantiles'), environment())
-    sensitivity_analysis_full <- setNames(parLapply(cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = syncon$time_points, intervention_date = syncon$intervention_date, n_seasons = n_seasons, outcome = outcome, eval_period = eval_period, post_period = post_period, year_def=syncon$year_def), sensitivity_groups)
+    clusterExport(cl, c('sensitivity_ds', 'weightSensitivityAnalysis', 'sensitivity_groups'), environment())
+    sensitivity_analysis_full <- setNames(parLapply(cl=cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = syncon$time_points, intervention_date = syncon$intervention_date, n_seasons = syncon$n_seasons, outcome = syncon$outcome, eval_period = syncon$eval_period, post_period = syncon$post_period, year_def=syncon$year_def), sensitivity_groups)
     stopCluster(cl)
   
     results$sensitivity_pred_quantiles <- lapply(sensitivity_analysis_full, FUN = function(sensitivity_analysis) {
@@ -270,7 +270,7 @@ syncon.sensitivity = function(syncon) {
     })
   
     #Table of rate ratios for each sensitivity analysis level
-    results$sensitivity_table <- t(sapply(sensitivity_groups, sensitivityTable, sensitivity_analysis = sensitivity_analysis_full, original_rr = rr_mean_full))
+    results$sensitivity_table <- t(sapply(sensitivity_groups, sensitivityTable, sensitivity_analysis = sensitivity_analysis_full, original_rr = syncon$results$impact$full$rr_mean))
     results$sensitivity_table_intervals <- data.frame(
       'Estimate (95% CI)' = makeInterval(results$sensitivity_table[, 2], results$sensitivity_table[, 3], results$sensitivity_table[, 1]),
       'Top Control 1' = results$sensitivity_table[, 'Top Control 1'],
@@ -283,8 +283,8 @@ syncon.sensitivity = function(syncon) {
       'Inclusion Probability of Control 3' = results$sensitivity_table[, 'Inclusion Probability of Control 3'],
       'Control 3 Estimate (95% CI)' = makeInterval(results$sensitivity_table[, 17], results$sensitivity_table[, 18], results$sensitivity_table[, 16]), check.names = FALSE
     )
-    reults$rr_table <- cbind.data.frame(round(rr_mean_time[!bad_sensitivity_groups, ],2), results$sensitivity_table)
-    results$rr_table_intervals <- cbind('Trend Estimate (95% CI)' = rr_mean_time_intervals[!bad_sensitivity_groups, ], results$sensitivity_table_intervals)
+    results$rr_table <- cbind.data.frame(round(syncon$results$impact$time$rr_mean[!bad_sensitivity_groups, ],2), results$sensitivity_table)
+    results$rr_table_intervals <- cbind('Trend Estimate (95% CI)' = syncon$results$impact$time$rr_mean_intervals[!bad_sensitivity_groups, ], results$sensitivity_table_intervals)
   } else {
     results$sensitivity_table_intervals <- NA
   }
@@ -401,3 +401,4 @@ syncon.impact.pre = function(syncon) {
   #Time trend model but without a denominator
   syncon$.private$data$time_no_offset <- setNames(lapply(syncon$groups, makeTimeSeries, outcome=syncon$outcome, covars=syncon$covars$time, trend=FALSE), syncon$groups)
 }
+
