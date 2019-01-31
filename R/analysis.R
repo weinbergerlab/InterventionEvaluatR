@@ -161,7 +161,6 @@ syncon.crossval = function(syncon) {
   results = list()
 
   #Creates List of lists: 1 entry for each stratum; within this, there are CV datasets for each year left out, and within this, there are 2 lists, one with full dataset, and one with the CV dataset
-  browser()
   for (variant in names(syncon$.private$variants)) {
     syncon$.private$data.cv[[variant]]<-lapply(syncon$.private$data[[variant]], makeCV, syncon$time_points, syncon$intervention_date)
   }
@@ -238,7 +237,6 @@ syncon.crossval = function(syncon) {
   results$cumsum_prevented_stack <- sapply(syncon$groups, FUN = cumsum_func, quantiles = results$quantiles_stack, outcome=syncon$outcome, syncon$time_points, syncon$post_period, simplify = 'array')
   results$ann_pred_quantiles_stack <- sapply(results$quantiles_stack, getAnnPred, simplify = FALSE)
   #Preds: Compare observed and expected
-  browser()
   results$full$pred <- lapply(results$impact$full, function(x) sapply(x,pred.cv,simplify='array'))
   results$pca$pred <- lapply(results$impact$pca, function(x) sapply(x,pred.cv,simplify='array'))
   
