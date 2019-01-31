@@ -18,7 +18,8 @@ Imports:
     reshape,
     dummies,
     ggplot2,
-    pogit
+    pogit,
+    pbapply,
     listenv
 Suggests: 
     knitr,

@@ -80,8 +80,8 @@ syncon.impact = function(syncon) {
   clusterExport(cl, c('doCausalImpact'), environment())
 
   for (variant in names(syncon$.private$variants)) {
-    results[[variant]]$groups <- setNames(parLapply(
-      cl, syncon$.private$data[[variant]], doCausalImpact, 
+    results[[variant]]$groups <- setNames(pblapply(
+      cl=cl, syncon$.private$data[[variant]], FUN=doCausalImpact, 
       syncon$intervention_date, 
       syncon$n_seasons,
       var.select.on=syncon$.private$variants[[variant]]$var.select.on, 
@@ -161,6 +161,7 @@ syncon.crossval = function(syncon) {
   results = list()
 
   #Creates List of lists: 1 entry for each stratum; within this, there are CV datasets for each year left out, and within this, there are 2 lists, one with full dataset, and one with the CV dataset
+  browser()
   for (variant in names(syncon$.private$variants)) {
     syncon$.private$data.cv[[variant]]<-lapply(syncon$.private$data[[variant]], makeCV, syncon$time_points, syncon$intervention_date)
   }
@@ -173,8 +174,8 @@ syncon.crossval = function(syncon) {
   })
   clusterExport(cl, c('doCausalImpact'), environment())
   for (variant in names(syncon$.private$variants)) {
-    results[[variant]]$groups <-setNames(parLapply(
-      cl, syncon$.private$data.cv[[variant]], function(x) lapply(
+    results[[variant]]$groups <-setNames(pblapply(
+      cl=cl, syncon$.private$data.cv[[variant]], FUN=function(x) lapply(
         x, doCausalImpact, 
         syncon$intervention_date, 
         syncon$n_seasons,
@@ -258,7 +259,7 @@ syncon.sensitivity = function(syncon) {
     cl <- makeCluster(syncon$.private$n_cores)
     clusterEvalQ(cl, {library(pogit, quietly = TRUE); library(lubridate, quietly = TRUE); library(RcppRoll, quietly = TRUE)})
     clusterExport(cl, c('sensitivity_ds', 'weightSensitivityAnalysis', 'sensitivity_groups'), environment())
-    sensitivity_analysis_full <- setNames(parLapply(cl=cl, sensitivity_groups, weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = syncon$time_points, intervention_date = syncon$intervention_date, n_seasons = syncon$n_seasons, outcome = syncon$outcome, eval_period = syncon$eval_period, post_period = syncon$post_period, year_def=syncon$year_def), sensitivity_groups)
+    sensitivity_analysis_full <- setNames(pblapply(cl=cl, sensitivity_groups, FUN=weightSensitivityAnalysis, covars = sensitivity_covars_full, ds = sensitivity_ds, impact = sensitivity_impact_full, time_points = syncon$time_points, intervention_date = syncon$intervention_date, n_seasons = syncon$n_seasons, outcome = syncon$outcome, eval_period = syncon$eval_period, post_period = syncon$post_period, year_def=syncon$year_def), sensitivity_groups)
     stopCluster(cl)
   
     results$sensitivity_pred_quantiles <- lapply(sensitivity_analysis_full, FUN = function(sensitivity_analysis) {
@@ -319,7 +320,6 @@ syncon.impact.pre = function(syncon) {
   #Log-transform all variables, adding 0.5 to counts of 0.
   syncon$.private$ds <- setNames(lapply(prelog_data, FUN = logTransform, no_log = c(syncon$group_name, syncon$date_name, syncon$outcome_name)), syncon$groups)
   syncon$time_points <- unique(syncon$.private$ds[[1]][, syncon$date_name])
-  print(3)
 
   #Monthly dummies
   if(syncon$n_seasons==4){
@@ -339,7 +339,6 @@ syncon.impact.pre = function(syncon) {
   season.dummies <- as.data.frame(season.dummies)
   names(season.dummies) <- paste0('s', 1:syncon$n_seasons)
   season.dummies <- season.dummies[,-syncon$n_seasons]
-  print(4)
 
   syncon$.private$ds <- lapply(syncon$.private$ds, function(ds) {
     if (!(syncon$denom_name %in% colnames(ds))) {
@@ -347,7 +346,6 @@ syncon.impact.pre = function(syncon) {
     }
     return(ds)
   })
-  print(5)
 
   syncon$sparse_groups <- sapply(syncon$.private$ds, function(ds) {
     return(ncol(ds[!(colnames(ds) %in% c(syncon$date_name, syncon$group_name, syncon$denom_name, syncon$outcome_name, syncon$.private$exclude_covar))]) == 0)
@@ -361,7 +359,6 @@ syncon.impact.pre = function(syncon) {
   syncon$covars$full <- lapply(syncon$covars$full, FUN = function(covars) {covars[, !(colnames(covars) %in% syncon$.private$exclude_covar), drop = FALSE]})
   syncon$covars$time <- setNames(lapply(syncon$covars$full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies,time_index = 1:nrow(covars))))}), syncon$groups)
   syncon$covars$null <- setNames(lapply(syncon$covars$full, FUN = function(covars) {as.data.frame(list(cbind(season.dummies)))}), syncon$groups)
-  print(6)
 
   #Standardize the outcome variable and save the original mean and SD for later analysis.
   syncon$outcome <- sapply(syncon$.private$ds, FUN = function(data) {data[, syncon$outcome_name]})
@@ -386,8 +383,7 @@ syncon.impact.pre = function(syncon) {
   clusterEvalQ(cl, {library(lme4, quietly = TRUE)})
   clusterExport(cl, c('stl.data.setup', 'glm.fun', 'post.start.index'), environment())
   for(i in 1:length(stl.data.setup)){
-    print(i)
-    glm.results[[i]] <- parLapply(cl=cl, stl.data.setup[[i]], fun=function(d) {glm.fun(d, post.start.index)})
+    glm.results[[i]] <- pblapply(cl=cl, stl.data.setup[[i]], FUN=function(d) {glm.fun(d, post.start.index)})
   }
   stopCluster(cl)
   ######################
@@ -401,4 +397,3 @@ syncon.impact.pre = function(syncon) {
   #Time trend model but without a denominator
   syncon$.private$data$time_no_offset <- setNames(lapply(syncon$groups, makeTimeSeries, outcome=syncon$outcome, covars=syncon$covars$time, trend=FALSE), syncon$groups)
 }
-
