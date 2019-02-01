@@ -11,7 +11,8 @@ r:
 script:
   - travis_wait 60 R CMD build ${R_BUILD_ARGS} .
   - rm -f travis_wait*.log
-  - R CMD check ${R_CHECK_ARGS} *.tar.gz; CHECK_RET=$? ;
+  - travis_wait 60 R CMD check ${R_CHECK_ARGS} *.tar.gz; CHECK_RET=$? ;
+  - rm -f travis_wait*.log
   - if [[ $CHECK_RET -ne 0 ]];
     then
       echo "R CMD check failed";
