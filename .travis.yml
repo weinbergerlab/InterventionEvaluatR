@@ -3,13 +3,12 @@ cache: packages
 warnings_are_errors: false
 r_packages:
   - usethis
-before_install: 
-  - echo 'install.packages("usethis")' | R --no-save
-  - R --no-save < data-raw/build_data.R
 r:
   - oldrel
   - release
 script:
+  - echo 'install.packages("usethis")' | R --no-save
+  - R --no-save < data-raw/build_data.R
   - travis_wait 60 R CMD build ${R_BUILD_ARGS} .
   - rm -f travis_wait*.log
   - travis_wait 60 R CMD check ${R_CHECK_ARGS} *.tar.gz; CHECK_RET=$? ;
