@@ -46,7 +46,7 @@ syncon.init <- function(
 
   syncon$country <- country #Country or region name.
   syncon$n_seasons <- n_seasons #Number of months (seasons) per year. 12 for monthly, 4 for quarterly, 3 for trimester data.
-  syncon$year_def <- params$year_def #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
+  syncon$year_def <- year_def #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
 
   #MOST DATES MUST BE IN FORMAT "YYYY-MM-01", exception is end of pre period, which is 1 day before end of post period
   syncon$pre_period <- as.Date(c(pre_period_start, pre_period_end)) #Range over which the data is trained for the CausalImpact model.

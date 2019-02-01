@@ -7,21 +7,8 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
-  country: "Brazil"
-  pre_period_start: '2004-01-01'
-  pre_period_end: '2009-12-31'
-  post_period_start: '2010-01-01'
-  post_period_end: '2013-12-01'
-  eval_period_start: '2012-01-01' 
-  eval_period_end: '2013-12-01'
-  year_def: 'cal_year'
   sensitivity: TRUE
   crossval: FALSE
-  group_name: 'age_group'
-  date_name: 'date'
-  outcome_name: 'J12_18'  
-  denom_name: 'ach_noj' 
-  n_seasons: 12
 ---
   title: "Estimated change associated with the introduction of vaccine in `r params$country`"
 ---
@@ -45,16 +32,14 @@ library(knitr)
 
 ```{r setup_data, include=FALSE}
 data(pnas_brazil, package="syncon")
-syncon = with(params, {
-  syncon.init(
-    country, pnas_brazil, 
-    pre_period_start, pre_period_end, 
-    post_period_start, post_period_end, 
-    eval_period_start, eval_period_end, 
-    n_seasons, year_def, 
-    group_name, date_name, outcome_name, denom_name
-  )
-})
+syncon = syncon.init(
+  country="Brazil", pnas_brazil, 
+  pre_period_start='2004-01-01', pre_period_end='2009-12-31', 
+  post_period_start='2010-01-01', post_period_end='2013-12-01', 
+  eval_period_start='2012-01-01', eval_period_end='2013-12-01', 
+  n_seasons=12, year_def='cal_year', 
+  group_name='age_group', date_name='date', outcome_name='J12_18', denom_name='ach_noj'
+)
 set.seed(1)
 ```
 
@@ -154,7 +139,7 @@ for (group in names(plots$groups)) {
 ```{r save_results, echo=FALSE}
 
 output_file <- 'Results' #Directory where results will be saved.
-output_file <- paste0(output_file,'_',params$country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), ".Rds")
+output_file <- paste0(output_file,'_',syncon$country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), ".Rds")
 syncon.save(syncon, output_file)
 
 ```
