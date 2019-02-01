@@ -6,3 +6,4 @@
 ^synthetic_control.Rproj$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^travis_wait.*\.log$
