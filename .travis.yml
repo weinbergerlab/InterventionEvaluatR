@@ -33,3 +33,5 @@ deploy:
   draft: true
   on:
     tags: true
+    condition: $TRAVIS_R_VERSION_STRING = release
+    
