@@ -3,12 +3,12 @@ author: "Daniel Weinberger"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Brazil example}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
   sensitivity: TRUE
-  crossval: FALSE
+  crossval: TRUE
 ---
 title: "Estimated change associated with the introduction of vaccine in `r params$country`"
 ---
