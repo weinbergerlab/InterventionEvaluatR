@@ -72,9 +72,9 @@ if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(na
 ##combine estimates
 ```{r Comparison of estimates from different models}
 if (params$crossval){
-kable( cbind.data.frame(rr_mean_stack_intervals,rr_mean_full_intervals,rr_mean_time_intervals,rr_mean_time_no_offset_intervals,rr_mean_its_intervals, rr_mean_pca_intervals), align = 'c')
+  kable( cbind.data.frame(crossval_results$rr_mean_stack_intervals, impact_results$full$rr_mean_intervals, impact_results$time$rr_mean_intervals, impact_results$time_no_offset$rr_mean_intervals, impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = 'c')
 }else{
-kable( cbind.data.frame(impact_results$best$rr_mean_intervals,impact_results$full$rr_mean_intervals,impact_results$time$rr_mean_intervals,impact_results$time_no_offset$rr_mean_intervals,impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = 'c')  
+  kable( cbind.data.frame(impact_results$best$rr_mean_intervals, impact_results$full$rr_mean_intervals, impact_results$time$rr_mean_intervals, impact_results$time_no_offset$rr_mean_intervals, impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = 'c')  
 }
 ```
 

@@ -272,7 +272,7 @@ syncon.crossval = function(analysis) {
   results$pca$pred <- lapply(results$impact$pca, function(x) sapply(x,pred.cv,simplify='array'))
   
   results$log_rr_quantiles_stack <- sapply(results$quantiles_stack, FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
-  dimnames(log_rr_quantiles_stack)[[1]] <- analysis$time_points
+  dimnames(results$log_rr_quantiles_stack)[[1]] <- analysis$time_points
 
   results$log_rr_samples.prec.post_stack<-sapply(results$quantiles_stack, FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec.post}, simplify = 'array')
   
@@ -336,9 +336,7 @@ syncon.impact.pre = function(analysis) {
   prelog_data <- analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]),]#If outcome is missing, delete 
   prelog_data[, analysis$group_name] = prelog_data[, analysis$group_name] %% 2
   analysis$groups <- as.character(unique(unlist(prelog_data[, analysis$group_name], use.names = FALSE)))
-  if (exists('exclude_group')) {
-    analysis$groups <- analysis$groups[!(analysis$groups %in% exclude_group)]
-  }
+  analysis$groups <- analysis$groups[!(analysis$groups %in% analysis$.private$exclude_group)]
 
   # Format covars
   prelog_data[,analysis$date_name]<-as.Date(as.character(prelog_data[,analysis$date_name]), tryFormats=c("%m/%d/%Y",'%Y-%m-%d' ))

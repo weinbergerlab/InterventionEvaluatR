@@ -4,7 +4,7 @@ importFrom("stats", "AIC", "as.formula", "cov", "dpois", "glm", "median", "poiss
 importFrom("ggplot2", "aes", "aes_string", "aes_", "geom_line", "geom_point", "geom_polygon", "geom_ribbon", "geom_vline", "ggplot", "ggtitle", "scale_colour_manual", "scale_fill_hue", "theme", "theme_bw", "element_blank", "element_line", "element_rect", "element_text", "labs", "geom_errorbar", "scale_shape_manual", "scale_size_manual", "guides", "geom_hline", "ylim", "coord_cartesian")
 importFrom("loo", "stacking_weights")
 importFrom("lme4", "glmer", "glmerControl", "fixef")
-importFrom("lubridate", "as_date", "%m+%", "year", "month")
+importFrom("lubridate", "as_date", "%m+%", "year", "month", "quarter")
 importFrom("splines", "bs")
 importFrom("pomp", "logmeanexp")
 importFrom("reshape", "melt")
