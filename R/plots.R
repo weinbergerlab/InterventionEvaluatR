@@ -1,10 +1,35 @@
 syncon.plots <- function(syncon) {
-  plots = list()
+  plots = list(groups=list())
+
+  cbPalette  <-  c("#1b9e77", "#d95f02", "#7570b3",'#e7298a')
+  #Compare rate ratios, with size of marker scaled to cross val weights
+	if("crossval" %in% names(analysis$results)){
+    point.weights = analysis$results$crossval$point.weights
+  } else {
+    point.weights = analysis$results$impact$point.weights
+  }
+  plots$summary <- ggplot(syncon$results$impact$rr_mean_combo, aes_(x=~group.index, y=~mean.rr, color=~Model,group=~Model)) + 
+  geom_errorbar(aes_(ymin=~lcl, ymax=~ucl), colour="gray", width=.0) +
+  geom_point(aes_(shape=~Model, size=~syncon$results$impact$rr_mean_combo$est.index))+
+   scale_shape_manual(values=c(15, 16, 17,18))+
+  scale_size_manual(values=c(point.weights$value*2)) + #Scales area, which is optimal for bubbl plot
+  #geom_errorbar(rr_mean_combo,aes_(ymin=~lcl, ymax=~ucl), colour="black", width=.1) +
+  theme_bw() +
+  guides(size=FALSE)+ #turn off size axis
+  scale_colour_manual(values=cbPalette)+
+  labs(x = "Group", y="Rate ratio")+
+  geom_hline(yintercept = 1, colour='gray',linetype = 2)+
+  theme(axis.line = element_line(colour = "black"),
+        legend.position=c(0.2, 0.9),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
 
   for (group in syncon$groups) {
   	#View scaled covariates
   	covars.sub<-syncon$covars$full[[group]][,-c(1:(syncon$n_seasons-1))]
-  	alpha1=rep(impact_results$full$inclusion_probs[[group]][-c(1:(syncon$n_seasons-1)),'inclusion_probs'], each=nrow(syncon$covars$full[[group]]))
+  	alpha1=rep(syncon$results$impact$full$inclusion_probs[[group]][-c(1:(syncon$n_seasons-1)),'inclusion_probs'], each=nrow(syncon$covars$full[[group]]))
   	covar_plot <- ggplot(melt(covars.sub, id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points, ncol(covars.sub)), y = 'value', group = 'variable', alpha = alpha1 )) + 
   		geom_line() + 
   		labs(x = 'Time', y = 'Scaled Covariates') + 
@@ -18,23 +43,23 @@ syncon.plots <- function(syncon) {
   		theme(legend.position = 'none', plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
   		#Plot predictions
-  	min_max <- c(min(c(impact_results$full$pred_quantiles[, , group], syncon$outcome[, group])), max(c(impact_results$full$pred_quantiles[, , group], syncon$outcome[, group])))
-  	pred_best_plot <-        plotPred(impact_results$best$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Best estimate'))
-  	pred_full_plot <-        plotPred(impact_results$full$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Synthetic controls estimate'))
-  	pred_time_plot <-        plotPred(impact_results$time$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Interupted time series estimate'))
-  	pred_pca_plot <-        plotPred(impact_results$pca$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'STL+PCA estimate'))
-  	if(params$crossval){
-  	  pred_stack_plot <-        plotPred(pred_quantiles_stack[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Stacked estimate'))
-  	  pred_stack_plot_agg <-        plotPredAgg(ann_pred_quantiles_stack[[group]], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Stacked estimate'))
+  	min_max <- c(min(c(syncon$results$impact$full$pred_quantiles[, , group], syncon$outcome[, group])), max(c(syncon$results$impact$full$pred_quantiles[, , group], syncon$outcome[, group])))
+  	pred_best_plot <-        plotPred(syncon$results$impact$best$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Best estimate'))
+  	pred_full_plot <-        plotPred(syncon$results$impact$full$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Synthetic controls estimate'))
+  	pred_time_plot <-        plotPred(syncon$results$impact$time$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Interupted time series estimate'))
+  	pred_pca_plot <-        plotPred(syncon$results$impact$pca$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'STL+PCA estimate'))
+  	if("crossval" %in% names(syncon$results)){
+  	  pred_stack_plot <-        plotPred(syncon$results$crossval$pred_quantiles_stack[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Stacked estimate'))
+  	  pred_stack_plot_agg <-        plotPredAgg(syncon$results$crossval$ann_pred_quantiles_stack[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Stacked estimate'))
 	  
   	}
-  	pred_best_plot_agg <-        plotPredAgg(impact_results$best$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Best estimate'))
-  	pred_full_plot_agg <-        plotPredAgg(impact_results$full$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Synthetic controls estimate'))
-  	pred_time_plot_agg <-        plotPredAgg(impact_results$time$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Interupted time series estimate'))
-  	pred_pca_plot_agg <-        plotPredAgg(impact_results$pca$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'STL+PCA estimate'))
+  	pred_best_plot_agg <-        plotPredAgg(syncon$results$impact$best$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Best estimate'))
+  	pred_full_plot_agg <-        plotPredAgg(syncon$results$impact$full$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Synthetic controls estimate'))
+  	pred_time_plot_agg <-        plotPredAgg(syncon$results$impact$time$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'Interupted time series estimate'))
+  	pred_pca_plot_agg <-        plotPredAgg(syncon$results$impact$pca$ann_pred_quantiles[[group]], syncon$time_points, syncon$year_def, syncon$intervention_date, syncon$post_period, min_max, syncon$outcome[, group], title = paste(group, 'STL+PCA estimate'))
 	
-  	if (exists('sensitivity_table_intervals')) {
-  		pred_sensitivity_plot <- plotPred(impact_results$full$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], sensitivity_pred_quantiles = syncon$sensitivity_pred_quantiles[[group]], sensitivity_title = paste(group, 'Sensitivity Plots'), plot_sensitivity = TRUE)
+  	if ("sensitivity" %in% names(analysis$results)) {
+  		pred_sensitivity_plot <- plotPred(syncon$results$impact$full$pred_quantiles[, , group], syncon$time_points, syncon$post_period, min_max, syncon$outcome[, group], sensitivity_pred_quantiles = syncon$sensitivity_pred_quantiles[[group]], sensitivity_title = paste(group, 'Sensitivity Plots'), plot_sensitivity = TRUE)
   	} else {
   	  pred_sensitivity_plot <- NA
   	}
@@ -42,8 +67,8 @@ syncon.plots <- function(syncon) {
   	#points(prelog_data[[10]]$J12_18)
 	
   	#Plot rolling rate ratio
-  	min_max <- c(min(impact_results$full$rr_roll[, , group], impact_results$time$rr_roll[, , group]), max(impact_results$full$rr_roll[, , group], impact_results$time$rr_roll[, , group]))
-  	rr_roll_best_plot <- ggplot(melt(as.data.frame(impact_results$best$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(impact_results$best$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(impact_results$best$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
+  	min_max <- c(min(syncon$results$impact$full$rr_roll[, , group], syncon$results$impact$time$rr_roll[, , group]), max(syncon$results$impact$full$rr_roll[, , group], syncon$results$impact$time$rr_roll[, , group]))
+  	rr_roll_best_plot <- ggplot(melt(as.data.frame(syncon$results$impact$best$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(syncon$results$impact$best$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(syncon$results$impact$best$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
   	  geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   	  labs(x = 'Time', y = 'Rolling Rate Ratio') + 
   	  ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
@@ -55,7 +80,7 @@ syncon.plots <- function(syncon) {
   	        panel.border = element_blank(),
   	        panel.background = element_blank()) +
   	  theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-  	rr_roll_full_plot <- ggplot(melt(as.data.frame(impact_results$full$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(impact_results$full$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(impact_results$full$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
+  	rr_roll_full_plot <- ggplot(melt(as.data.frame(syncon$results$impact$full$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(syncon$results$impact$full$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(syncon$results$impact$full$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
   		geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   		labs(x = 'Time', y = 'Rolling Rate Ratio') + 
   		ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
@@ -67,7 +92,7 @@ syncon.plots <- function(syncon) {
   	        panel.border = element_blank(),
   	        panel.background = element_blank()) +
   		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-  	rr_roll_time_plot <- ggplot(melt(as.data.frame(impact_results$time$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(impact_results$time$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(impact_results$time$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
+  	rr_roll_time_plot <- ggplot(melt(as.data.frame(syncon$results$impact$time$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(syncon$results$impact$time$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(syncon$results$impact$time$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
   		geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   		labs(x = 'Time', y = 'Rolling Rate Ratio') + 
   		ggtitle(paste(group, 'TT Rolling Rate Ratio')) +
@@ -79,7 +104,7 @@ syncon.plots <- function(syncon) {
   	        panel.border = element_blank(),
   	        panel.background = element_blank()) +
   		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-  	rr_roll_pca_plot <- ggplot(melt(as.data.frame(impact_results$pca$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(impact_results$pca$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(impact_results$pca$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
+  	rr_roll_pca_plot <- ggplot(melt(as.data.frame(syncon$results$impact$pca$rr_roll[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(syncon$results$impact$pca$rr_roll[, , group]) + 1):length(syncon$time_points)], ncol(syncon$results$impact$pca$rr_roll[, , group])), y = 'value', linetype = 'variable')) + 
   	  geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   	  labs(x = 'Time', y = 'Rolling Rate Ratio') + 
   	  ggtitle(paste(group, 'STL+PCA Rolling Rate Ratio')) +
@@ -93,7 +118,7 @@ syncon.plots <- function(syncon) {
   	  theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
   	if(params$crossval){
-  	  rr_roll_stack_plot <- ggplot(melt(as.data.frame(rr_roll_stack[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(rr_roll_stack[, , group]) + 1):length(syncon$time_points)], ncol(rr_roll_stack[, , group])), y = 'value', linetype = 'variable')) + 
+  	  rr_roll_stack_plot <- ggplot(melt(as.data.frame(syncon$results$crossval$rr_roll_stack[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points[(length(syncon$time_points) - nrow(syncon$results$crossval$rr_roll_stack[, , group]) + 1):length(syncon$time_points)], ncol(syncon$results$crossval$rr_roll_stack[, , group])), y = 'value', linetype = 'variable')) + 
   	    geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   	    labs(x = 'Time', y = 'Rolling Rate Ratio') + 
   	    ggtitle(paste(group, 'Stacked Rolling Rate Ratio')) +
@@ -108,7 +133,7 @@ syncon.plots <- function(syncon) {
 	  
   	}
   	#Plot cumulative sums
-  	cumsum_prevented_plot <- ggplot(melt(as.data.frame(impact_results$best$cumsum_prevented[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points, ncol(impact_results$best$cumsum_prevented[, , group])), y = 'value', linetype = 'variable')) + 
+  	cumsum_prevented_plot <- ggplot(melt(as.data.frame(syncon$results$impact$best$cumsum_prevented[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points, ncol(syncon$results$impact$best$cumsum_prevented[, , group])), y = 'value', linetype = 'variable')) + 
   	  geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   		labs(x = 'Time', y = 'Cumulative Sum Prevented') + 
   		ggtitle(paste(group, 'Cumulative Number of Cases Prevented')) + 
@@ -119,8 +144,8 @@ syncon.plots <- function(syncon) {
   	        panel.border = element_blank(),
   	        panel.background = element_blank()) +
   		theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-  	if( params$crossval){
-  	  cumsum_prevented_stack_plot <- ggplot(melt(as.data.frame(cumsum_prevented_stack[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points, ncol(cumsum_prevented_stack[, , group])), y = 'value', linetype = 'variable')) + 
+  	if("crossval" %in% names(analysis$results)){
+  	  cumsum_prevented_stack_plot <- ggplot(melt(as.data.frame(syncon$results$crossval$cumsum_prevented_stack[, , group]), id.vars = NULL), mapping = aes_string(x = rep(syncon$time_points, ncol(syncon$results$crossval$cumsum_prevented_stack[, , group])), y = 'value', linetype = 'variable')) + 
   	    geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   	    labs(x = 'Time', y = 'Cumulative Sum Prevented') + 
   	    ggtitle(paste(group, 'Cumulative Number of Cases Prevented (Stacked model)')) + 
@@ -135,8 +160,8 @@ syncon.plots <- function(syncon) {
   	}
 	
 	
-    if(params$crossval){	
-      plots[[group]] <- list(
+    if("crossval" %in% names(syncon$results)){	
+      plots$groups[[group]] <- list(
         covar = covar_plot, 
         pred_stack = pred_stack_plot,
         pred_full = pred_full_plot, 
@@ -155,7 +180,7 @@ syncon.plots <- function(syncon) {
         cumsum_prevented = cumsum_prevented_plot
       )
     } else {
-      plots[[group]] <- list(
+      plots$groups[[group]] <- list(
         covar = covar_plot, 
         pred_best = pred_best_plot, 
         pred_full = pred_full_plot, 
@@ -175,5 +200,5 @@ syncon.plots <- function(syncon) {
     }
   }
   
-  plots
+  return(plots)
 }

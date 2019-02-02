@@ -39,7 +39,6 @@ knitr::opts_chunk$set(
 ```{r setup_packages, include=FALSE}
 library(syncon)
 library(knitr)
-library(ggplot2)
 ```
 
 ---
@@ -64,75 +63,9 @@ impact_results = syncon.impact(syncon)
 ```
 
 ```{r crossval, include = FALSE}
-  if(params$crossval){
-    syncon.crossval(syncon)
-
-    save.stack.est<-list(post_period,syncon$outcome, time_points,syncon$ann_pred_quantiles_stack, syncon$pred_quantiles_stack,syncon$rr_roll_stack,syncon$rr_mean_stack,syncon$rr_mean_stack_intervals,syncon$cumsum_prevented_stack)
-    names(save.stack.est)<-c('post_period','outcome','time_points', 'ann_pred_quantiles_stack', 'pred_quantiles_stack','rr_roll_stack','rr_mean_stack','rr_mean_stack_intervals','cumsum_prevented_stack')
-    # saveRDS(save.stack.est, file=paste0(output_directory, params$country, "Stack estimates.rds"))
-    
-    #Pointwise RR and uncertainty for second stage meta analysis
-    log_rr_quantiles_stack   <- sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
-    dimnames(log_rr_quantiles_stack)[[1]] <- time_points
-    log_rr_full_t_samples.stack.prec<-sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec.post}, simplify = 'array')
-    #log_rr_sd.stack   <- sapply(syncon$quantiles_stack,   FUN = function(quantiles) {quantiles$log_rr_full_t_sd}, simplify = 'array')
-    
-    # saveRDS(log_rr_quantiles_stack, file=paste0(output_directory, params$country, "_log_rr_quantiles_stack.rds"))
-    # saveRDS(log_rr_full_t_samples.stack.prec, file=paste0(output_directory, params$country, "_log_rr_full_t_samples.stack.prec.rds"))
-  }
-```
-
-```{r format_save_results, include = FALSE}
-
-for (analysis in c('full', 'best')) {
-  # saveRDS(impact_results[[analysis]]$log_rr_quantiles, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_quantiles.rds"))
-  # saveRDS(impact_results[[analysis]]$log_rr_sd, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_sd.rds"))
-  # saveRDS(impact_results[[analysis]]$log_rr_t_samples.prec, file=paste0(output_directory, params$country, "_", analysis, "_log_rr_t_samples.prec.rds"))
-}
-
-#Save output of ITS analysis (rr at last time point) as .csv
-#write.csv(impact_results$its$rr_end, paste(output_directory, params$country, 'rr_classic_its.csv', sep = ''))
-
-#Combine RRs into 1 file for plotting
-rr_mean_combo<- as.data.frame(rbind(
-  cbind(rep(1, nrow(impact_results$full$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(impact_results$full$rr_mean)), impact_results$full$rr_mean),
-  cbind(rep(2, nrow(impact_results$time$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(impact_results$time$rr_mean)), impact_results$time$rr_mean),
-  cbind(rep(3, nrow(impact_results$time_no_offset$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(impact_results$time_no_offset$rr_mean)), impact_results$time_no_offset$rr_mean),
-  cbind(rep(4, nrow(impact_results$pca$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(impact_results$pca$rr_mean)), impact_results$pca$rr_mean)
-))
-
-names(rr_mean_combo)<-c('Model', 'groups', 'group.index', 'lcl', 'mean.rr', 'ucl')
 if(params$crossval){
-  point.weights2<-syncon$stacking_weights.all.m
-}else{
-  point.weights2<-as.data.frame(matrix(rep(1,nrow(rr_mean_combo)), ncol=1))
-  names(point.weights2)<-'value'
+  crossval_results = syncon.crossval(syncon)
 }
-rr_mean_combo$point.weights <- point.weights2$value
-rr_mean_combo$group.index <- as.numeric(as.character(rr_mean_combo$group.index))
-rr_mean_combo$mean.rr <- as.numeric(as.character(rr_mean_combo$mean.rr))
-rr_mean_combo$lcl <- as.numeric(as.character(rr_mean_combo$lcl))
-rr_mean_combo$ucl <- as.numeric(as.character(rr_mean_combo$ucl))
-rr_mean_combo$group.index[rr_mean_combo$Model==2] <- rr_mean_combo$group.index[rr_mean_combo$Model==2]+0.15
-rr_mean_combo$group.index[rr_mean_combo$Model==3] <- rr_mean_combo$group.index[rr_mean_combo$Model==3]+0.3
-rr_mean_combo$group.index[rr_mean_combo$Model==4] <- rr_mean_combo$group.index[rr_mean_combo$Model==4]+0.45
-rr_mean_combo$Model <- as.character(rr_mean_combo$Model)
-rr_mean_combo$Model[rr_mean_combo$Model=='1'] <- "Synthetic Controls"
-rr_mean_combo$Model[rr_mean_combo$Model=='2'] <- "Time trend"
-rr_mean_combo$Model[rr_mean_combo$Model=='3'] <- "Time trend (No offset)"
-rr_mean_combo$Model[rr_mean_combo$Model=='4'] <- "STL+PCA"
-cbPalette  <-  c("#1b9e77", "#d95f02", "#7570b3",'#e7298a')
-rr_mean_combo$est.index <- as.factor(1:nrow(rr_mean_combo))
-#Fix order for axis
-rr_mean_combo$Model <- as.factor(rr_mean_combo$Model)
-rr_mean_combo$Model <- factor(rr_mean_combo$Model,levels(rr_mean_combo$Model)[c(2,3,4,1)])
-#print(levels(rr_mean_combo$Model))
-
-# TODO
-# save.best.est<-list(impact_results$best$log_rr_sd,post_period,syncon$outcome, syncon$time_points,impact_results$best$ann_pred_quantiles, impact_results$best$pred_quantiles,impact_results$best$rr_roll,impact_results$best$rr_mean,impact_results$best$rr_mean_intervals,impact_results$best$cumsum_prevented)
-# names(save.best.est)<-c('log_rr_sd_best','post_period','outcome','time_points', 'ann_pred_quantiles_best', 'pred_quantiles_best','rr_roll_best','rr_mean_best','rr_mean_best_intervals','cumsum_prevented_best')
-# saveRDS(save.best.est, file=paste0(output_directory, country, "best estimates.rds"))
-
 ```
 
 ```{r sensitivity_analyses, include = FALSE}
@@ -162,30 +95,14 @@ kable( cbind.data.frame(impact_results$best$rr_mean_intervals,impact_results$ful
 
 ##Plot of Rate ratios, with size proportional to cross validation weights
 ```{r fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
-#Compare rate ratios, with size of marker scaled to cross val weights
-		ggplot(rr_mean_combo, aes(x=group.index, y=mean.rr, color=Model,group=Model)) + 
-	  geom_errorbar(aes(ymin=lcl, ymax=ucl), colour="gray", width=.0) +
-	  geom_point(aes(shape=Model, size=est.index))+
-     scale_shape_manual(values=c(15, 16, 17,18))+
-	  scale_size_manual(values=c(point.weights2$value*2)) + #Scales area, which is optimal for bubbl plot
-	  #geom_errorbar(rr_mean_combo,aes(ymin=lcl, ymax=ucl), colour="black", width=.1) +
-	  theme_bw() +
-	  guides(size=FALSE)+ #turn off size axis
-	  scale_colour_manual(values=cbPalette)+
-	  labs(x = "Group", y="Rate ratio")+
-	  geom_hline(yintercept = 1, colour='gray',linetype = 2)+
-	  theme(axis.line = element_line(colour = "black"),
-	        legend.position=c(0.2, 0.9),
-	        panel.grid.major = element_blank(),
-	        panel.grid.minor = element_blank(),
-	        panel.border = element_blank(),
-	        panel.background = element_blank()) 
+plots = syncon.plots(syncon)
+plots$summary
 ```
 
 ##Weights for each of the models from cross validation
 ```{r Comparison of Cross validation Weights from different models}
 if(params$crossval){
-kable(stacking_weights.all, align = 'c')
+  kable(crossval_results$stacking_weights.all, align = 'c')
 } else{
       print("Cross-validation not performed")
     }
@@ -225,9 +142,8 @@ kable(sensitivity_results$sensitivity_table_intervals, align = 'c')
 
 ##Plots
 ```{r plots,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
-plots = syncon.plots(syncon)
-for (group in names(plots)) {
-	for (group_plot in plots[[group]]) {
+for (group in names(plots$groups)) {
+	for (group_plot in plots$groups[[group]]) {
 		print(group_plot)
 	}
 }

@@ -22,7 +22,7 @@ syncon.init <- function(
       sensitivity=NA
     ),
     
-    stacking_weights.all.m = NA, # TODO make private
+    stacking_weights.all.m = NA,
 
     .private=listenv(
       # Variants
@@ -153,6 +153,37 @@ syncon.impact = function(syncon) {
   results$its$rr_end <- t(sapply(rr.its1, `[[`, "rr.q.post", simplify='array')) 
   results$its$rr_mean_intervals <- data.frame('Classic ITS (95% CI)' = makeInterval(results$its$rr_end[, 2], results$its$rr_end[, 3], results$its$rr_end[, 1]), check.names = FALSE, row.names = syncon$groups)
 
+  #Combine RRs into 1 for ease of plotting
+  results$rr_mean_combo<- as.data.frame(rbind(
+    cbind(rep(1, nrow(results$full$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(results$full$rr_mean)), results$full$rr_mean),
+    cbind(rep(2, nrow(results$time$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(results$time$rr_mean)), results$time$rr_mean),
+    cbind(rep(3, nrow(results$time_no_offset$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(results$time_no_offset$rr_mean)), results$time_no_offset$rr_mean),
+    cbind(rep(4, nrow(results$pca$rr_mean)), syncon$groups, seq(from=1, by=1, length.out=nrow(results$pca$rr_mean)), results$pca$rr_mean)
+  ))
+
+  results$point.weights<-as.data.frame(matrix(rep(1,nrow(results$rr_mean_combo)), ncol=1))
+  names(results$point.weights)<-'value'
+
+  names(results$rr_mean_combo)<-c('Model', 'groups', 'group.index', 'lcl', 'mean.rr', 'ucl')
+  results$rr_mean_combo$group.index <- as.numeric(as.character(results$rr_mean_combo$group.index))
+  results$rr_mean_combo$mean.rr <- as.numeric(as.character(results$rr_mean_combo$mean.rr))
+  results$rr_mean_combo$lcl <- as.numeric(as.character(results$rr_mean_combo$lcl))
+  results$rr_mean_combo$ucl <- as.numeric(as.character(results$rr_mean_combo$ucl))
+  results$rr_mean_combo$group.index[results$rr_mean_combo$Model==2] <- results$rr_mean_combo$group.index[results$rr_mean_combo$Model==2]+0.15
+  results$rr_mean_combo$group.index[results$rr_mean_combo$Model==3] <- results$rr_mean_combo$group.index[results$rr_mean_combo$Model==3]+0.3
+  results$rr_mean_combo$group.index[results$rr_mean_combo$Model==4] <- results$rr_mean_combo$group.index[results$rr_mean_combo$Model==4]+0.45
+  results$rr_mean_combo$Model <- as.character(results$rr_mean_combo$Model)
+  results$rr_mean_combo$Model[results$rr_mean_combo$Model=='1'] <- "Synthetic Controls"
+  results$rr_mean_combo$Model[results$rr_mean_combo$Model=='2'] <- "Time trend"
+  results$rr_mean_combo$Model[results$rr_mean_combo$Model=='3'] <- "Time trend (No offset)"
+  results$rr_mean_combo$Model[results$rr_mean_combo$Model=='4'] <- "STL+PCA"
+  results$rr_mean_combo$est.index <- as.factor(1:nrow(results$rr_mean_combo))
+  #Fix order for axis
+  results$rr_mean_combo$Model <- as.factor(results$rr_mean_combo$Model)
+  results$rr_mean_combo$Model <- factor(results$rr_mean_combo$Model,levels(results$rr_mean_combo$Model)[c(2,3,4,1)])
+  #print(levels(rr_mean_combo$Model))
+
+
   syncon$results$impact <- results
   return(results)
 }
@@ -196,7 +227,7 @@ syncon.crossval = function(syncon) {
 
   #Create list that has model result for each stratum
   ll.compare<- vector("list", length(ll.cv$pca)) 
-  stacking_weights.all<-matrix(NA, nrow=length(ll.cv$pca), ncol=4)
+  results$stacking_weights.all<-matrix(NA, nrow=length(ll.cv$pca), ncol=4)
 
   for(i in 1:length(ll.compare)){
     #will get NAs if one of covariates is constant in fitting period (ie pandemic flu dummy)...should fix this above
@@ -207,14 +238,14 @@ syncon.crossval = function(syncon) {
     row.min <- apply(exp(ll.compare[[i]]), 1, min)
     ll.compare[[i]] <- ll.compare[[i]][!(row.min==0),]
     #if(min(exp(ll.compare[[i]]))>0){
-    stacking_weights.all[i,] <- stacking_weights(ll.compare[[i]])
+    results$stacking_weights.all[i,] <- stacking_weights(ll.compare[[i]])
     #}
   }
-  stacking_weights.all <- as.data.frame(round(stacking_weights.all,3))
-  names(stacking_weights.all) <- lapply(syncon$.private$variants, function(v) { v$name })
-  stacking_weights.all <- cbind.data.frame(data.frame(groups=syncon$groups), stacking_weights.all)
-  syncon$stacking_weights.all.m <- melt(stacking_weights.all, id.vars='groups')
-  # stacking_weights.all.m<-stacking_weights.all.m[order(stacking_weights.all.m$groups),]
+  results$stacking_weights.all <- as.data.frame(round(results$stacking_weights.all,3))
+  names(results$stacking_weights.all) <- lapply(syncon$.private$variants, function(v) { v$name })
+  results$stacking_weights.all <- cbind.data.frame(data.frame(groups=syncon$groups), results$stacking_weights.all)
+  results$stacking_weights.all.m <- melt(results$stacking_weights.all, id.vars='groups')
+  # results$stacking_weights.all.m<-results$stacking_weights.all.m[order(results$stacking_weights.all.m$groups),]
   
   stacked.ests <- mapply(
     FUN=stack.mean,
@@ -223,7 +254,7 @@ syncon.crossval = function(syncon) {
     impact_time=syncon$results$impact$time$groups,
     impact_time_no_offset=syncon$results$impact$time_no_offset$groups,
     impact_pca=syncon$results$impact$pca$groups,
-    MoreArgs=list(stacking_weights.all=stacking_weights.all, outcome=syncon$outcome), 
+    MoreArgs=list(stacking_weights.all=results$stacking_weights.all, outcome=syncon$outcome), 
     SIMPLIFY=FALSE
   )
   # plot.stacked.ests<-lapply(stacked.ests,plot.stack.est)
@@ -240,6 +271,14 @@ syncon.crossval = function(syncon) {
   results$full$pred <- lapply(results$impact$full, function(x) sapply(x,pred.cv,simplify='array'))
   results$pca$pred <- lapply(results$impact$pca, function(x) sapply(x,pred.cv,simplify='array'))
   
+  results$log_rr_quantiles_stack <- sapply(results$quantiles_stack, FUN = function(quantiles) {quantiles$log_rr_full_t_quantiles}, simplify = 'array')
+  dimnames(log_rr_quantiles_stack)[[1]] <- syncon$time_points
+
+  results$log_rr_samples.prec.post_stack<-sapply(results$quantiles_stack, FUN = function(quantiles) {quantiles$log_rr_full_t_samples.prec.post}, simplify = 'array')
+  
+  results$rr_mean_combo = syncon$results$impact$rr_mean_combo
+  results$point.weights<-results$stacking_weights.all.m
+
   syncon$results$crossval <- results
   return(results)
 }
