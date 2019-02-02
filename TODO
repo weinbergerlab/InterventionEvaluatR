@@ -1,0 +1,13 @@
+ * Instead of using variable column names (e.g., date_name) throughout the analysis, transform the data set in input to use fixed column names
+ * Instead of saving the entire input data set in the output, save only the columns used for analysis
+ * Run everything through styler
+ * Better progress reporting
+   * Replace pbapply with something that can meaningfully report progress to shiny
+   * Reporting of overall progress
+   * Finer-grained progress updates from inside pblappy
+ * Reproducibility: how does PRNG work across parallelization?
+ * Testing: should do some
+ * Roxygen
+ * Parameterize on analysis variants to allow subsetting the variants by the user
+ * User-configurable # of runs for MCMC
+ * Simplify code in .plots by using with instead of the verbose analysis$results$foo
