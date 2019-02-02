@@ -1,8 +1,4 @@
 ^data-raw$
-^\..*$
-^Results.*\.Rmd$
-^.*\.Rproj$
-^travis_wait.*\.log$
-^\.Rproj\.user$
-^syncon_.*\.t.*gz$
-^vignettes/Results_.*$
+^([^/]*/)*\..*$
+^travis_wait[^/]*\.log$
+^vignettes/Results_[^/]*$
