@@ -7,7 +7,6 @@ r_packages:
 r_check_args:
   - --no-build-ignore-vignettes
 r:
-  - oldrel
   - release
 script:
   - R --no-save < data-raw/build_data.R
