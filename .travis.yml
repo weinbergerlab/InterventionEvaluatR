@@ -3,6 +3,9 @@ cache: packages
 warnings_are_errors: false
 r_packages:
   - usethis
+# Ignore vignettes when checking because they will be build (and therefore implicitly checked) when building
+r_check_args:
+  - --no-build-ignore-vignettes
 r:
   - oldrel
   - release
