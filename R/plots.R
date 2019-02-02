@@ -117,7 +117,7 @@ syncon.plots <- function(analysis) {
   	        panel.background = element_blank()) +
   	  theme(legend.title = element_blank(), legend.position = c(0, 1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, fill = 'transparent'), plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 	
-  	if(params$crossval){
+  	if("crossval" %in% names(analysis$results)){
   	  rr_roll_stack_plot <- ggplot(melt(as.data.frame(analysis$results$crossval$rr_roll_stack[, , group]), id.vars = NULL), mapping = aes_string(x = rep(analysis$time_points[(length(analysis$time_points) - nrow(analysis$results$crossval$rr_roll_stack[, , group]) + 1):length(analysis$time_points)], ncol(analysis$results$crossval$rr_roll_stack[, , group])), y = 'value', linetype = 'variable')) + 
   	    geom_line() + geom_hline(yintercept = 1, linetype = 4) +
   	    labs(x = 'Time', y = 'Rolling Rate Ratio') + 
