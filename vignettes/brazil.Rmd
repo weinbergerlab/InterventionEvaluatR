@@ -10,7 +10,7 @@ params:
   sensitivity: TRUE
   crossval: FALSE
 ---
-  title: "Estimated change associated with the introduction of vaccine in `r params$country`"
+title: "Estimated change associated with the introduction of vaccine in `r params$country`"
 ---
 
 ```{r setup, include = FALSE}
@@ -89,8 +89,8 @@ plots$summary
 if(params$crossval){
   kable(crossval_results$stacking_weights.all, align = 'c')
 } else{
-      print("Cross-validation not performed")
-    }
+  print("Cross-validation not performed")
+}
 ```
   
 ##Number of variables selected in SC analysis
@@ -120,7 +120,7 @@ kable(incl_probs, align = 'c')
 ##Weight Sensitivity Analysis
 ```{r sensitivity}
 if (exists('sensitivity_results')) {
-kable(sensitivity_results$sensitivity_table_intervals, align = 'c')
+  kable(sensitivity_results$sensitivity_table_intervals, align = 'c')
 }
 ```
 

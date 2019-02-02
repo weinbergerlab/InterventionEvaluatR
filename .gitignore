@@ -1,13 +1,8 @@
+inst/doc
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
 Rplots.pdf
-synthetic_control_webpage.html
-synthetic_control_webpage.Rmd
-synthetic_control/downloads
-synthetic_control/Rplots.pdf
-synthetic_control/rsconnect
-br.html
 Results_*
-/br_files
+syncon_*.tar.gz
