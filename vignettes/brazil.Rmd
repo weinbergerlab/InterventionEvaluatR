@@ -140,6 +140,6 @@ for (group in names(plots$groups)) {
 
 output_file <- 'Results' #Directory where results will be saved.
 output_file <- paste0(output_file,'_',analysis$country,'_', format(Sys.time(), '%Y-%m-%d-%H%M%S'), ".Rds")
-syncon.save(syncon, output_file)
+syncon.save(analysis, output_file)
 
 ```
