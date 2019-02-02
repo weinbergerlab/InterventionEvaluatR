@@ -5,7 +5,7 @@ r_packages:
   - usethis
 # Ignore vignettes when checking because they will be build (and therefore implicitly checked) when building
 r_check_args:
-  - --no-build-ignore-vignettes
+  - --no-build-vignettes
 r:
   - release
 script:
