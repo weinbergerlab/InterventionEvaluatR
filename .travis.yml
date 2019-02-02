@@ -7,7 +7,6 @@ r:
   - oldrel
   - release
 script:
-  - echo 'install.packages("usethis")' | R --no-save
   - R --no-save < data-raw/build_data.R
   - travis_wait 60 R CMD build ${R_BUILD_ARGS} .
   - rm -f travis_wait*.log
