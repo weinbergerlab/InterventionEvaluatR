@@ -9,7 +9,7 @@ r_check_args:
 r:
   - release
 script:
-  - R --no-save < data-raw/build_data.R
+  - Rscript data-raw/build_data.R
   - travis_wait 60 R CMD build ${R_BUILD_ARGS} .
   - rm -f travis_wait*.log
   - travis_wait 60 R CMD check ${R_CHECK_ARGS} syncon*.t*gz; CHECK_RET=$? ;
