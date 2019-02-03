@@ -1,3 +1,16 @@
+#' Generate plots for TODO
+#'
+#' @param analysis Analysis object, initialized by TODO.init.
+#' @return Plots, `plots`, as described below
+#'
+#' `plots$summary` TODO
+#' `plots$groups` TODO
+#'
+#' @importFrom graphics legend matplot par points
+#' @importFrom ggplot2 aes aes_string aes_ geom_line geom_point geom_polygon geom_ribbon geom_vline ggplot ggtitle scale_colour_manual scale_fill_hue theme theme_bw element_blank element_line element_rect element_text labs geom_errorbar scale_shape_manual scale_size_manual guides geom_hline ylim coord_cartesian
+#'
+#' @export
+
 syncon.plots <- function(analysis) {
   plots = list(groups = list())
   

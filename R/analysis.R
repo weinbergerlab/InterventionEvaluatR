@@ -1,3 +1,45 @@
+#' Initialize analysis
+#'
+#' @param country TODO
+#' @param data TODO
+#' @param pre_period_start TODO
+#' @param pre_period_end TODO
+#' @param post_period_start TODO
+#' @param post_period_end TODO
+#' @param eval_period_start TODO
+#' @param eval_period_end TODO
+#' @param n_seasons TODO
+#' @param year_def TODO
+#' @param group_name TODO
+#' @param date_name TODO
+#' @param outcome_name TODO
+#' @param denom_name TODO
+#' @return Initialized analysis object, `analysis` as described below
+#'
+#' `analysis$country` as passed in in `country`
+#' `analysis$input_data` as passed in in `data`
+#' `analysis$n_seasons` as passed in in `n_seasons`
+#' `analysis$year_def` as passed in in `year_def`
+#' `analysis$pre_period` TODO
+#' `analysis$post_period` TODO
+#' `analysis$eval_period` TODO
+#' `analysis$start_date` TODO
+#' `analysis$intervention_date` TODO
+#' `analysis$end_date` TODO
+#' `analysis$group_name` as passed in in `group_name`
+#' `analysis$date_name` as passed in in `date_name`
+#' `analysis$outcome_name` as passed in in `outcome_name`
+#' `analysis$denom_name` as passed in in `denom_name`
+#' `analysis$time_points` TODO
+#' `analysis$groups` TODO
+#' `analysis$sparse_groups` TODO
+#' `analysis$model_size` TODO
+#' `analysis$covars` TODO
+#' `analysis$outcome` TODO
+#'
+#' @importFrom listenv listenv
+#' @export
+
 syncon.init <- function(country,
                         data,
                         pre_period_start,
@@ -100,6 +142,34 @@ syncon.init <- function(country,
   analysis$input_data <- data
   return(analysis)
 }
+
+#' Perform impact analysis
+#'
+#' @param analysis Analysis object, initialized by TODO.init.
+#' @return Analysis results, `results`, as described below
+#'
+#' `results$full` TODO
+#' `results$time` TODO
+#' `results$time_no_offset` TODO
+#' `results$pca` TODO
+#' `results$its` TODO
+#' `results$best` TODO
+#' `results$point.weights` TODO
+#' `results$rr_mean_combo` TODO
+#'
+#' @importFrom stats AIC as.formula cov dpois glm median poisson prcomp predict quantile rmultinom rnorm rpois sd setNames stl var vcov complete.cases
+#' @importFrom loo stacking_weights
+#' @importFrom lme4 glmer glmerControl fixef
+#' @importFrom lubridate as_date %m+% year month quarter
+#' @importFrom splines bs
+#' @importFrom pomp logmeanexp
+#' @importFrom reshape melt
+#' @importFrom MASS mvrnorm
+#' @importFrom RcppRoll roll_sum
+#' @importFrom pogit poissonBvs
+#' @importFrom parallel detectCores makeCluster clusterEvalQ clusterExport stopCluster
+#' @importFrom pbapply pblapply
+#' @export
 
 syncon.impact = function(analysis) {
   syncon.impact.pre(analysis)
@@ -368,6 +438,32 @@ syncon.impact = function(analysis) {
   return(results)
 }
 
+#' Perform cross-validation
+#'
+#' @param analysis Analysis object, initialized by TODO.init. You must call TODO.impact before calling TODO.sensitivity
+#' @return Cross-validation results, `results`, as described below
+#'
+#' `results$full` TODO
+#' `results$time` TODO
+#' `results$time_no_offset` TODO
+#' `results$pca` TODO
+#' `results$ann_pred_quantiles_stack` TODO
+#' `results$cumsum_prevented_stack` TODO
+#' `results$log_rr_quantiles_stack` TODO
+#' `results$log_rr_samples.prec.post_stack` TODO
+#' `results$point.weights` TODO
+#' `results$pred_quantiles_stack` TODO
+#' `results$quantiles_stack` TODO
+#' `results$rr_mean_combo` TODO
+#' `results$rr_mean_stack` TODO
+#' `results$rr_mean_stack_intervals` TODO
+#' `results$rr_roll_stack` TODO
+#' `results$stacking_weights` TODO
+#' `results$stacking_weights.all` TODO
+#' `results$stacking_weights.all.m` TODO
+#'
+#' @export
+
 syncon.crossval = function(analysis) {
   results = list()
   
@@ -554,6 +650,19 @@ syncon.crossval = function(analysis) {
   analysis$results$crossval <- results
   return(results)
 }
+
+#' Perform sensitivity analysis
+#'
+#' @param analysis Analysis object, initialized by TODO.init. You must call TODO.impact before calling TODO.sensitivity
+#' @return Sensitivity analysis results, `results`, as described below
+#'
+#' `results$rr_table` TODO
+#' `results$rr_table_intervals` TODO
+#' `results$sensitivity_pred_quantiles` TODO
+#' `results$sensitivity_table` TODO
+#' `results$sensitivity_table_intervals` TODO
+#'
+#' @export
 
 syncon.sensitivity = function(analysis) {
   results = list()

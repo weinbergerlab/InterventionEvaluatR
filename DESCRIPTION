@@ -27,3 +27,5 @@ Suggests:
     rmarkdown
 License: BSD_2_clause + file LICENSE
 VignetteBuilder: knitr
+Encoding: UTF-8
+RoxygenNote: 6.1.1

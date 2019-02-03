@@ -1,3 +1,10 @@
+#' Save data for TODO
+#'
+#' @param analysis Analysis object, initialized by TODO.init.
+#' @param output_file An Rds file in which analysis results will be saved.
+#'
+#' @export
+
 syncon.save <- function (analysis, output_file) {
   dir.create(dirname(output_file),
              recursive = TRUE,

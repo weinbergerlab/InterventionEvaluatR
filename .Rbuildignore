@@ -2,3 +2,5 @@
 ^([^/]*/)*\..*$
 ^travis_wait[^/]*\.log$
 ^vignettes/Results_[^/]*$
+^.*\.Rproj$
+^\.Rproj\.user$
