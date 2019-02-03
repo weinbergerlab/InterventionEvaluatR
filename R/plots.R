@@ -1,16 +1,20 @@
 syncon.plots <- function(analysis) {
   plots = list(groups = list())
   
+  impact_results = analysis$results$impact
+  crossval_results = analysis$results$crossval
+  sensitivity_results = analysis$results$sensitivity
+  
   cbPalette  <-  c("#1b9e77", "#d95f02", "#7570b3", '#e7298a')
   #Compare rate ratios, with size of marker scaled to cross val weights
   if ("crossval" %in% names(analysis$results)) {
-    point.weights = analysis$results$crossval$point.weights
+    point.weights = crossval_results$point.weights
   } else {
-    point.weights = analysis$results$impact$point.weights
+    point.weights = impact_results$point.weights
   }
   plots$summary <-
     ggplot(
-      analysis$results$impact$rr_mean_combo,
+      impact_results$rr_mean_combo,
       aes_(
         x =  ~ group.index,
         y =  ~ mean.rr,
@@ -23,7 +27,7 @@ syncon.plots <- function(analysis) {
                   width = .0) +
     geom_point(aes_(
       shape =  ~ Model,
-      size =  ~ analysis$results$impact$rr_mean_combo$est.index
+      size =  ~ impact_results$rr_mean_combo$est.index
     )) +
     scale_shape_manual(values = c(15, 16, 17, 18)) +
     scale_size_manual(values = c(point.weights$value * 2)) + #Scales area, which is optimal for bubbl plot
@@ -49,7 +53,7 @@ syncon.plots <- function(analysis) {
     covars.sub <-
       analysis$covars$full[[group]][, -c(1:(analysis$n_seasons - 1))]
     alpha1 = rep(
-      analysis$results$impact$full$inclusion_probs[[group]][-c(1:(analysis$n_seasons -
+      impact_results$full$inclusion_probs[[group]][-c(1:(analysis$n_seasons -
                                                                     1)), 'inclusion_probs'],
       each = nrow(analysis$covars$full[[group]])
     )
@@ -85,18 +89,18 @@ syncon.plots <- function(analysis) {
     min_max <-
       c(min(
         c(
-          analysis$results$impact$full$pred_quantiles[, , group],
+          impact_results$full$pred_quantiles[, , group],
           analysis$outcome[, group]
         )
       ), max(
         c(
-          analysis$results$impact$full$pred_quantiles[, , group],
+          impact_results$full$pred_quantiles[, , group],
           analysis$outcome[, group]
         )
       ))
     pred_best_plot <-
       plotPred(
-        analysis$results$impact$best$pred_quantiles[, , group],
+        impact_results$best$pred_quantiles[, , group],
         analysis$time_points,
         analysis$post_period,
         min_max,
@@ -105,7 +109,7 @@ syncon.plots <- function(analysis) {
       )
     pred_full_plot <-
       plotPred(
-        analysis$results$impact$full$pred_quantiles[, , group],
+        impact_results$full$pred_quantiles[, , group],
         analysis$time_points,
         analysis$post_period,
         min_max,
@@ -114,7 +118,7 @@ syncon.plots <- function(analysis) {
       )
     pred_time_plot <-
       plotPred(
-        analysis$results$impact$time$pred_quantiles[, , group],
+        impact_results$time$pred_quantiles[, , group],
         analysis$time_points,
         analysis$post_period,
         min_max,
@@ -123,7 +127,7 @@ syncon.plots <- function(analysis) {
       )
     pred_pca_plot <-
       plotPred(
-        analysis$results$impact$pca$pred_quantiles[, , group],
+        impact_results$pca$pred_quantiles[, , group],
         analysis$time_points,
         analysis$post_period,
         min_max,
@@ -133,7 +137,7 @@ syncon.plots <- function(analysis) {
     if ("crossval" %in% names(analysis$results)) {
       pred_stack_plot <-
         plotPred(
-          analysis$results$crossval$pred_quantiles_stack[, , group],
+          crossval_results$pred_quantiles_stack[, , group],
           analysis$time_points,
           analysis$post_period,
           min_max,
@@ -142,7 +146,7 @@ syncon.plots <- function(analysis) {
         )
       pred_stack_plot_agg <-
         plotPredAgg(
-          analysis$results$crossval$ann_pred_quantiles_stack[[group]],
+          crossval_results$ann_pred_quantiles_stack[[group]],
           analysis$time_points,
           analysis$year_def,
           analysis$intervention_date,
@@ -155,7 +159,7 @@ syncon.plots <- function(analysis) {
     }
     pred_best_plot_agg <-
       plotPredAgg(
-        analysis$results$impact$best$ann_pred_quantiles[[group]],
+        impact_results$best$ann_pred_quantiles[[group]],
         analysis$time_points,
         analysis$year_def,
         analysis$intervention_date,
@@ -166,7 +170,7 @@ syncon.plots <- function(analysis) {
       )
     pred_full_plot_agg <-
       plotPredAgg(
-        analysis$results$impact$full$ann_pred_quantiles[[group]],
+        impact_results$full$ann_pred_quantiles[[group]],
         analysis$time_points,
         analysis$year_def,
         analysis$intervention_date,
@@ -177,7 +181,7 @@ syncon.plots <- function(analysis) {
       )
     pred_time_plot_agg <-
       plotPredAgg(
-        analysis$results$impact$time$ann_pred_quantiles[[group]],
+        impact_results$time$ann_pred_quantiles[[group]],
         analysis$time_points,
         analysis$year_def,
         analysis$intervention_date,
@@ -188,7 +192,7 @@ syncon.plots <- function(analysis) {
       )
     pred_pca_plot_agg <-
       plotPredAgg(
-        analysis$results$impact$pca$ann_pred_quantiles[[group]],
+        impact_results$pca$ann_pred_quantiles[[group]],
         analysis$time_points,
         analysis$year_def,
         analysis$intervention_date,
@@ -201,7 +205,7 @@ syncon.plots <- function(analysis) {
     if ("sensitivity" %in% names(analysis$results)) {
       pred_sensitivity_plot <-
         plotPred(
-          analysis$results$impact$full$pred_quantiles[, , group],
+          impact_results$full$pred_quantiles[, , group],
           analysis$time_points,
           analysis$post_period,
           min_max,
@@ -220,24 +224,24 @@ syncon.plots <- function(analysis) {
     min_max <-
       c(
         min(
-          analysis$results$impact$full$rr_roll[, , group],
-          analysis$results$impact$time$rr_roll[, , group]
+          impact_results$full$rr_roll[, , group],
+          impact_results$time$rr_roll[, , group]
         ),
         max(
-          analysis$results$impact$full$rr_roll[, , group],
-          analysis$results$impact$time$rr_roll[, , group]
+          impact_results$full$rr_roll[, , group],
+          impact_results$time$rr_roll[, , group]
         )
       )
     rr_roll_best_plot <-
       ggplot(
         melt(
-          as.data.frame(analysis$results$impact$best$rr_roll[, , group]),
+          as.data.frame(impact_results$best$rr_roll[, , group]),
           id.vars = NULL
         ),
         mapping = aes_string(
           x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(analysis$results$impact$best$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(analysis$results$impact$best$rr_roll[, , group])
+            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$best$rr_roll[, , group]) + 1):length(analysis$time_points)],
+            ncol(impact_results$best$rr_roll[, , group])
           ),
           y = 'value',
           linetype = 'variable'
@@ -267,13 +271,13 @@ syncon.plots <- function(analysis) {
     rr_roll_full_plot <-
       ggplot(
         melt(
-          as.data.frame(analysis$results$impact$full$rr_roll[, , group]),
+          as.data.frame(impact_results$full$rr_roll[, , group]),
           id.vars = NULL
         ),
         mapping = aes_string(
           x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(analysis$results$impact$full$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(analysis$results$impact$full$rr_roll[, , group])
+            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$full$rr_roll[, , group]) + 1):length(analysis$time_points)],
+            ncol(impact_results$full$rr_roll[, , group])
           ),
           y = 'value',
           linetype = 'variable'
@@ -303,13 +307,13 @@ syncon.plots <- function(analysis) {
     rr_roll_time_plot <-
       ggplot(
         melt(
-          as.data.frame(analysis$results$impact$time$rr_roll[, , group]),
+          as.data.frame(impact_results$time$rr_roll[, , group]),
           id.vars = NULL
         ),
         mapping = aes_string(
           x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(analysis$results$impact$time$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(analysis$results$impact$time$rr_roll[, , group])
+            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$time$rr_roll[, , group]) + 1):length(analysis$time_points)],
+            ncol(impact_results$time$rr_roll[, , group])
           ),
           y = 'value',
           linetype = 'variable'
@@ -339,13 +343,13 @@ syncon.plots <- function(analysis) {
     rr_roll_pca_plot <-
       ggplot(
         melt(
-          as.data.frame(analysis$results$impact$pca$rr_roll[, , group]),
+          as.data.frame(impact_results$pca$rr_roll[, , group]),
           id.vars = NULL
         ),
         mapping = aes_string(
           x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(analysis$results$impact$pca$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(analysis$results$impact$pca$rr_roll[, , group])
+            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$pca$rr_roll[, , group]) + 1):length(analysis$time_points)],
+            ncol(impact_results$pca$rr_roll[, , group])
           ),
           y = 'value',
           linetype = 'variable'
@@ -377,15 +381,15 @@ syncon.plots <- function(analysis) {
       rr_roll_stack_plot <-
         ggplot(
           melt(
-            as.data.frame(analysis$results$crossval$rr_roll_stack[, , group]),
+            as.data.frame(crossval_results$rr_roll_stack[, , group]),
             id.vars = NULL
           ),
           mapping = aes_string(
             x = rep(
               analysis$time_points[(
-                length(analysis$time_points) - nrow(analysis$results$crossval$rr_roll_stack[, , group]) + 1
+                length(analysis$time_points) - nrow(crossval_results$rr_roll_stack[, , group]) + 1
               ):length(analysis$time_points)],
-              ncol(analysis$results$crossval$rr_roll_stack[, , group])
+              ncol(crossval_results$rr_roll_stack[, , group])
             ),
             y = 'value',
             linetype = 'variable'
@@ -418,13 +422,13 @@ syncon.plots <- function(analysis) {
     cumsum_prevented_plot <-
       ggplot(
         melt(
-          as.data.frame(analysis$results$impact$best$cumsum_prevented[, , group]),
+          as.data.frame(impact_results$best$cumsum_prevented[, , group]),
           id.vars = NULL
         ),
         mapping = aes_string(
           x = rep(
             analysis$time_points,
-            ncol(analysis$results$impact$best$cumsum_prevented[, , group])
+            ncol(impact_results$best$cumsum_prevented[, , group])
           ),
           y = 'value',
           linetype = 'variable'
@@ -454,13 +458,13 @@ syncon.plots <- function(analysis) {
       cumsum_prevented_stack_plot <-
         ggplot(
           melt(
-            as.data.frame(analysis$results$crossval$cumsum_prevented_stack[, , group]),
+            as.data.frame(crossval_results$cumsum_prevented_stack[, , group]),
             id.vars = NULL
           ),
           mapping = aes_string(
             x = rep(
               analysis$time_points,
-              ncol(analysis$results$crossval$cumsum_prevented_stack[, , group])
+              ncol(crossval_results$cumsum_prevented_stack[, , group])
             ),
             y = 'value',
             linetype = 'variable'

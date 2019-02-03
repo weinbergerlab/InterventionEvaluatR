@@ -9,5 +9,4 @@
  * Roxygen
  * Parameterize on analysis variants to allow subsetting the variants by the user
  * User-configurable # of runs for MCMC
- * Simplify code in .plots by using with instead of the verbose analysis$results$foo
  * Why is the Travis build failing on R 3.4, and do we care? (Error: processing vignette 'brazil.Rmd' failed with diagnostics: argument is missing, with no default)
