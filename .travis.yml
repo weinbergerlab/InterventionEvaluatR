@@ -1,0 +1,37 @@
+language: r
+cache: packages
+warnings_are_errors: true
+r_packages:
+  - usethis
+# Ignore vignettes when checking because they will be build (and therefore implicitly checked) when building
+r_check_args:
+  - --no-build-vignettes
+r:
+  - release
+script:
+  - Rscript data-raw/build_data.R
+  - travis_wait 60 R CMD build ${R_BUILD_ARGS} .
+  - rm -f travis_wait*.log
+  - travis_wait 60 R CMD check ${R_CHECK_ARGS} syncon*.t*gz; CHECK_RET=$? ;
+  - if [[ $CHECK_RET -ne 0 ]];
+    then
+      echo "R CMD check failed";
+      check_fail;
+      dump_logs;
+      check_warnings ;
+      travis_terminate 1;
+    fi
+  - rm -f travis_wait*.log
+
+deploy:
+  provider: releases
+  api_key: 
+    secure: "ZuYL6viKgDj8x8WOXfW6FW0AKrXMUJvpoeBjB7ICwl/K+d+c704QjDVJni/84kGCHHfqVu6VmQoQGfKGfhB814O3wG1at50flwgwGxwM3DbH49XCyNZTDYJ5H1zzwhpv+sQZdzcTATRqLYz11SsGb9y7cmkuGypU649XphlP+vBNjUdgRZozIZwsrQ1884RHwD2WqGasUU8d8//3orcWwpVuEzmZMazlR7Aj0DH55lSsIMKdciYBaUcxBDhQyIN3pfXFq9ouUUUgTKRzsfWwPXxoGAnKWubmEy7XvAHVEBU9orJvaTCDRtGFtRsaXp6qlt475B/1idh6yfRaiLyzpbU1LG+GeYPiUYEM8TFtJ09FtGyk2LZ7tTpfqMJv+hs/g2iMON135odMzhkdcb7rfd8Dpfhw9HxJb3cYsYUDI3kYEBjTRiaQg0mQF1G9dikWYxJI909sT73YMaa0Ql8h20HASxxtNnZC6aC5Zv63c3SQfwOvu33UrchpFjxHHJCQC6Y4UQyOq0ru/nI/ln0tqbvLWHh5kPE8WtVu8rl0kJwGGGyDaU/6O9sTN6b+52zxnpiUs9PLM8GYkI1HAKr4vDijpS9mo/iv/zaiPHWiWrK9iUxIfZGdg7nRanG8ujD8a3pqw3q9NydjRhaWJejjseq1Jmd7eII4uOPj5GHyt8E="
+  file_glob: true
+  file: syncon*.t*gz
+  skip_cleanup: true
+  draft: true
+  on:
+    tags: true
+    condition: $TRAVIS_R_VERSION_STRING = release
+    

@@ -3,8 +3,5 @@
 .RData
 .Ruserdata
 Rplots.pdf
-synthetic_control_webpage.html
-synthetic_control_webpage.Rmd
-synthetic_control/downloads
-synthetic_control/Rplots.pdf
-synthetic_control/rsconnect
+Results_*
+syncon_*.tar.gz
