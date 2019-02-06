@@ -11,7 +11,7 @@
 #'
 #' @export
 
-syncon.plots <- function(analysis) {
+evaluatr.plots <- function(analysis) {
   plots = list(groups = list())
   
   impact_results = analysis$results$impact

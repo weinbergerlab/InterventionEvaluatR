@@ -9,11 +9,11 @@ knitr::opts_chunk$set(
 
 ## ----setup_packages, include=FALSE---------------------------------------
 library(knitr)
-library(syncon)
+library(InterventionEvaluatR)
 
 ## ----setup_data, include=FALSE-------------------------------------------
-data(pnas_brazil, package = "syncon")
-analysis <- syncon.init(
+data(pnas_brazil, package = "InterventionEvaluatR")
+analysis <- evaluatr.init(
   country = "Brazil", data = pnas_brazil,
   pre_period_start = "2004-01-01", pre_period_end = "2009-12-31",
   post_period_start = "2010-01-01", post_period_end = "2013-12-01",
@@ -24,16 +24,16 @@ analysis <- syncon.init(
 set.seed(1)
 
 ## ----main analysis, include = FALSE--------------------------------------
-impact_results = syncon.impact(analysis)
+impact_results = evaluatr.impact(analysis)
 
 ## ----crossval, include = FALSE-------------------------------------------
 if (params$crossval) {
-  crossval_results <- syncon.crossval(analysis)
+  crossval_results <- evaluatr.crossval(analysis)
 }
 
 ## ----sensitivity_analyses, include = FALSE-------------------------------
 if (params$sensitivity) {
-  sensitivity_results <- syncon.sensitivity(analysis)
+  sensitivity_results <- evaluatr.sensitivity(analysis)
 }
 
 ## ----sparse--------------------------------------------------------------
@@ -49,7 +49,7 @@ if (params$crossval) {
 }
 
 ## ----fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE----
-plots <- syncon.plots(analysis)
+plots <- evaluatr.plots(analysis)
 plots$summary
 
 ## ----Comparison of Cross validation Weights from different models--------
@@ -93,5 +93,5 @@ for (group in names(plots$groups)) {
 ## ----save_results, echo=FALSE--------------------------------------------
 output_file <- "Results" # Directory where results will be saved.
 output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
-syncon.save(analysis, output_file)
+evaluatr.save(analysis, output_file)
 

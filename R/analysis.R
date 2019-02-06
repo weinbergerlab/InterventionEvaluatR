@@ -41,7 +41,7 @@
 #' @importFrom listenv listenv
 #' @export
 
-syncon.init <- function(country,
+evaluatr.init <- function(country,
                         data,
                         pre_period_start='start',
                         post_period_start,
@@ -183,8 +183,8 @@ syncon.init <- function(country,
 #' @importFrom pbapply pblapply
 #' @export
 
-syncon.impact = function(analysis) {
-  syncon.impact.pre(analysis)
+evaluatr.impact = function(analysis) {
+  evaluatr.impact.pre(analysis)
   results = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
@@ -476,7 +476,7 @@ syncon.impact = function(analysis) {
 #'
 #' @export
 
-syncon.crossval = function(analysis) {
+evaluatr.crossval = function(analysis) {
   results = list()
   
   #Creates List of lists: 1 entry for each stratum; within this, there are CV datasets for each year left out, and within this, there are 2 lists, one with full dataset, and one with the CV dataset
@@ -676,7 +676,7 @@ syncon.crossval = function(analysis) {
 #'
 #' @export
 
-syncon.sensitivity = function(analysis) {
+evaluatr.sensitivity = function(analysis) {
   results = list()
   bad_sensitivity_groups <-
     sapply(analysis$covars$full, function (covar) {
@@ -797,7 +797,7 @@ syncon.sensitivity = function(analysis) {
   return(results)
 }
 
-syncon.impact.pre = function(analysis) {
+evaluatr.impact.pre = function(analysis) {
   # Setup data
   prelog_data <-
     analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
