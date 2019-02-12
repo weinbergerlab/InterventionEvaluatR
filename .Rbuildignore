@@ -4,3 +4,4 @@
 ^vignettes/Results_[^/]*$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^build/.*$

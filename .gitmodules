@@ -1,0 +1,3 @@
+[submodule "gitlab/docker"]
+	path = gitlab/docker
+	url = ../gitlab-docker-bootstrap.git
