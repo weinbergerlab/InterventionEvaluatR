@@ -10,8 +10,6 @@ params:
   sensitivity: TRUE
   crossval: TRUE
 ---
-title: "Estimated change associated with the introduction of vaccine in `r params$country`"
----
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -41,6 +39,10 @@ analysis <- syncon.init(
 )
 set.seed(1)
 ```
+
+---
+title: "Estimated change associated with the introduction of vaccine in `r analysis$country`"
+---
 
 ```{r main analysis, include = FALSE}
 impact_results = syncon.impact(analysis)
