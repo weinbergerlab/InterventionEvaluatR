@@ -20,7 +20,7 @@ syncon.plots <- function(analysis) {
   
   cbPalette  <-  c("#1b9e77", "#d95f02", "#7570b3", '#e7298a')
   #Compare rate ratios, with size of marker scaled to cross val weights
-  if ("crossval" %in% names(analysis$results)) {
+  if (!is.na(crossval_results)) {
     point.weights = crossval_results$point.weights
   } else {
     point.weights = impact_results$point.weights
@@ -147,7 +147,7 @@ syncon.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'STL+PCA estimate')
       )
-    if ("crossval" %in% names(analysis$results)) {
+    if (!is.na(crossval_results)) {
       pred_stack_plot <-
         plotPred(
           crossval_results$pred_quantiles_stack[, , group],
@@ -390,7 +390,7 @@ syncon.plots <- function(analysis) {
         panel.grid.minor = element_blank()
       )
     
-    if ("crossval" %in% names(analysis$results)) {
+    if (!is.na(crossval_results)) {
       rr_roll_stack_plot <-
         ggplot(
           melt(
@@ -467,7 +467,7 @@ syncon.plots <- function(analysis) {
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank()
       )
-    if ("crossval" %in% names(analysis$results)) {
+    if (!is.na(crossval_results)) {
       cumsum_prevented_stack_plot <-
         ggplot(
           melt(
@@ -510,7 +510,7 @@ syncon.plots <- function(analysis) {
     }
     
     
-    if ("crossval" %in% names(analysis$results)) {
+    if (!is.na(crossval_results)) {
       plots$groups[[group]] <- list(
         covar = covar_plot,
         pred_stack = pred_stack_plot,
