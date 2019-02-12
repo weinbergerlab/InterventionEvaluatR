@@ -14,7 +14,12 @@ params:
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.height = 3,
+  fig.width = 5,
+  fig.align = "center", 
+  dpi=300, 
+	out.width="600px"
 )
 ```
 
@@ -79,7 +84,7 @@ if (params$crossval) {
 ```
 
 ##Plot of Rate ratios, with size proportional to cross validation weights
-```{r fig.width=5, fig.height=3, fig.align = "center", dpi=300, echo=FALSE}
+```{r echo=FALSE}
 plots <- syncon.plots(analysis)
 plots$summary
 ```
@@ -126,7 +131,7 @@ if (exists("sensitivity_results")) {
 
 
 ##Plots
-```{r plots,fig.height =3 , fig.width = 5, fig.align = "center", dpi=300,results = 'asis'}
+```{r plots, results = 'asis'}
 for (group in names(plots$groups)) {
   for (group_plot in plots$groups[[group]]) {
     print(group_plot)
