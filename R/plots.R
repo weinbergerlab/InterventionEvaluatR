@@ -215,7 +215,7 @@ syncon.plots <- function(analysis) {
         title = paste(group, 'STL+PCA estimate')
       )
     
-    if ("sensitivity" %in% names(analysis$results)) {
+    if (!is.na(sensitivity_results)) {
       pred_sensitivity_plot <-
         plotPred(
           impact_results$full$pred_quantiles[, , group],
@@ -223,7 +223,7 @@ syncon.plots <- function(analysis) {
           analysis$post_period,
           min_max,
           analysis$outcome[, group],
-          sensitivity_pred_quantiles = analysis$sensitivity_pred_quantiles[[group]],
+          sensitivity_pred_quantiles = sensitivity_results$sensitivity_pred_quantiles[[group]],
           sensitivity_title = paste(group, 'Sensitivity Plots'),
           plot_sensitivity = TRUE
         )
