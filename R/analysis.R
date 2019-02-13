@@ -879,6 +879,9 @@ syncon.impact.pre = function(analysis) {
     })
   analysis$.private$ds <-
     analysis$.private$ds[!analysis$sparse_groups]
+  if (length(analysis$.private$ds) == 0) {
+    stop("Unable to proceed with analysis: all groups are sparse")
+  }
   analysis$groups <- analysis$groups[!analysis$sparse_groups]
   
   #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
