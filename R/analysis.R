@@ -801,7 +801,7 @@ syncon.impact.pre = function(analysis) {
   # Format covars
   prelog_data[, analysis$date_name] <-
     as.Date(as.character(prelog_data[, analysis$date_name]),
-            tryFormats = c("%m/%d/%Y", '%Y-%m-%d'))
+            tryFormats = c("%m/%d/%Y", '%Y-%m-%d','%Y/%m/%d' ))
   
   #test<-split(prelog_data, factor(prelog_data[,analysis$group_name]))
   #outcome.na<-sapply(test, function(x) sum(is.na(x[,analysis$outcome_name])))
