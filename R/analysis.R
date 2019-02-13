@@ -789,7 +789,6 @@ syncon.impact.pre = function(analysis) {
   # Setup data
   prelog_data <-
     analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
-  prelog_data[, analysis$group_name] = prelog_data[, analysis$group_name] %% 2
   analysis$groups <-
     as.character(unique(unlist(prelog_data[, analysis$group_name], use.names = FALSE)))
   analysis$groups <-
