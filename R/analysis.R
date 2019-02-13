@@ -160,7 +160,7 @@ syncon.init <- function(country,
 #' @importFrom stats AIC as.formula cov dpois glm median poisson prcomp predict quantile rmultinom rnorm rpois sd setNames stl var vcov complete.cases
 #' @importFrom loo stacking_weights
 #' @importFrom lme4 glmer glmerControl fixef
-#' @importFrom lubridate as_date %m+% year month quarter
+#' @importFrom lubridate as_date %m+% year month quarter time_length interval yday
 #' @importFrom splines bs
 #' @importFrom pomp logmeanexp
 #' @importFrom reshape melt

@@ -789,17 +789,26 @@ plotPredAgg <-
            sensitivity_pred_quantiles = NULL,
            sensitivity_title = 'Sensitivity Plots',
            plot_sensitivity = FALSE) {
+    # Convert intervention date (a date) into the corresponding X-axis value
     if (year_def == 'epi_year') {
+      # If year_def is epi_year, then time axis scale is a factor containing epi year names such as "2009/2010"
       month.int <- month(intervention_date)
       year.int <- year(intervention_date)
-      epiyr.int <- year.int
-      epiyr.int[month.int <= 6] <- year.int[month.int <= 6] <- 1
+      epiyr.int <- ifelse(month.int <=6, year.int - 1, year.int)
+      epiyr.start <- paste0(epiyr.int, "-07-01")
+      epiyr.end <- paste0(epiyr.int + 1, "-06-30")
+      
+      decimal.int <- time_length(interval(epiyr.start, intervention_date)) / time_length(interval(epiyr.start, epiyr.end))
+      
       year.intervention <-
         which(as.numeric(substr(
           as.character(ann_pred_quantiles$year), 1, 4
-        )) == epiyr.int) - 0.5
+        )) == epiyr.int) + decimal.int
     } else{
-      year.intervention <- year(intervention_date) - 0.5
+      # Otherwise, time axis scale is a number such as 2009; we just need to convert the date to a decimal value
+      year.intervention = year(intervention_date)
+      last_date = yday(paste0(year.intervention, "-12-31"))
+      year.intervention <- year.intervention + yday(intervention_date) / last_date
     }
     #how mny time points in each aggregation period?
     if (year_def == 'epi_year') {
