@@ -6,7 +6,8 @@
 \usage{
 syncon.init(country, data, pre_period_start, pre_period_end,
   post_period_start, post_period_end, eval_period_start, eval_period_end,
-  n_seasons, year_def, group_name, date_name, outcome_name, denom_name)
+  n_seasons, year_def, group_name, date_name, outcome_name, denom_name,
+  sparse_threshold = 5)
 }
 \arguments{
 \item{country}{TODO}
@@ -36,6 +37,8 @@ syncon.init(country, data, pre_period_start, pre_period_end,
 \item{outcome_name}{TODO}
 
 \item{denom_name}{TODO}
+
+\item{sparse_threshold}{TODO}
 }
 \value{
 Initialized analysis object, `analysis` as described below
@@ -60,6 +63,7 @@ Initialized analysis object, `analysis` as described below
 `analysis$model_size` TODO
 `analysis$covars` TODO
 `analysis$outcome` TODO
+`analysis$sparse_threshold` as passed in in `sparse_threshold`
 }
 \description{
 Initialize analysis
