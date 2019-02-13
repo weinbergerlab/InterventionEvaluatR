@@ -12,14 +12,15 @@ splitGroup <-
            date_name,
            start_date,
            end_date,
-           no_filter = NULL) {
+           no_filter = NULL,
+           sparse_threshold = 5) {
     ds <- ungrouped_data[ungrouped_data[, group_name] == group,]
     ds <- ds[, colSums(is.na(ds)) == 0]
     ds <-
       ds[match(start_date, ds[, date_name]):match(end_date, ds[, date_name]),]
     ds <-
       cbind(ds[, colnames(ds) %in% no_filter], filterSparse(ds[,!(colnames(ds) %in% no_filter), drop =
-                                                                 FALSE]))
+                                                                 FALSE], threshold=sparse_threshold))
     return(ds)
   }
 

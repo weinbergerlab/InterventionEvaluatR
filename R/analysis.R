@@ -14,6 +14,7 @@
 #' @param date_name TODO
 #' @param outcome_name TODO
 #' @param denom_name TODO
+#' @param sparse_threshold TODO
 #' @return Initialized analysis object, `analysis` as described below
 #'
 #' `analysis$country` as passed in in `country`
@@ -36,6 +37,7 @@
 #' `analysis$model_size` TODO
 #' `analysis$covars` TODO
 #' `analysis$outcome` TODO
+#' `analysis$sparse_threshold` as passed in in `sparse_threshold`
 #'
 #' @importFrom listenv listenv
 #' @export
@@ -53,7 +55,8 @@ syncon.init <- function(country,
                         group_name,
                         date_name,
                         outcome_name,
-                        denom_name) {
+                        denom_name,
+                        sparse_threshold = 5) {
   analysis = listenv(
     time_points = NA,
     
@@ -62,6 +65,7 @@ syncon.init <- function(country,
     model_size = NA,
     covars = NA,
     outcome = NA,
+    sparse_threshold = sparse_threshold,
     
     results = list(
       impact = NA,
@@ -817,7 +821,8 @@ syncon.impact.pre = function(analysis) {
         analysis$date_name,
         analysis$outcome_name,
         analysis$denom_name
-      )
+      ),
+      sparse_threshold = analysis$sparse_threshold
     ),
     analysis$groups
   )
