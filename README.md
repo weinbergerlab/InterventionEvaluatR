@@ -1,7 +1,5 @@
 # InterventionEvaluatR
-This package is designed to run several different types of analyses to evaluate the effect of interventions using time series data of counts. The package implements synthetic controls analyses (Broderson; Bruhn), STL+PCA analysis ()
-
-synthetic control analyses where the input are vectors of count data representing a time series. The outcome variable should be a count variable. Bayesian variable selection (spike and Slab priors) is used to fit the models. Unlike the models described in Bruhn et al., these scripts use a Poisson regression with observation-level random effects to capture overdispersion. Leave-one-season-out cross validation is used to evaluate fit of the different models to pre-vaccine data, and this is used to generate model weights for stacking. 
+This package is designed to run several different types of analyses to evaluate the effect of interventions using time series data of counts. The package implements synthetic controls analyses (Broderson; Bruhn), STL+PCA analysis (Shioda), a simple time trend analysis (with or without an offset term), and a classic interrupted time series analysis. In all approaches, a Poisson model is used with an observation-level random intercept to capture overdispersion. The synthetic controls analysis uses Bayesian variable selection (spike and slab priors, as implemented in the pogit package) to fit the model.
 
 ## Installing the package:
 Install and load devtools in R. Then run:
