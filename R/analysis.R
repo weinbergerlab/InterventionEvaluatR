@@ -127,7 +127,7 @@ syncon.init <- function(country,
   analysis$pre_period_end<- 
     analysis$post_period[1] - 1
   analysis$pre_period <-
-    as.Date(c(first.date.data, pre_period_end)) #Range over which the data is trained for the CausalImpact model.
+    as.Date(c(first.date.data, analysis$pre_period_end)) #Range over which the data is trained for the CausalImpact model.
   analysis$start_date <- analysis$pre_period[1]
   analysis$post_period <-
     as.Date(c(post_period_start, post_period_end)) #Range from the intervention date to the end date.
