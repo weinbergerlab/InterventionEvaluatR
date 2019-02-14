@@ -4,7 +4,20 @@
 \name{pnas_us_pneumonia}
 \alias{pnas_us_pneumonia}
 \title{TODO}
-\format{TODO}
+\format{Monthly time series of cause-specific hospitalizations from Brazil, as described in Bruhn et al., PNAS. 
+The columns refer to sets of ICD9 codes. 'ach_sid_noresp'is all non-respiratory causes of hospitalization.
+Note small counts are masked with 99999.  
+'age_group' categories: 
+  0: <3months 
+  1: 3-11m
+  2: 12-23m 
+  3: 24-59m 
+  4: 5-17 years
+  5: 18-39 years
+  6: 40-64 years
+  7: 65-79 years
+  8: 80+ years
+  9: <12 months}
 \description{
 TODO
 }

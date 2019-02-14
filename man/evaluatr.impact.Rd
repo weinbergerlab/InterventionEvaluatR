@@ -12,14 +12,21 @@ evaluatr.impact(analysis)
 \value{
 Analysis results, `results`, as described below
 
-`results$full` TODO
-`results$time` TODO
-`results$time_no_offset` TODO
-`results$pca` TODO
-`results$its` TODO
-`results$best` TODO
+`results$full` Results from synthetic controls model
+
+`results$time` Results from time trend model (with offset term)
+
+`results$time_no_offset` Results from time trend model (no offset term)
+
+`results$pca` Results from STL+PCA model
+
+`results$its` Results from classic interrupted time series model
+
+`results$best` Results from 'best model (either synthetic controls or STL+PCA, depending on )
+
 `results$point.weights` TODO
-`results$rr_mean_combo` TODO
+
+`results$rr_mean_combo` Rate ratios during the evaluation period, as calculated in each of the models.
 }
 \description{
 Perform impact analysis

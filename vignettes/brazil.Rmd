@@ -8,7 +8,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 params:
   sensitivity: TRUE
-  crossval: TRUE
+  crossval: FALSE
 ---
 
 ```{r setup, include = FALSE}
@@ -31,34 +31,49 @@ library(InterventionEvaluatR)
 ```
 
 ---
+title: "Estimated change associated with the introduction of vaccine in Brazil"
+---
 
-```{r setup_data, include=FALSE}
-data(pnas_brazil, package = "InterventionEvaluatR")
+---
+##View dataset
+We are using a dataset that has several different age groups. These represent monthly time series for a number of different
+diseases. The columns have counts per month of hospitalizations for the causes indicated by the range of ICD10 codes indicated in the header name. For instance J12_18 has the nuber of hospitalizations that had ICD10 codes in the range J12-J18 during that month in the indicated age group.  We also will subset the data (just take age groups 8 and 9. It is also *very* important to sort the data by age group and date.
+
+```{r viewdata, include=TRUE}
+    data(pnas_brazil, package = "syncon") #load the data
+    head(pnas_brazil[,1:5]) #View first few rows and columns
+    
+    pnas_brazil2<-pnas_brazil[pnas_brazil$age_group %in% c(9,8),] #Subset to age groups 8 and 9
+    pnas_brazil2<-pnas_brazil2[order(pnas_brazil2$age_group, pnas_brazil2$date),] #Sort data by age group and month
+```
+
+## Set parameters for analysis
+
+```{r setup_data, echo=TRUE}
+
 analysis <- evaluatr.init(
-  country = "Brazil", data = pnas_brazil,
-  pre_period_start = "2004-01-01", 
-  post_period_start = "2010-01-01", post_period_end = "2013-12-01",
-  eval_period_start = "2012-01-01", eval_period_end = "2013-12-01",
-  n_seasons = 12, year_def = "cal_year",
-  group_name = "age_group", date_name = "date", outcome_name = "J12_18", denom_name = "ach_noj"
+  country = "Brazil", data = pnas_brazil2,
+  post_period_start = "2010-01-01", #First 'post-intervention' month is Jan 2012
+  eval_period_start = "2012-01-01", #We ignore first 2 years of data to allow for vaccine ramp up
+  eval_period_end = "2013-12-01", #The evaluation period lasts 2 years
+  n_seasons = 12, #This is monthly data, so select 12
+  year_def = "cal_year", # we are in southern hemisphere, so aggregate results by calendar year (Jan-Dec)
+  group_name = "age_group",  #Strata categry name
+  date_name = "date", #Date variable name
+  outcome_name = "J12_18", #Outcome variable name
+  denom_name = "ach_noj" #Denominator variable name
 )
 set.seed(1)
 ```
 
----
-title: "Estimated change associated with the introduction of vaccine in `r analysis$country`"
----
-
+## Run the main analysis
+Save the results in object 'impact_results'
 ```{r main analysis, include = FALSE}
 impact_results = evaluatr.impact(analysis)
 ```
 
-```{r crossval, include = FALSE}
-if (params$crossval) {
-  crossval_results <- evaluatr.crossval(analysis)
-}
-```
-
+##Run sensitivity analyses
+Sequentially drop the top 1,2, or 3 variables in synthetic controls analysis
 ```{r sensitivity_analyses, include = FALSE}
 if (params$sensitivity) {
   sensitivity_results <- evaluatr.sensitivity(analysis)
@@ -67,6 +82,7 @@ if (params$sensitivity) {
 
 
 #`r params$country` Results
+
 
 ```{r sparse}
 if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(names(analysis$sparse_groups[analysis$sparse_groups])) != 0) {
@@ -89,15 +105,7 @@ plots <- evaluatr.plots(analysis)
 plots$summary
 ```
 
-##Weights for each of the models from cross validation
-```{r Comparison of Cross validation Weights from different models}
-if (params$crossval) {
-  kable(crossval_results$stacking_weights.all, align = "c")
-} else {
-  print("Cross-validation not performed")
-}
-```
-  
+
 ##Number of variables selected in SC analysis
 ```{r modelsize}
 kable(analysis$model_size, col.names = c("Model Size"))
@@ -122,7 +130,7 @@ rownames(incl_probs) <- NULL
 kable(incl_probs, align = "c")
 ```
 
-##Weight Sensitivity Analysis
+## Weight Sensitivity Analysis
 ```{r sensitivity}
 if (exists("sensitivity_results")) {
   kable(sensitivity_results$sensitivity_table_intervals, align = "c")

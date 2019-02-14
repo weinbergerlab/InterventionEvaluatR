@@ -1,42 +1,62 @@
 #' Initialize analysis
 #'
-#' @param country TODO
-#' @param data TODO
-#' @param pre_period_start TODO
-#' @param post_period_start TODO
-#' @param post_period_end TODO
-#' @param eval_period_start TODO
-#' @param eval_period_end TODO
-#' @param n_seasons TODO
-#' @param year_def TODO
-#' @param group_name TODO
-#' @param date_name TODO
-#' @param outcome_name TODO
-#' @param denom_name TODO
-#' @param sparse_threshold TODO
+#' @param country A one-word label for output (eg country or state name).
+#' @param data Input dataframe. There should be a row for each time point (e.g., month) and category (e.g., age group). There should be variables for the date, for the category (or a column of 1s if only 1 category), for the outcome variable (a count), for the denominator (or a column of 1s if no denominator), and columns for each control variable. 
+#' @param pre_period_start Date when analysis starts, YYYY-MM-01. defaults to first date in dataset.
+#' @param post_period_start Month when intervention introduced. YYY-MM-01
+#' @param post_period_end Date when analysis ends, YYYY-MM-01. defaults to first date in dataset. Defaults to end of evaluation period.
+#' @param eval_period_start First month of the period when the effect of intervention is evaluated. YYYY-MM-01. typically 12-24 months after post_period_start.
+#' @param eval_period_end Last month of the period when the effect of intervention is evaluated. YYYY-MM-01. 
+#' @param n_seasons How many observations per year? Defaults to 12 (monthly data) Change to 4 for quarterly
+#' @param year_def Should results be aggregated by calendar year ('cal_year': the default) or epidemiological year ('epi_year'; July-June)
+#' @param group_name Name of the stratification variable (e.g., age group). If only one age group present, add a column of 1s to the dataset
+#' @param date_name Name of the variable with the date for the time series
+#' @param outcome_name Name of the outcome (y) variable in the 'data' dataframe. Should be a count
+#' @param denom_name Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.
+#' @param sparse_threshold Threshold for filtering out control variables based on sparsity (mean number of cases per time period). Defaults to 5. 
 #' @return Initialized analysis object, `analysis` as described below
 #'
-#' `analysis$country` as passed in in `country`
-#' `analysis$input_data` as passed in in `data`
-#' `analysis$n_seasons` as passed in in `n_seasons`
-#' `analysis$year_def` as passed in in `year_def`
-#' `analysis$pre_period` TODO
-#' `analysis$post_period` TODO
-#' `analysis$eval_period` TODO
-#' `analysis$start_date` TODO
-#' `analysis$intervention_date` TODO
-#' `analysis$end_date` TODO
-#' `analysis$group_name` as passed in in `group_name`
+#' `analysis$country` as passed to `country`
+#' 
+#' `analysis$input_data` as passed to `data`
+#' 
+#' `analysis$n_seasons` as passed to `n_seasons`
+#' 
+#' `analysis$year_def` as passed to `year_def`
+#' 
+#' `analysis$pre_period` Range of dates in the pre-intervention period
+#' 
+#' `analysis$post_period` Range of dates in the post-intervention period
+#' 
+#' `analysis$eval_period` Range of dates in the evaluation period
+#' 
+#' `analysis$start_date` First date of the pre-intervention period
+#' 
+#' `analysis$intervention_date` Last time point before the start of the post-period
+#' 
+#' `analysis$end_date` Last date in the evaluation period
+#' 
+#' `analysis$group_name` as passed to `group_name`
+#' 
 #' `analysis$date_name` as passed in in `date_name`
+#' 
 #' `analysis$outcome_name` as passed in in `outcome_name`
+#' 
 #' `analysis$denom_name` as passed in in `denom_name`
-#' `analysis$time_points` TODO
-#' `analysis$groups` TODO
-#' `analysis$sparse_groups` TODO
-#' `analysis$model_size` TODO
-#' `analysis$covars` TODO
-#' `analysis$outcome` TODO
-#' `analysis$sparse_threshold` as passed in in `sparse_threshold`
+#' 
+#' `analysis$time_points` Vector of time points in the dataset
+#' 
+#' `analysis$groups` Vector of groups analyzed
+#' 
+#' `analysis$sparse_groups` Vector indicating which groups were too sparse to analyze
+#' 
+#' `analysis$model_size` Average number of covariates included in the synthetic control model
+#' 
+#' `analysis$covars` Matrix of covariates used for analysis
+#' 
+#' `analysis$outcome` as passeed to `outcome_name`
+#' 
+#' `analysis$sparse_threshold` as passed to `sparse_threshold`
 #'
 #' @importFrom listenv listenv
 #' @export
@@ -160,14 +180,21 @@ evaluatr.init <- function(country,
 #' @param analysis Analysis object, initialized by TODO.init.
 #' @return Analysis results, `results`, as described below
 #'
-#' `results$full` TODO
-#' `results$time` TODO
-#' `results$time_no_offset` TODO
-#' `results$pca` TODO
-#' `results$its` TODO
-#' `results$best` TODO
+#' `results$full` Results from synthetic controls model
+#' 
+#' `results$time` Results from time trend model (with offset term)
+#' 
+#' `results$time_no_offset` Results from time trend model (no offset term)
+#' 
+#' `results$pca` Results from STL+PCA model
+#' 
+#' `results$its` Results from classic interrupted time series model
+#' 
+#' `results$best` Results from 'best model (either synthetic controls or STL+PCA, depending on )
+#' 
 #' `results$point.weights` TODO
-#' `results$rr_mean_combo` TODO
+#' 
+#' `results$rr_mean_combo` Rate ratios during the evaluation period, as calculated in each of the models.
 #'
 #' @importFrom stats AIC as.formula cov dpois glm median poisson prcomp predict quantile rmultinom rnorm rpois sd setNames stl var vcov complete.cases
 #' @importFrom loo stacking_weights
@@ -511,7 +538,7 @@ evaluatr.crossval = function(analysis) {
             analysis$n_seasons,
             time_points = analysis$time_points,
             crossval.stage = TRUE,
-            var.select.on = analysis$.private$variants[[variant]]$var.select.on,
+            var.select.on = analysis$.private$variants[[variant]]$var.select.on
           )
       ),
       analysis$groups
@@ -670,9 +697,10 @@ evaluatr.crossval = function(analysis) {
 #'
 #' `results$rr_table` TODO
 #' `results$rr_table_intervals` TODO
-#' `results$sensitivity_pred_quantiles` TODO
-#' `results$sensitivity_table` TODO
-#' `results$sensitivity_table_intervals` TODO
+#' `results$sensitivity_pred_quantiles` Fitted values and credible intervals from models where the top covariates were dropped
+#' `results$sensitivity_table` Unformatted matrix with rate ratio estimates from the original model and those with top covariates dropped
+#' `results$sensitivity_table_intervals` Data frame containing rate ratio estimates from the original synthetic controls model
+#'        as well as models where the top-weighted 1,2, or 3 covariates were dropped.
 #'
 #' @export
 
