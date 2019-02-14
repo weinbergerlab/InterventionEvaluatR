@@ -211,6 +211,8 @@ evaluatr.init <- function(country,
 #' @export
 
 evaluatr.impact = function(analysis) {
+  analysis$.private$progress_idx = 1
+  analysis$.private$progress_count = length(analysis$.private$variants)
   evaluatr.impact.pre(analysis)
   results = list()
   
@@ -223,6 +225,7 @@ evaluatr.impact = function(analysis) {
   clusterExport(cl, c('doCausalImpact'), environment())
   
   for (variant in names(analysis$.private$variants)) {
+    incrementProgressPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
         cl = cl,
@@ -504,6 +507,8 @@ evaluatr.impact = function(analysis) {
 #' @export
 
 evaluatr.crossval = function(analysis) {
+  analysis$.private$progress_idx = 1
+  analysis$.private$progress_count = length(analysis$.private$variants)
   results = list()
   
   #Creates List of lists: 1 entry for each stratum; within this, there are CV datasets for each year left out, and within this, there are 2 lists, one with full dataset, and one with the CV dataset
@@ -526,6 +531,7 @@ evaluatr.crossval = function(analysis) {
   })
   clusterExport(cl, c('doCausalImpact'), environment())
   for (variant in names(analysis$.private$variants)) {
+    incrementProgressPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
         cl = cl,
@@ -705,6 +711,8 @@ evaluatr.crossval = function(analysis) {
 #' @export
 
 evaluatr.sensitivity = function(analysis) {
+  analysis$.private$progress_idx = 1
+  analysis$.private$progress_count = 1
   results = list()
   bad_sensitivity_groups <-
     sapply(analysis$covars$full, function (covar) {
@@ -734,6 +742,7 @@ evaluatr.sensitivity = function(analysis) {
       ),
       environment()
     )
+    incrementProgressPart(analysis)
     sensitivity_analysis_full <-
       setNames(
         pblapply(
@@ -1022,6 +1031,7 @@ evaluatr.impact.pre = function(analysis) {
   }
   
   ##SECTION 2: run first stage models
+  analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
   analysis$.private$n_cores <- max(detectCores() - 1, 1)
   glm.results <-
     vector("list", length = length(stl.data.setup)) #combine models into a list
@@ -1033,6 +1043,7 @@ evaluatr.impact.pre = function(analysis) {
                 c('stl.data.setup', 'glm.fun', 'post.start.index'),
                 environment())
   for (i in 1:length(stl.data.setup)) {
+    incrementProgressPart(analysis)
     glm.results[[i]] <-
       pblapply(
         cl = cl,
@@ -1094,4 +1105,9 @@ evaluatr.impact.pre = function(analysis) {
       ),
       analysis$groups
     )
+}
+
+incrementProgressPart <- function(analysis) {
+  write(paste0("Analysis part ", analysis$.private$progress_idx, " of ", analysis$.private$progress_count, ":"), stdout())
+  analysis$.private$progress_idx = analysis$.private$progress_idx + 1
 }
