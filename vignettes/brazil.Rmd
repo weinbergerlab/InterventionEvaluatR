@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 
 ```{r setup_packages, include=FALSE}
 library(knitr)
-library(syncon)
+library(InterventionEvaluatR)
 ```
 
 ---
@@ -51,7 +51,7 @@ diseases. The columns have counts per month of hospitalizations for the causes i
 
 ```{r setup_data, echo=TRUE}
 
-analysis <- syncon.init(
+analysis <- evaluatr.init(
   country = "Brazil", data = pnas_brazil2,
   post_period_start = "2010-01-01", #First 'post-intervention' month is Jan 2012
   eval_period_start = "2012-01-01", #We ignore first 2 years of data to allow for vaccine ramp up
@@ -69,15 +69,14 @@ set.seed(1)
 ## Run the main analysis
 Save the results in object 'impact_results'
 ```{r main analysis, include = FALSE}
-impact_results = syncon.impact(analysis)
+impact_results = evaluatr.impact(analysis)
 ```
 
 ##Run sensitivity analyses
 Sequentially drop the top 1,2, or 3 variables in synthetic controls analysis
-
 ```{r sensitivity_analyses, include = FALSE}
 if (params$sensitivity) {
-  sensitivity_results <- syncon.sensitivity(analysis)
+  sensitivity_results <- evaluatr.sensitivity(analysis)
 }
 ```
 
@@ -102,7 +101,7 @@ if (params$crossval) {
 
 ##Plot of Rate ratios, with size proportional to cross validation weights
 ```{r echo=FALSE}
-plots <- syncon.plots(analysis)
+plots <- evaluatr.plots(analysis)
 plots$summary
 ```
 
@@ -152,5 +151,5 @@ for (group in names(plots$groups)) {
 ```{r save_results, echo=FALSE}
 output_file <- "Results" # Directory where results will be saved.
 output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
-syncon.save(analysis, output_file)
+evaluatr.save(analysis, output_file)
 ```
