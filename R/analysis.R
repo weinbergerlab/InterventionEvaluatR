@@ -3,7 +3,6 @@
 #' @param country TODO
 #' @param data TODO
 #' @param pre_period_start TODO
-#' @param pre_period_end TODO
 #' @param post_period_start TODO
 #' @param post_period_end TODO
 #' @param eval_period_start TODO
@@ -44,14 +43,13 @@
 
 syncon.init <- function(country,
                         data,
-                        pre_period_start,
-                        pre_period_end,
+                        pre_period_start='start',
                         post_period_start,
-                        post_period_end,
+                        post_period_end=eval_period_end,
                         eval_period_start,
                         eval_period_end,
-                        n_seasons,
-                        year_def,
+                        n_seasons=12,
+                        year_def='cal_year',
                         group_name,
                         date_name,
                         outcome_name,
@@ -117,9 +115,19 @@ syncon.init <- function(country,
   analysis$year_def <-
     year_def #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
   
+  
+  if(pre_period_start=='start'){
+  first.date.data<-
+      as.character(sort(unique(data[,date_name]))[1])
+  }else{
+    first.date.data<-pre_period_start
+  }
+  
   #MOST DATES MUST BE IN FORMAT "YYYY-MM-01", exception is end of pre period, which is 1 day before end of post period
+  analysis$pre_period_end<- 
+    analysis$post_period[1] - 1
   analysis$pre_period <-
-    as.Date(c(pre_period_start, pre_period_end)) #Range over which the data is trained for the CausalImpact model.
+    as.Date(c(first.date.data, analysis$pre_period_end)) #Range over which the data is trained for the CausalImpact model.
   analysis$start_date <- analysis$pre_period[1]
   analysis$post_period <-
     as.Date(c(post_period_start, post_period_end)) #Range from the intervention date to the end date.
