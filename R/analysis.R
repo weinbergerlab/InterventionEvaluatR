@@ -1,7 +1,7 @@
 #' Initialize analysis
 #'
-#' @param country TODO
-#' @param data TODO
+#' @param country A character specifying the name fo the output. Should be a one-word label
+#' @param data Input dataframe
 #' @param pre_period_start TODO
 #' @param post_period_start TODO
 #' @param post_period_end TODO
