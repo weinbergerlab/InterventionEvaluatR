@@ -14,9 +14,10 @@ Sensitivity analysis results, `results`, as described below
 
 `results$rr_table` TODO
 `results$rr_table_intervals` TODO
-`results$sensitivity_pred_quantiles` TODO
-`results$sensitivity_table` TODO
-`results$sensitivity_table_intervals` TODO
+`results$sensitivity_pred_quantiles` Fitted values and credible intervals from models where the top covariates were dropped
+`results$sensitivity_table` Unformatted matrix with rate ratio estimates from the original model and those with top covariates dropped
+`results$sensitivity_table_intervals` Data frame containing rate ratio estimates from the original synthetic controls model
+       as well as models where the top-weighted 1,2, or 3 covariates were dropped.
 }
 \description{
 Perform sensitivity analysis

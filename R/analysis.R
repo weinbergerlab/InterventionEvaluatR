@@ -17,25 +17,45 @@
 #' @return Initialized analysis object, `analysis` as described below
 #'
 #' `analysis$country` as passed to `country`
+#' 
 #' `analysis$input_data` as passed to `data`
+#' 
 #' `analysis$n_seasons` as passed to `n_seasons`
+#' 
 #' `analysis$year_def` as passed to `year_def`
+#' 
 #' `analysis$pre_period` Range of dates in the pre-intervention period
+#' 
 #' `analysis$post_period` Range of dates in the post-intervention period
+#' 
 #' `analysis$eval_period` Range of dates in the evaluation period
+#' 
 #' `analysis$start_date` First date of the pre-intervention period
+#' 
 #' `analysis$intervention_date` Last time point before the start of the post-period
+#' 
 #' `analysis$end_date` Last date in the evaluation period
+#' 
 #' `analysis$group_name` as passed to `group_name`
+#' 
 #' `analysis$date_name` as passed in in `date_name`
+#' 
 #' `analysis$outcome_name` as passed in in `outcome_name`
+#' 
 #' `analysis$denom_name` as passed in in `denom_name`
+#' 
 #' `analysis$time_points` Vector of time points in the dataset
+#' 
 #' `analysis$groups` Vector of groups analyzed
+#' 
 #' `analysis$sparse_groups` Vector indicating which groups were too sparse to analyze
-#' `analysis$model_size` TODO
-#' `analysis$covars` TODO
+#' 
+#' `analysis$model_size` Average number of covariates included in the synthetic control model
+#' 
+#' `analysis$covars` Matrix of covariates used for analysis
+#' 
 #' `analysis$outcome` as passeed to `outcome_name`
+#' 
 #' `analysis$sparse_threshold` as passed to `sparse_threshold`
 #'
 #' @importFrom listenv listenv
@@ -160,14 +180,21 @@ syncon.init <- function(country,
 #' @param analysis Analysis object, initialized by TODO.init.
 #' @return Analysis results, `results`, as described below
 #'
-#' `results$full` TODO
-#' `results$time` TODO
-#' `results$time_no_offset` TODO
-#' `results$pca` TODO
-#' `results$its` TODO
-#' `results$best` TODO
+#' `results$full` Results from synthetic controls model
+#' 
+#' `results$time` Results from time trend model (with offset term)
+#' 
+#' `results$time_no_offset` Results from time trend model (no offset term)
+#' 
+#' `results$pca` Results from STL+PCA model
+#' 
+#' `results$its` Results from classic interrupted time series model
+#' 
+#' `results$best` Results from 'best model (either synthetic controls or STL+PCA, depending on )
+#' 
 #' `results$point.weights` TODO
-#' `results$rr_mean_combo` TODO
+#' 
+#' `results$rr_mean_combo` Rate ratios during the evaluation period, as calculated in each of the models.
 #'
 #' @importFrom stats AIC as.formula cov dpois glm median poisson prcomp predict quantile rmultinom rnorm rpois sd setNames stl var vcov complete.cases
 #' @importFrom loo stacking_weights
@@ -670,9 +697,10 @@ syncon.crossval = function(analysis) {
 #'
 #' `results$rr_table` TODO
 #' `results$rr_table_intervals` TODO
-#' `results$sensitivity_pred_quantiles` TODO
-#' `results$sensitivity_table` TODO
-#' `results$sensitivity_table_intervals` TODO
+#' `results$sensitivity_pred_quantiles` Fitted values and credible intervals from models where the top covariates were dropped
+#' `results$sensitivity_table` Unformatted matrix with rate ratio estimates from the original model and those with top covariates dropped
+#' `results$sensitivity_table_intervals` Data frame containing rate ratio estimates from the original synthetic controls model
+#'        as well as models where the top-weighted 1,2, or 3 covariates were dropped.
 #'
 #' @export
 

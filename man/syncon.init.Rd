@@ -42,25 +42,45 @@ syncon.init(country, data, pre_period_start = "start", post_period_start,
 Initialized analysis object, `analysis` as described below
 
 `analysis$country` as passed to `country`
+
 `analysis$input_data` as passed to `data`
+
 `analysis$n_seasons` as passed to `n_seasons`
+
 `analysis$year_def` as passed to `year_def`
+
 `analysis$pre_period` Range of dates in the pre-intervention period
+
 `analysis$post_period` Range of dates in the post-intervention period
+
 `analysis$eval_period` Range of dates in the evaluation period
+
 `analysis$start_date` First date of the pre-intervention period
+
 `analysis$intervention_date` Last time point before the start of the post-period
+
 `analysis$end_date` Last date in the evaluation period
+
 `analysis$group_name` as passed to `group_name`
+
 `analysis$date_name` as passed in in `date_name`
+
 `analysis$outcome_name` as passed in in `outcome_name`
+
 `analysis$denom_name` as passed in in `denom_name`
+
 `analysis$time_points` Vector of time points in the dataset
+
 `analysis$groups` Vector of groups analyzed
+
 `analysis$sparse_groups` Vector indicating which groups were too sparse to analyze
-`analysis$model_size` TODO
-`analysis$covars` TODO
+
+`analysis$model_size` Average number of covariates included in the synthetic control model
+
+`analysis$covars` Matrix of covariates used for analysis
+
 `analysis$outcome` as passeed to `outcome_name`
+
 `analysis$sparse_threshold` as passed to `sparse_threshold`
 }
 \description{
