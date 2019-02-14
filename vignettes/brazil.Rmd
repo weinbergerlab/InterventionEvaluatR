@@ -36,7 +36,7 @@ library(syncon)
 data(pnas_brazil, package = "syncon")
 analysis <- syncon.init(
   country = "Brazil", data = pnas_brazil,
-  pre_period_start = "2004-01-01", pre_period_end = "2009-12-31",
+  pre_period_start = "2004-01-01", 
   post_period_start = "2010-01-01", post_period_end = "2013-12-01",
   eval_period_start = "2012-01-01", eval_period_end = "2013-12-01",
   n_seasons = 12, year_def = "cal_year",
