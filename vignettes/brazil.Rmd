@@ -40,7 +40,7 @@ We are using a dataset that has several different age groups. These represent mo
 diseases. The columns have counts per month of hospitalizations for the causes indicated by the range of ICD10 codes indicated in the header name. For instance J12_18 has the nuber of hospitalizations that had ICD10 codes in the range J12-J18 during that month in the indicated age group.  We also will subset the data (just take age groups 8 and 9. It is also *very* important to sort the data by age group and date.
 
 ```{r viewdata, include=TRUE}
-    data(pnas_brazil, package = "syncon") #load the data
+    data(pnas_brazil, package = "InterventionEvaluatR") #load the data
     head(pnas_brazil[,1:5]) #View first few rows and columns
     
     pnas_brazil2<-pnas_brazil[pnas_brazil$age_group %in% c(9,8),] #Subset to age groups 8 and 9
