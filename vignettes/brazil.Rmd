@@ -138,12 +138,34 @@ if (exists("sensitivity_results")) {
 ```
 
 
-##Plots
-```{r plots, results = 'asis'}
+## Plot Observed vs expected monthly time series
+```{r plots, results = 'asis', plot.width=5, plot.height=12}
 for (group in names(plots$groups)) {
-  for (group_plot in plots$groups[[group]]) {
-    print(group_plot)
-  }
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$pred_full )
+      print(plots$groups[[group]]$pred_best )
+      print(plots$groups[[group]]$pred_time )
+      print(plots$groups[[group]]$pred_pca )
+}
+```
+
+## Plot Observed vs expected yearly time series
+```{r plots, results = 'asis', plot.width=5, plot.height=12}
+for (group in names(plots$groups)) {
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$pred_full_agg )
+      print(plots$groups[[group]]$pred_best_agg )
+      print(plots$groups[[group]]$pred_time_agg )
+      print(plots$groups[[group]]$pred_pca_agg )
+}
+```
+
+#Plot cumulative cases prevented
+
+```{r plots, results = 'asis', plot.width=5, plot.height=12}
+for (group in names(plots$groups)) {
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$cumsum_prevented )
 }
 ```
 
