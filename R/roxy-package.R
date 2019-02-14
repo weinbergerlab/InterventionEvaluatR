@@ -2,8 +2,7 @@
 #' 
 #' More detail TODO
 #' ...
-#' @name syncon-package
-#' @aliases syncon
+#' @name InterventionEvaluatR-package
 #' @docType package
 #' @title TODO
 #' @author Daniel Weinberger \email{daniel.weinberger@yale.edu}

@@ -1,10 +1,10 @@
-Package: syncon
-Title: Synthetic Control
+Package: InterventionEvaluatR
+Title: InterventionEvaluatR
 Version: 0.1
 Date: 2018-01-15
 Author: Daniel Weinberger, Ben Artin
 Maintainer: Ben Artin <ben@artins.org>
-Description: Synthetic control package
+Description: Intervention evaluation package
 Depends:
     R(>= 3.5.0)
 Imports: 

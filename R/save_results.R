@@ -5,7 +5,7 @@
 #'
 #' @export
 
-syncon.save <- function (analysis, output_file) {
+evaluatr.save <- function (analysis, output_file) {
   dir.create(dirname(output_file),
              recursive = TRUE,
              showWarnings = FALSE)
