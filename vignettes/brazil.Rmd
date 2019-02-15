@@ -161,6 +161,7 @@ for (group in names(plots$groups)) {
 ```
 
 #Plot cumulative cases prevented
+Estimated using the 'best' model, between SC and STL+PCA
 
 ```{r plots, results = 'asis', plot.width=5, plot.height=12}
 for (group in names(plots$groups)) {
