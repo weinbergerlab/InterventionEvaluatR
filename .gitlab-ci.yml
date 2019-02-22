@@ -13,8 +13,6 @@ variables:
   
 .r:
   image: registry.gitlab.com/airbornemint/interventionevaluatr/commit/default:rev-${CI_COMMIT_SHORT_SHA}
-  tags:
-    - docker-cpu:4-mem:8
   before_script:
     - mkdir -p /usr/local/lib/R/etc
     - echo "options(Ncpus = $(nproc --all))" >> "/usr/local/lib/R/etc/Rprofile.site"
@@ -32,6 +30,8 @@ variables:
   
 build-release:
   extends: .r
+  tags:
+    - docker-cpu:4
   stage: build
   script:
     - mkdir -p "${R_BUILD_DIR}"
@@ -43,6 +43,8 @@ build-release:
 
 check-release:
   extends: .r
+  tags:
+    - docker-cpu:2 # True story: R cmd check fails if you use more than 2 CPUs
   stage: check
   script:
     - Rscript -e "devtools::check_built(path = paste0('${R_BUILD_DIR}/', list.files('${R_BUILD_DIR}', pattern='InterventionEvaluatR.*t.*gz')[1]))"
