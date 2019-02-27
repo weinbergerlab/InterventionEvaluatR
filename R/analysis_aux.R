@@ -1325,3 +1325,22 @@ its_func <- function(ds1,
   rr.out <- list(rr.q.post = rr.q.post, rr.q.t = rr.q.t)
   return(rr.out)
 }
+
+single.var.mod.glmer<-function(covar1){
+  #GLMER
+  form1<-as.formula(paste0('outcome.pre~m1+m2+m3+m4+m5+m6+m7+m8+m9+m10+m11+' ,covar1, '+(1|obs)')) 
+                    mod1<-glmer(form1 ,data=covar.matrix, family=poisson(link=log) )
+                    #Manually calculate CIs
+                    covars3<-as.matrix(covar.matrix1[c('m1','m2','m3','m4','m5','m6','m7','m8','m9','m10','m11',covar1)])
+                    covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
+                    names(covars3)[1]<-"Intercept"
+                    pred.coefs.reg.mean<- mvrnorm(n = 100, mu=fixef(mod1), Sigma=vcov( mod1))
+                    preds.stage1.regmean<- as.matrix(covars3) %*% t(pred.coefs.reg.mean)
+                    preds.stage2<-rpois(n=ncol(preds.stage1.regmean)*100, exp(preds.stage1.regmean))
+                    preds.stage2<-matrix(preds.stage2, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)*100)
+                    post.preds1.manual<-preds.stage2[eval.start.index:nrow(preds.stage1.regmean),]
+                    post.preds.sums1.manual<-apply(post.preds1.manual,2,sum)
+                    post.rr1.manual<-post.obs.sum/post.preds.sums1.manual
+                    rr.post.q.glmer.manual<-quantile(post.rr1.manual,probs=c(0.025,0.5,0.975))
+                    return(rr.post.q.glmer.manual)
+}
