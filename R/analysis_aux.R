@@ -1326,12 +1326,22 @@ its_func <- function(ds1,
   return(rr.out)
 }
 
-single.var.mod.glmer<-function(covar1){
+single.var.mod.glmer<-function(ds1, outcome_name, season.dummies,intro.date, eval.period){
   #GLMER
-  form1<-as.formula(paste0('outcome.pre~m1+m2+m3+m4+m5+m6+m7+m8+m9+m10+m11+' ,covar1, '+(1|obs)')) 
-                    mod1<-glmer(form1 ,data=covar.matrix, family=poisson(link=log) )
+  outcome.pre<-ds1[,outcome_name]
+  outcome.pre[ds1$date>=intro.date] <-NA
+  covars<-names(ds1)[-c(1:3)]
+  rr.post.q.glmer.manual <- vector("list", length(covars)) 
+  for(i in 1:length(covars)){
+  covar1<-ds1[,covars[i]]
+  eval.start.index<-which(ds1$date==eval.period[1])
+  ds2<-cbind.data.frame(outcome.pre, season.dummies, scale(covar1))
+  names(ds2)[ncol(ds2)]<-covars[i]
+  ds2$obs<-as.factor(1:nrow(ds2))
+  form1<-as.formula(paste0('outcome.pre~s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+' ,covars[i], '+(1|obs)')) 
+                    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2)
                     #Manually calculate CIs
-                    covars3<-as.matrix(covar.matrix1[c('m1','m2','m3','m4','m5','m6','m7','m8','m9','m10','m11',covar1)])
+                    covars3<-as.matrix(ds2[c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11',covars[i])])
                     covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
                     names(covars3)[1]<-"Intercept"
                     pred.coefs.reg.mean<- mvrnorm(n = 100, mu=fixef(mod1), Sigma=vcov( mod1))
@@ -1340,7 +1350,10 @@ single.var.mod.glmer<-function(covar1){
                     preds.stage2<-matrix(preds.stage2, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)*100)
                     post.preds1.manual<-preds.stage2[eval.start.index:nrow(preds.stage1.regmean),]
                     post.preds.sums1.manual<-apply(post.preds1.manual,2,sum)
+                    post.obs.sum<-  sum(ds1[ eval.start.index:nrow(preds.stage1.regmean),outcome_name])
                     post.rr1.manual<-post.obs.sum/post.preds.sums1.manual
-                    rr.post.q.glmer.manual<-quantile(post.rr1.manual,probs=c(0.025,0.5,0.975))
-                    return(rr.post.q.glmer.manual)
+                    rr.post.q.glmer.manual[[i]]<-quantile(post.rr1.manual,probs=c(0.025,0.5,0.975))
+  }
+  names(rr.post.q.glmer.manual)<-covars
+                     return(rr.post.q.glmer.manual)
 }

@@ -88,7 +88,8 @@ evaluatr.init <- function(country,
     results = list(
       impact = NA,
       crossval = NA,
-      sensitivity = NA
+      sensitivity = NA,
+      univariate = NA
     ),
     
     stacking_weights.all.m = NA,
@@ -1111,3 +1112,151 @@ incrementProgressPart <- function(analysis) {
   write(paste0("Analysis part ", analysis$.private$progress_idx, " of ", analysis$.private$progress_count, ":"), stdout())
   analysis$.private$progress_idx = analysis$.private$progress_idx + 1
 }
+
+
+#' @export
+evaluatr.univariate <- function(analysis) {
+      # Setup data
+      prelog_data <-
+        analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
+      analysis$groups <-
+        as.character(unique(unlist(prelog_data[, analysis$group_name], use.names = FALSE)))
+      analysis$groups <-
+        analysis$groups[!(analysis$groups %in% analysis$.private$exclude_group)]
+      
+      # Format covars
+      prelog_data[, analysis$date_name] <-
+        as.Date(as.character(prelog_data[, analysis$date_name]),
+                tryFormats = c("%m/%d/%Y", '%Y-%m-%d','%Y/%m/%d' ))
+      
+      #test<-split(prelog_data, factor(prelog_data[,analysis$group_name]))
+      #outcome.na<-sapply(test, function(x) sum(is.na(x[,analysis$outcome_name])))
+      prelog_data[, analysis$date_name] <-
+        formatDate(prelog_data[, analysis$date_name])
+      prelog_data <- setNames(
+        lapply(
+          analysis$groups,
+          FUN = splitGroup,
+          ungrouped_data = prelog_data,
+          group_name = analysis$group_name,
+          date_name = analysis$date_name,
+          start_date = analysis$start_date,
+          end_date = analysis$end_date,
+          no_filter = c(
+            analysis$group_name,
+            analysis$date_name,
+            analysis$outcome_name,
+            analysis$denom_name
+          ),
+          sparse_threshold = analysis$sparse_threshold
+        ),
+        analysis$groups
+      )
+      #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
+      
+      #Log-transform all variables, adding 0.5 to counts of 0.
+      analysis$.private$ds <-
+        setNames(lapply(
+          prelog_data,
+          FUN = logTransform,
+          no_log = c(
+            analysis$group_name,
+            analysis$date_name,
+            analysis$outcome_name
+          )
+        ),
+        analysis$groups)
+      
+      analysis$time_points <-
+        unique(analysis$.private$ds[[1]][, analysis$date_name])
+      
+      #Monthly dummies
+      if (analysis$n_seasons == 4) {
+        dt <- quarter(as.Date(analysis$time_points))
+      }
+      if (analysis$n_seasons == 12) {
+        dt <- month(as.Date(analysis$time_points))
+      }
+      if (analysis$n_seasons == 3) {
+        dt.m <- month(as.Date(analysis$time_points))
+        dt <- dt.m
+        dt[dt.m %in% c(1, 2, 3, 4)] <- 1
+        dt[dt.m %in% c(5, 6, 7, 8)] <- 2
+        dt[dt.m %in% c(9, 10, 11, 12)] <- 3
+      }
+      season.dummies <- dummies::dummy(dt)
+      season.dummies <- as.data.frame(season.dummies)
+      names(season.dummies) <- paste0('s', 1:analysis$n_seasons)
+      season.dummies <- season.dummies[, -analysis$n_seasons]
+      
+      analysis$.private$ds <-
+        lapply(analysis$.private$ds, function(ds) {
+          if (!(analysis$denom_name %in% colnames(ds))) {
+            ds[analysis$denom_name] <- 0
+          }
+          return(ds)
+        })
+      
+      analysis$sparse_groups <-
+        sapply(analysis$.private$ds, function(ds) {
+          return(ncol(ds[!(
+            colnames(ds) %in% c(
+              analysis$date_name,
+              analysis$group_name,
+              analysis$denom_name,
+              analysis$outcome_name,
+              analysis$.private$exclude_covar
+            )
+          )]) == 0)
+        })
+      analysis$.private$ds <-
+        analysis$.private$ds[!analysis$sparse_groups]
+      if (length(analysis$.private$ds) == 0) {
+        stop("Unable to proceed with analysis: all groups are sparse")
+      }
+      analysis$groups <- analysis$groups[!analysis$sparse_groups]
+      
+      #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
+      analysis$covars = list()
+      analysis$covars$full <-
+        setNames(lapply(analysis$.private$ds, function(group) {
+          makeCovars(
+            analysis$country,
+            analysis$time_points,
+            analysis$intervention_date,
+            season.dummies,
+            group
+          )
+        }), analysis$groups)
+      analysis$covars$full <-
+        lapply(
+          analysis$covars$full,
+          FUN = function(covars) {
+            covars[,!(colnames(covars) %in% analysis$.private$exclude_covar), drop = FALSE]
+          }
+        )
+      #Standardize the outcome variable and save the original mean and SD for later analysis.
+      analysis$outcome <-
+        sapply(
+          analysis$.private$ds,
+          FUN = function(data) {
+            data[, analysis$outcome_name]
+          }
+        )
+      analysis$outcome.pre <-
+        sapply(
+          analysis$.private$ds,
+          FUN = function(data) {
+            data[, analysis$outcome_name]
+          }
+        )
+ 
+    #####
+    results<-lapply(analysis$.private$ds, single.var.mod.glmer, outcome_name=analysis$outcome_name,
+                    season.dummies=season.dummies, intro.date=analysis$post_period[1],
+                    eval.period=analysis$eval_period)  
+    analysis$results$univariate <- results
+    return(results)
+  }
+  
+
