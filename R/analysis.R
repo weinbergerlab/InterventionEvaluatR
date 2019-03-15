@@ -835,7 +835,9 @@ evaluatr.sensitivity = function(analysis) {
   return(results)
 }
 
-evaluatr.impact.pre = function(analysis) {
+
+#Formats the data
+evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   # Setup data
   prelog_data <-
     analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
@@ -991,70 +993,72 @@ evaluatr.impact.pre = function(analysis) {
   ##SECTION 1: CREATING SMOOTHED VERSIONS OF CONTROL TIME SERIES AND APPENDING THEM ONTO ORIGINAL DATAFRAME OF CONTROLS
   #EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
   # Set a list of parameters for STL
-  stl.covars <-
-    mapply(
-      smooth_func,
-      ds.list = analysis$.private$ds,
-      covar.list = analysis$covars$full,
-      SIMPLIFY = FALSE,
-      MoreArgs = list(n_seasons = analysis$n_seasons)
-    )
-  post.start.index <-
-    which(analysis$time_points == analysis$post_period[1])
-  
-  if (length(analysis$groups) > 1) {
-    stl.data.setup <-
-      mapply(
-        stl_data_fun,
-        covars = stl.covars,
-        ds.sub = analysis$.private$ds ,
-        SIMPLIFY = FALSE,
-        MoreArgs = list(
-          n_seasons = analysis$n_seasons,
-          outcome_name = analysis$outcome_name,
-          post.start.index = post.start.index
-        )
-      ) #list of lists that has covariates for each regression for each strata
-  } else{
-    stl.data.setup <-
-      list(
-        mapply(
-          stl_data_fun,
-          covars = stl.covars,
-          ds.sub = analysis$.private$ds,
-          MoreArgs = list(
-            n_seasons = analysis$n_seasons,
-            outcome_name = analysis$outcome_name,
-            post.start.index = post.start.index
+  if(run.stl==TRUE){
+        stl.covars <-
+          mapply(
+            smooth_func,
+            ds.list = analysis$.private$ds,
+            covar.list = analysis$covars$full,
+            SIMPLIFY = FALSE,
+            MoreArgs = list(n_seasons = analysis$n_seasons)
           )
-        )
-      )
-  }
-  
-  ##SECTION 2: run first stage models
-  analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
-  analysis$.private$n_cores <- max(detectCores() - 1, 1)
-  glm.results <-
-    vector("list", length = length(stl.data.setup)) #combine models into a list
-  cl <- makeCluster(analysis$.private$n_cores)
-  clusterEvalQ(cl, {
-    library(lme4, quietly = TRUE)
-  })
-  clusterExport(cl,
-                c('stl.data.setup', 'glm.fun', 'post.start.index'),
-                environment())
-  for (i in 1:length(stl.data.setup)) {
-    incrementProgressPart(analysis)
-    glm.results[[i]] <-
-      pblapply(
-        cl = cl,
-        stl.data.setup[[i]],
-        FUN = function(d) {
-          glm.fun(d, post.start.index)
+        post.start.index <-
+          which(analysis$time_points == analysis$post_period[1])
+        
+        if (length(analysis$groups) > 1) {
+          stl.data.setup <-
+            mapply(
+              stl_data_fun,
+              covars = stl.covars,
+              ds.sub = analysis$.private$ds ,
+              SIMPLIFY = FALSE,
+              MoreArgs = list(
+                n_seasons = analysis$n_seasons,
+                outcome_name = analysis$outcome_name,
+                post.start.index = post.start.index
+              )
+            ) #list of lists that has covariates for each regression for each strata
+        } else{
+          stl.data.setup <-
+            list(
+              mapply(
+                stl_data_fun,
+                covars = stl.covars,
+                ds.sub = analysis$.private$ds,
+                MoreArgs = list(
+                  n_seasons = analysis$n_seasons,
+                  outcome_name = analysis$outcome_name,
+                  post.start.index = post.start.index
+                )
+              )
+            )
         }
-      )
+        
+        ##SECTION 2: run first stage models for STL
+        analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
+        analysis$.private$n_cores <- max(detectCores() - 1, 1)
+        glm.results <-
+          vector("list", length = length(stl.data.setup)) #combine models into a list
+        cl <- makeCluster(analysis$.private$n_cores)
+        clusterEvalQ(cl, {
+          library(lme4, quietly = TRUE)
+        })
+        clusterExport(cl,
+                      c('stl.data.setup', 'glm.fun', 'post.start.index'),
+                      environment())
+        for (i in 1:length(stl.data.setup)) {
+          incrementProgressPart(analysis)
+          glm.results[[i]] <-
+            pblapply(
+              cl = cl,
+              stl.data.setup[[i]],
+              FUN = function(d) {
+                glm.fun(d, post.start.index)
+              }
+            )
+        }
+        stopCluster(cl)
   }
-  stopCluster(cl)
   ######################
   
   # Combine data
@@ -1081,6 +1085,7 @@ evaluatr.impact.pre = function(analysis) {
       ),
       analysis$groups
     )
+  if(run.stl==TRUE){
   analysis$.private$data$pca <-
     mapply(
       FUN = pca_top_var,
@@ -1094,6 +1099,7 @@ evaluatr.impact.pre = function(analysis) {
       )
     )
   names(analysis$.private$data$pca) <- analysis$groups
+  }
   #Time trend model but without a denominator
   analysis$.private$data$time_no_offset <-
     setNames(
@@ -1116,147 +1122,27 @@ incrementProgressPart <- function(analysis) {
 
 #' @export
 evaluatr.univariate <- function(analysis) {
-      # Setup data
-      prelog_data <-
-        analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
-      analysis$groups <-
-        as.character(unique(unlist(prelog_data[, analysis$group_name], use.names = FALSE)))
-      analysis$groups <-
-        analysis$groups[!(analysis$groups %in% analysis$.private$exclude_group)]
-      
-      # Format covars
-      prelog_data[, analysis$date_name] <-
-        as.Date(as.character(prelog_data[, analysis$date_name]),
-                tryFormats = c("%m/%d/%Y", '%Y-%m-%d','%Y/%m/%d' ))
-      
-      #test<-split(prelog_data, factor(prelog_data[,analysis$group_name]))
-      #outcome.na<-sapply(test, function(x) sum(is.na(x[,analysis$outcome_name])))
-      prelog_data[, analysis$date_name] <-
-        formatDate(prelog_data[, analysis$date_name])
-      prelog_data <- setNames(
-        lapply(
-          analysis$groups,
-          FUN = splitGroup,
-          ungrouped_data = prelog_data,
-          group_name = analysis$group_name,
-          date_name = analysis$date_name,
-          start_date = analysis$start_date,
-          end_date = analysis$end_date,
-          no_filter = c(
-            analysis$group_name,
-            analysis$date_name,
-            analysis$outcome_name,
-            analysis$denom_name
-          ),
-          sparse_threshold = analysis$sparse_threshold
-        ),
-        analysis$groups
-      )
-      #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
-      
-      #Log-transform all variables, adding 0.5 to counts of 0.
-      analysis$.private$ds <-
-        setNames(lapply(
-          prelog_data,
-          FUN = logTransform,
-          no_log = c(
-            analysis$group_name,
-            analysis$date_name,
-            analysis$outcome_name
-          )
-        ),
-        analysis$groups)
-      
-      analysis$time_points <-
-        unique(analysis$.private$ds[[1]][, analysis$date_name])
-      
-      #Monthly dummies
-      if (analysis$n_seasons == 4) {
-        dt <- quarter(as.Date(analysis$time_points))
-      }
-      if (analysis$n_seasons == 12) {
-        dt <- month(as.Date(analysis$time_points))
-      }
-      if (analysis$n_seasons == 3) {
-        dt.m <- month(as.Date(analysis$time_points))
-        dt <- dt.m
-        dt[dt.m %in% c(1, 2, 3, 4)] <- 1
-        dt[dt.m %in% c(5, 6, 7, 8)] <- 2
-        dt[dt.m %in% c(9, 10, 11, 12)] <- 3
-      }
-      season.dummies <- dummies::dummy(dt)
-      season.dummies <- as.data.frame(season.dummies)
-      names(season.dummies) <- paste0('s', 1:analysis$n_seasons)
-      season.dummies <- season.dummies[, -analysis$n_seasons]
-      
-      analysis$.private$ds <-
-        lapply(analysis$.private$ds, function(ds) {
-          if (!(analysis$denom_name %in% colnames(ds))) {
-            ds[analysis$denom_name] <- 0
-          }
-          return(ds)
-        })
-      
-      analysis$sparse_groups <-
-        sapply(analysis$.private$ds, function(ds) {
-          return(ncol(ds[!(
-            colnames(ds) %in% c(
-              analysis$date_name,
-              analysis$group_name,
-              analysis$denom_name,
-              analysis$outcome_name,
-              analysis$.private$exclude_covar
-            )
-          )]) == 0)
-        })
-      analysis$.private$ds <-
-        analysis$.private$ds[!analysis$sparse_groups]
-      if (length(analysis$.private$ds) == 0) {
-        stop("Unable to proceed with analysis: all groups are sparse")
-      }
-      analysis$groups <- analysis$groups[!analysis$sparse_groups]
-      
-      #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
-      analysis$covars = list()
-      analysis$covars$full <-
-        setNames(lapply(analysis$.private$ds, function(group) {
-          makeCovars(
-            analysis$country,
-            analysis$time_points,
-            analysis$intervention_date,
-            season.dummies,
-            group
-          )
-        }), analysis$groups)
-      analysis$covars$full <-
-        lapply(
-          analysis$covars$full,
-          FUN = function(covars) {
-            covars[,!(colnames(covars) %in% analysis$.private$exclude_covar), drop = FALSE]
-          }
-        )
-      #Standardize the outcome variable and save the original mean and SD for later analysis.
-      analysis$outcome <-
-        sapply(
-          analysis$.private$ds,
-          FUN = function(data) {
-            data[, analysis$outcome_name]
-          }
-        )
-      analysis$outcome.pre <-
-        sapply(
-          analysis$.private$ds,
-          FUN = function(data) {
-            data[, analysis$outcome_name]
-          }
-        )
- 
+  evaluatr.impact.pre(analysis,run.stl=FALSE) #formats the data
     #####
-    results<-lapply(analysis$.private$ds, single.var.mod.glmer, outcome_name=analysis$outcome_name,
-                    season.dummies=season.dummies, intro.date=analysis$post_period[1],
+ # analysis$.private$data$full
+    results<-lapply( analysis$.private$data$full, single.var.glmer, 
+                     n_seasons=analysis$n_seasons,
+                    intro.date=analysis$post_period[1],
+                    time_points=analysis[['time_points']],
                     eval.period=analysis$eval_period)  
-    analysis$results$univariate <- results
-    return(results)
+    univariate.aic <- lapply(results, '[[','aic.summary')
+    covar.names <- lapply(results, '[[','covar.names')
+    aic.weights<- lapply(univariate.aic, function(x) exp(-0.5*(x-min(x)))/sum(exp(-0.5*(x-min(x)))) )
+    rr.post <- lapply(results, '[[','rr.post')
+    summary.results<- vector("list", length(rr.post)) 
+    for(i in 1:length(rr.post)){
+      summary.results[[i]]<-cbind.data.frame(rr.post[[i]],round(aic.weights[[i]],3),covar.names[[i]])
+     names(summary.results[[i]])<-c('rr.lcl','rr','rr.ucl','aic.wgt','covar')
+     summary.results[[i]]<-summary.results[[i]][order(-summary.results[[i]]$aic.wgt),]
+    }
+    summary.results
+    analysis$results$univariate<-summary.results
+    return(summary.results)
   }
   
 

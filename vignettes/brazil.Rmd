@@ -66,6 +66,12 @@ analysis <- evaluatr.init(
 set.seed(1)
 ```
 
+## Run a simple analysis controlling for 1 control variable at a time
+```{r}
+ glmer_results= evaluatr.univariate(analysis)
+
+```
+
 ## Run the main analysis
 Save the results in object 'impact_results'
 ```{r main analysis, include = FALSE}
