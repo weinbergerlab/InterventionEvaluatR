@@ -1370,8 +1370,8 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
 }
 
 plot.evaluatr.univariate<-function(ds){
-  plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), ylab='')
-  arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl, length =0 )
+  plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), ylab='' , ylim=c(nrow(ds),1))
+  arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl, length =0)
   axis(side=2, at=1:length(ds$covar), labels=ds$covar,las=1, cex.axis=0.6)
   abline(v=1, lty=2, col='gray')
 }
