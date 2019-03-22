@@ -1336,6 +1336,9 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
   for(i in 1:length(covars)){
   covar1<-ds1[,covars[i]]
   eval.start.index<-which(time_points==eval.period[1])
+  months<-month(time_points)
+  season.dummies<-   dummies::dummy(months)[,1:(n_seasons-1)]
+  dimnames(season.dummies)[[2]]<-paste0('s',1:(n_seasons-1))
   ds2<-cbind.data.frame(outcome.pre, season.dummies, scale(covar1))
   names(ds2)[ncol(ds2)]<-covars[i]
   ds2$obs<-as.factor(1:nrow(ds2))
@@ -1347,7 +1350,10 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
                     covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
                     names(covars3)[1]<-"Intercept"
                     pred.coefs.reg.mean<- mvrnorm(n = 100, mu=fixef(mod1), Sigma=vcov( mod1))
-                    preds.stage1.regmean<- as.matrix(covars3) %*% t(pred.coefs.reg.mean)
+                    re.sd<-as.numeric(sqrt(VarCorr(mod1)[[1]]))
+                    preds.stage1.regmean<- as.matrix(covars3) %*% t(pred.coefs.reg.mean) 
+                    re.int<-rnorm(n<-length(preds.stage1.regmean), mean=0, sd=re.sd) 
+                    preds.stage1.regmean<-preds.stage1.regmean+re.int
                     preds.stage2<-rpois(n=ncol(preds.stage1.regmean)*100, exp(preds.stage1.regmean))
                     preds.stage2<-matrix(preds.stage2, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)*100)
                     post.preds1.manual<-preds.stage2[eval.start.index:nrow(preds.stage1.regmean),]
@@ -1361,4 +1367,11 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
   rr.post.q.glmer.manual<-round(matrix(unlist(rr.post.q.glmer.manual), ncol=3, byrow=T),2)
   results<-list('aic.summary'=aic.summary,'rr.post'=rr.post.q.glmer.manual,'covar.names'=covars)
   return(results)
+}
+
+plot.evaluatr.univariate<-function(ds){
+  plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), ylab='')
+  arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl, length =0 )
+  axis(side=2, at=1:length(ds$covar), labels=ds$covar,las=1, cex.axis=0.6)
+  abline(v=1, lty=2, col='gray')
 }

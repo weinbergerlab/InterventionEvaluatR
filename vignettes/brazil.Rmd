@@ -45,6 +45,7 @@ diseases. The columns have counts per month of hospitalizations for the causes i
     
     pnas_brazil2<-pnas_brazil[pnas_brazil$age_group %in% c(9,8),] #Subset to age groups 8 and 9
     pnas_brazil2<-pnas_brazil2[order(pnas_brazil2$age_group, pnas_brazil2$date),] #Sort data by age group and month
+    pnas_brazil2<-pnas_brazil2[as.Date(pnas_brazil2$date)>=as.Date('2004-01-01'),] #Ignore 2003
 ```
 
 ## Set parameters for analysis
@@ -67,9 +68,9 @@ set.seed(1)
 ```
 
 ## Run a simple analysis controlling for 1 control variable at a time
-```{r}
+```{r, fig.width=3, fig.height=5}
  glmer_results= evaluatr.univariate(analysis)
-
+ lapply(glmer_results,plot.evaluatr.univariate)
 ```
 
 ## Run the main analysis

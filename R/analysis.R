@@ -1123,7 +1123,8 @@ incrementProgressPart <- function(analysis) {
 #' @export
 evaluatr.univariate <- function(analysis) {
   evaluatr.impact.pre(analysis,run.stl=FALSE) #formats the data
-    #####
+  library(lme4, quietly = TRUE)
+      #####
  # analysis$.private$data$full
     results<-lapply( analysis$.private$data$full, single.var.glmer, 
                      n_seasons=analysis$n_seasons,

@@ -22,6 +22,7 @@ library(InterventionEvaluatR)
     
     pnas_brazil2<-pnas_brazil[pnas_brazil$age_group %in% c(9,8),] #Subset to age groups 8 and 9
     pnas_brazil2<-pnas_brazil2[order(pnas_brazil2$age_group, pnas_brazil2$date),] #Sort data by age group and month
+    pnas_brazil2<-pnas_brazil2[as.Date(pnas_brazil2$date)>=as.Date('2004-01-01'),] #Ignore 2003
 
 ## ----setup_data, echo=TRUE-----------------------------------------------
 
@@ -38,6 +39,10 @@ analysis <- evaluatr.init(
   denom_name = "ach_noj" #Denominator variable name
 )
 set.seed(1)
+
+## ---- fig.width=3, fig.height=5------------------------------------------
+ glmer_results= evaluatr.univariate(analysis)
+ lapply(glmer_results,plot.evaluatr.univariate)
 
 ## ----main analysis, include = FALSE--------------------------------------
 impact_results = evaluatr.impact(analysis)
@@ -87,11 +92,28 @@ if (exists("sensitivity_results")) {
   kable(sensitivity_results$sensitivity_table_intervals, align = "c")
 }
 
-## ----plots, results = 'asis'---------------------------------------------
+## ----plots, results = 'asis', plot.width=5, plot.height=12---------------
 for (group in names(plots$groups)) {
-  for (group_plot in plots$groups[[group]]) {
-    print(group_plot)
-  }
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$pred_full )
+      print(plots$groups[[group]]$pred_best )
+      print(plots$groups[[group]]$pred_time )
+      print(plots$groups[[group]]$pred_pca )
+}
+
+## ----plots2, results = 'asis', plot.width=5, plot.height=12--------------
+for (group in names(plots$groups)) {
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$pred_full_agg )
+      print(plots$groups[[group]]$pred_best_agg )
+      print(plots$groups[[group]]$pred_time_agg )
+      print(plots$groups[[group]]$pred_pca_agg )
+}
+
+## ----plots3, results = 'asis', plot.width=5, plot.height=12--------------
+for (group in names(plots$groups)) {
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$cumsum_prevented )
 }
 
 ## ----save_results, echo=FALSE--------------------------------------------
