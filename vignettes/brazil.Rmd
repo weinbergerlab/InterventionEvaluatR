@@ -77,7 +77,7 @@ set.seed(1)
 Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. this allows us to see how the use of different controls influences the results
 
 The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top.
-```{r, fig.width=3, fig.height=5}
+```{r univariate, fig.width=3, fig.height=5}
  glmer_results= evaluatr.univariate(analysis)
  lapply(glmer_results,plot.evaluatr.univariate)
 ```
@@ -116,7 +116,7 @@ if (params$crossval) {
 ```
 
 ##Plot of Rate ratios, with size proportional to cross validation weights
-```{r echo=FALSE}
+```{r mainplot1, echo=FALSE}
 plots <- evaluatr.plots(analysis)
 plots$summary
 ```
