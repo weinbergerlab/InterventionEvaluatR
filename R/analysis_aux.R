@@ -1369,7 +1369,8 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
   return(results)
 }
 
-plot.evaluatr.univariate<-function(ds){
+#' @export
+evaluatr.univariate.plot<-function(ds){
   plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), ylab='' , ylim=c(nrow(ds),1))
   arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl, length =0)
   axis(side=2, at=1:length(ds$covar), labels=ds$covar,las=1, cex.axis=0.6)

@@ -79,7 +79,7 @@ Before getting into more complicated analyses, we will first try to fit a simple
 The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top.
 ```{r univariate, fig.width=3, fig.height=5}
  glmer_results= evaluatr.univariate(analysis)
- lapply(glmer_results,plot.evaluatr.univariate)
+ lapply(glmer_results,evaluatr.univariate.plot)
 ```
 
 ## Run the main analysis
@@ -176,7 +176,7 @@ for (group in names(plots$groups)) {
 }
 ```
 
-#Plot cumulative cases prevented
+## Plot cumulative cases prevented
 Estimated using the 'best' model, between SC and STL+PCA
 
 ```{r plots3, results = 'asis', plot.width=5, plot.height=12}
@@ -186,7 +186,7 @@ for (group in names(plots$groups)) {
 }
 ```
 
-##Print results
+## Print results
 ```{r save_results, echo=FALSE}
 output_file <- "Results" # Directory where results will be saved.
 output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
