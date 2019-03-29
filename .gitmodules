@@ -1,3 +1,3 @@
-[submodule "gitlab/docker"]
-	path = gitlab/docker
-	url = ../gitlab-docker-bootstrap.git
+[submodule "gitlab/autodocker"]
+	path = gitlab/autodocker
+	url = https://gitlab.com/airbornemint/gitlab-autodocker.git

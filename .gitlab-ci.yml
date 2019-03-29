@@ -1,18 +1,19 @@
 include:
-  - project: airbornemint/gitlab-docker-bootstrap
-    file: "docker-setup.yml"
+  - project: airbornemint/gitlab-autodocker
+    file: "gitlab-autodocker.yml"
 
 stages:
-  - docker-setup
+  - autodocker
   - build
   - check
 
 variables:
   R_BUILD_DIR: "build"
   R_PACKAGE_CACHE: ".cache/r"
+  AUTODOCKER_CONTEXT_NAME: build
   
 .r:
-  image: registry.gitlab.com/airbornemint/interventionevaluatr/commit/default:rev-${CI_COMMIT_SHORT_SHA}
+  extends: .use-autodocker
   before_script:
     - mkdir -p /usr/local/lib/R/etc
     - echo "options(Ncpus = $(nproc --all))" >> "/usr/local/lib/R/etc/Rprofile.site"
@@ -50,11 +51,7 @@ check-release:
     - Rscript -e "devtools::check_built(path = paste0('${R_BUILD_DIR}/', list.files('${R_BUILD_DIR}', pattern='InterventionEvaluatR.*t.*gz')[1]))"
 
 # Set up docker image for the rest of the build, keyed off commit ID
-docker-setup:
-  extends: .docker-setup
-  stage: docker-setup
+autodocker:
+  extends: .autodocker
   tags: 
     - dind-mem:2
-  variables:
-    BUILD_DOCKER_CONTEXT: gitlab/default
-    DOCKER_BOOTSTRAP_PATH: gitlab/docker
