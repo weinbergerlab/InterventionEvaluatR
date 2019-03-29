@@ -17,6 +17,7 @@ RUN apt-get install -y -qq --no-install-recommends ${R_APT_DEPENDENCIES}
 ### Setup misc other packages needed to run our build
 ARG RUN_APT_DEPENDENCIES="tzdata locales qpdf pandoc pandoc-citeproc"
 RUN apt-get install -y -qq --no-install-recommends ${RUN_APT_DEPENDENCIES}
+RUN install2.r devtools
 
 # Finish up the configuration
 RUN echo tzdata tzdata/Areas select America >> /tmp/debconf.txt
