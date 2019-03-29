@@ -21,7 +21,8 @@ Imports:
     ggplot2,
     pogit,
     pbapply,
-    listenv
+    listenv,
+    xtable
 Suggests: 
     knitr,
     rmarkdown
