@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
 
 ---
 
-```{r setup_packages, include=FALSE}
+```{r setup_packages, include=FALSE, echo=TRUE}
 library(knitr)
 library(InterventionEvaluatR)
 ```
@@ -35,9 +35,12 @@ title: "Estimated change associated with the introduction of vaccine in Brazil"
 ---
 
 ---
-##View dataset
-We are using a dataset that has several different age groups. These represent monthly time series for a number of different
-diseases. The columns have counts per month of hospitalizations for the causes indicated by the range of ICD10 codes indicated in the header name. For instance J12_18 has the nuber of hospitalizations that had ICD10 codes in the range J12-J18 during that month in the indicated age group.  We also will subset the data (just take age groups 8 and 9. It is also *very* important to sort the data by age group and date.
+## View dataset
+We are using a dataset that has several different age groups. These represent monthly time series for a number of different diseases. The columns have counts per month of hospitalizations for the causes indicated by the range of ICD10 codes indicated in the header name. 
+
+For instance J12_18 has the nuber of hospitalizations that had ICD10 codes in the range J12-J18 during that month in the indicated age group.  We also will subset the data (just take age groups 8 and 9. It is also *very* important to sort the data by age group and date.
+
+Here we load the data and do some minor pre-processing to subset the dataset. We will just keep age group 9 (<12 month old kids) and age group 8 (80+ year old adults)
 
 ```{r viewdata, include=TRUE}
     data(pnas_brazil, package = "InterventionEvaluatR") #load the data
@@ -45,9 +48,12 @@ diseases. The columns have counts per month of hospitalizations for the causes i
     
     pnas_brazil2<-pnas_brazil[pnas_brazil$age_group %in% c(9,8),] #Subset to age groups 8 and 9
     pnas_brazil2<-pnas_brazil2[order(pnas_brazil2$age_group, pnas_brazil2$date),] #Sort data by age group and month
+    pnas_brazil2<-pnas_brazil2[as.Date(pnas_brazil2$date)>=as.Date('2004-01-01'),] #Ignore 2003
 ```
 
 ## Set parameters for analysis
+
+Here we need to set a few parameters. We Use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any).
 
 ```{r setup_data, echo=TRUE}
 
@@ -64,6 +70,16 @@ analysis <- evaluatr.init(
   denom_name = "ach_noj" #Denominator variable name
 )
 set.seed(1)
+```
+
+## Run a simple analysis controlling for 1 control variable at a time
+
+Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. this allows us to see how the use of different controls influences the results
+
+The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top.
+```{r univariate, fig.width=3, fig.height=5}
+ glmer_results= evaluatr.univariate(analysis)
+ lapply(glmer_results,evaluatr.univariate.plot)
 ```
 
 ## Run the main analysis
@@ -100,7 +116,7 @@ if (params$crossval) {
 ```
 
 ##Plot of Rate ratios, with size proportional to cross validation weights
-```{r echo=FALSE}
+```{r mainplot1, echo=FALSE}
 plots <- evaluatr.plots(analysis)
 plots$summary
 ```
@@ -160,7 +176,7 @@ for (group in names(plots$groups)) {
 }
 ```
 
-#Plot cumulative cases prevented
+## Plot cumulative cases prevented
 Estimated using the 'best' model, between SC and STL+PCA
 
 ```{r plots3, results = 'asis', plot.width=5, plot.height=12}
@@ -170,7 +186,7 @@ for (group in names(plots$groups)) {
 }
 ```
 
-##Print results
+## Print results
 ```{r save_results, echo=FALSE}
 output_file <- "Results" # Directory where results will be saved.
 output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")

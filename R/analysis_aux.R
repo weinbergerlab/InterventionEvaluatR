@@ -1325,3 +1325,54 @@ its_func <- function(ds1,
   rr.out <- list(rr.q.post = rr.q.post, rr.q.t = rr.q.t)
   return(rr.out)
 }
+
+single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period){
+  #GLMER
+  outcome.pre<-ds1[,'outcome']
+  outcome.pre[as.Date(time_points)>=intro.date] <-NA
+  covars<-names(ds1)[-c(1:n_seasons)] #names of variables to test
+  rr.post.q.glmer.manual <- vector("list", length(covars)) 
+  aic.summary <- vector("list", length(covars)) 
+  for(i in 1:length(covars)){
+  covar1<-ds1[,covars[i]]
+  eval.start.index<-which(time_points==eval.period[1])
+  months<-month(time_points)
+  season.dummies<-   dummies::dummy(months)[,1:(n_seasons-1)]
+  dimnames(season.dummies)[[2]]<-paste0('s',1:(n_seasons-1))
+  ds2<-cbind.data.frame(outcome.pre, season.dummies, scale(covar1))
+  names(ds2)[ncol(ds2)]<-covars[i]
+  ds2$obs<-as.factor(1:nrow(ds2))
+  form1<-as.formula(paste0('outcome.pre~s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+' ,covars[i], '+(1|obs)')) 
+                    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2)
+                    #Manually calculate CIs
+                    aic.summary[[i]]<-AIC(mod1) #only for reference--tough to use for mixed model
+                     covars3<-as.matrix(ds2[c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11',covars[i])])
+                    covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
+                    names(covars3)[1]<-"Intercept"
+                    pred.coefs.reg.mean<- mvrnorm(n = 100, mu=fixef(mod1), Sigma=vcov( mod1))
+                    re.sd<-as.numeric(sqrt(VarCorr(mod1)[[1]]))
+                    preds.stage1.regmean<- as.matrix(covars3) %*% t(pred.coefs.reg.mean) 
+                    re.int<-rnorm(n<-length(preds.stage1.regmean), mean=0, sd=re.sd) 
+                    preds.stage1.regmean<-preds.stage1.regmean+re.int
+                    preds.stage2<-rpois(n=ncol(preds.stage1.regmean)*100, exp(preds.stage1.regmean))
+                    preds.stage2<-matrix(preds.stage2, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)*100)
+                    post.preds1.manual<-preds.stage2[eval.start.index:nrow(preds.stage1.regmean),]
+                    post.preds.sums1.manual<-apply(post.preds1.manual,2,sum)
+                    post.obs.sum<-  sum(ds1[ eval.start.index:nrow(preds.stage1.regmean),'outcome'])
+                    post.rr1.manual<-post.obs.sum/post.preds.sums1.manual
+                    rr.post.q.glmer.manual[[i]]<-quantile(post.rr1.manual,probs=c(0.025,0.5,0.975))
+  }
+  names(rr.post.q.glmer.manual)<-covars
+  aic.summary<-unlist(aic.summary)
+  rr.post.q.glmer.manual<-round(matrix(unlist(rr.post.q.glmer.manual), ncol=3, byrow=T),2)
+  results<-list('aic.summary'=aic.summary,'rr.post'=rr.post.q.glmer.manual,'covar.names'=covars)
+  return(results)
+}
+
+#' @export
+evaluatr.univariate.plot<-function(ds){
+  plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), ylab='' , ylim=c(nrow(ds),1))
+  arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl, length =0)
+  axis(side=2, at=1:length(ds$covar), labels=ds$covar,las=1, cex.axis=0.6)
+  abline(v=1, lty=2, col='gray')
+}
