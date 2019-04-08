@@ -1036,7 +1036,11 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         
         ##SECTION 2: run first stage models for STL
         analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
-        analysis$.private$n_cores <- max(detectCores() - 1, 1)
+        if (Sys.getenv("CI") != "") {
+          analysis$.private$n_cores <- detectCores()
+        } else {
+              analysis$.private$n_cores <- max(detectCores() - 1, 1)
+        }
         glm.results <-
           vector("list", length = length(stl.data.setup)) #combine models into a list
         cl <- makeCluster(analysis$.private$n_cores)
