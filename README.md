@@ -6,6 +6,8 @@ Install and load devtools in R. Then run:
  devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR')
 library(InterventionEvaluatR)
 
+### Note to Mac users: You need to have Xcode installed on your machine; not all OS have this pre loaded. Install Xcode from the Apple App Store, and then follow the instructions above.
+
 ## Getting started
 After loading the package, run: vignette('brazil')
 
