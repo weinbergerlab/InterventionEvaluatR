@@ -1369,7 +1369,9 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
   return(results)
 }
 
+#' @importFrom graphics plot axis abline arrows
 #' @export
+
 evaluatr.univariate.plot<-function(ds){
   plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), ylab='' , ylim=c(nrow(ds),1))
   arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl, length =0)
