@@ -26,6 +26,7 @@ knitr::opts_chunk$set(
 ---
 
 ```{r setup_packages, include=FALSE, echo=TRUE}
+library(xtable)
 library(knitr)
 library(InterventionEvaluatR)
 ```
@@ -102,16 +103,16 @@ if (params$sensitivity) {
 
 ```{r sparse}
 if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(names(analysis$sparse_groups[analysis$sparse_groups])) != 0) {
-  kable(data.frame("Sparse Groups" = names(analysis$sparse_groups[analysis$sparse_groups]), check.names = FALSE), align = "c")
+  print(xtable(data.frame("Sparse Groups" = names(analysis$sparse_groups[analysis$sparse_groups]), check.names = FALSE), align = "cc"), type="html")
 }
 ```
 
 ##combine estimates
 ```{r Comparison of estimates from different models}
 if (params$crossval) {
-  kable(cbind.data.frame(crossval_results$rr_mean_stack_intervals, impact_results$full$rr_mean_intervals, impact_results$time$rr_mean_intervals, impact_results$time_no_offset$rr_mean_intervals, impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = "c")
+  print(xtable(cbind.data.frame(crossval_results$rr_mean_stack_intervals, impact_results$full$rr_mean_intervals, impact_results$time$rr_mean_intervals, impact_results$time_no_offset$rr_mean_intervals, impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = "ccccccc"), type="html")
 } else {
-  kable(cbind.data.frame(impact_results$best$rr_mean_intervals, impact_results$full$rr_mean_intervals, impact_results$time$rr_mean_intervals, impact_results$time_no_offset$rr_mean_intervals, impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = "c")
+  print(xtable(cbind.data.frame(impact_results$best$rr_mean_intervals, impact_results$full$rr_mean_intervals, impact_results$time$rr_mean_intervals, impact_results$time_no_offset$rr_mean_intervals, impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = "ccccccc"), type="html")
 }
 ```
 
@@ -143,13 +144,13 @@ rownames(incl_probs) <- NULL
 ```
 
 ```{r incl_table}
-kable(incl_probs, align = "c")
+print(xtable(incl_probs, align = rep("c", ncol(incl_probs) + 1)), type="html")
 ```
 
 ## Weight Sensitivity Analysis
 ```{r sensitivity}
 if (exists("sensitivity_results")) {
-  kable(sensitivity_results$sensitivity_table_intervals, align = "c")
+  print(xtable(sensitivity_results$sensitivity_table_intervals, align = rep("c", ncol(sensitivity_results$sensitivity_table_intervals) + 1)), type="html")
 }
 ```
 
