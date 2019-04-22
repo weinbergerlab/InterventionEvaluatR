@@ -1326,6 +1326,8 @@ its_func <- function(ds1,
   return(rr.out)
 }
 
+#' @importFrom lme4 VarCorr
+
 single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period){
   #GLMER
   outcome.pre<-ds1[,'outcome']
