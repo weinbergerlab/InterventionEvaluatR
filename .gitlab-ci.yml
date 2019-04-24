@@ -52,7 +52,7 @@ check-release:
     - vignette-webpages
     
 pages:
-  extends: .r
+  extends: .use-autodocker
   stage: pages
   variables:
     PAGES_BUILD_DIR: "public"
