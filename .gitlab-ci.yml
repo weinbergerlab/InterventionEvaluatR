@@ -57,9 +57,9 @@ pages:
   variables:
     PAGES_BUILD_DIR: "public"
   script:
-    - mkdir -p "${PAGES_BUILD_DIR}/vignettes"
+    - mkdir -p "${PAGES_BUILD_DIR}"
     - tar -C "${R_BUILD_DIR}" -xvzf "${R_BUILD_DIR}"/InterventionEvaluatR*.tar.gz
-    - cp "${R_BUILD_DIR}"/InterventionEvaluatR/vignettes/*.html "${PAGES_BUILD_DIR}/vignettes"
+    - cp "${R_BUILD_DIR}"/InterventionEvaluatR/inst/doc/*.html "${PAGES_BUILD_DIR}"
     - pandoc --from markdown --to html --standalone --output "${PAGES_BUILD_DIR}/index.html" README.md
   artifacts:
     paths:
