@@ -125,7 +125,7 @@ plots$summary
 
 ##Number of variables selected in SC analysis
 ```{r modelsize}
-print(xtable(analysis$model_size, col.names = c("Model Size"), align = "c"), type="html")
+print(xtable(setNames(data.frame(t(analysis$model_size)), c("Model Size")), align = "c"), type="html")
 ```
 
 ##Inclusion Probabilities
