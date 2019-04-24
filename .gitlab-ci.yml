@@ -6,6 +6,7 @@ stages:
   - autodocker
   - build
   - check
+  - pages
 
 variables:
   R_BUILD_DIR: "build"
@@ -47,6 +48,25 @@ check-release:
   stage: check
   script:
     - Rscript -e "devtools::check_built(path = paste0('${R_BUILD_DIR}/', list.files('${R_BUILD_DIR}', pattern='InterventionEvaluatR.*t.*gz')[1]))"
+  except:
+    - vignette-webpages
+    
+pages:
+  extends: .r
+  stage: pages
+  variables:
+    PAGES_BUILD_DIR: "public"
+  script:
+    - mkdir -p "${PAGES_BUILD_DIR}/vignettes"
+    - tar -C "${R_BUILD_DIR}" -xvzf "${R_BUILD_DIR}/InterventionEvaluatR*.tar.gz"
+    - cp "${R_BUILD_DIR}/InterventionEvaluatR/vignettes/*.html" "${PAGES_BUILD_DIR}/vignettes"
+    - pandoc --from markdown --to html --standalone --output "${PAGES_BUILD_DIR}/index.html" README.md
+  artifacts:
+    paths:
+      - public
+  environment:
+    name: production
+    url: https://airbornemint.gitlab.io/InterventionEvaluatR
 
 # Set up docker image for the rest of the build, keyed off commit ID
 autodocker:
