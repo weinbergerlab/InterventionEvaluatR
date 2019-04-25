@@ -69,6 +69,7 @@ pages:
     - build-release
   only:
     - master
+    - vignette-webpages
 
 # Set up docker image for the rest of the build, keyed off commit ID
 autodocker:
