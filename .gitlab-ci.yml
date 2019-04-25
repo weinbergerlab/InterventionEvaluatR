@@ -63,12 +63,13 @@ pages:
     paths:
       - public
   environment:
-    name: production
-    url: https://airbornemint.gitlab.io/InterventionEvaluatR
+    name: "weinbergerlab.gitlab.io"
+    url: "http://weinbergerlab.gitlab.io/InterventionEvaluatR"
   dependencies:
     - build-release
   only:
     - master
+    - vignette-webpages
 
 # Set up docker image for the rest of the build, keyed off commit ID
 autodocker:
