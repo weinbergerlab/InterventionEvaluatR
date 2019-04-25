@@ -5,8 +5,8 @@ include:
 stages:
   - autodocker
   - build
-  - check
   - pages
+  - check
 
 variables:
   R_BUILD_DIR: "build"
