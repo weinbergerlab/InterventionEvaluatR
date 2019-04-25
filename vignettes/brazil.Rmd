@@ -101,14 +101,14 @@ if (params$sensitivity) {
 #`r params$country` Results
 
 
-```{r sparse}
+```{r sparse, results="asis"}
 if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(names(analysis$sparse_groups[analysis$sparse_groups])) != 0) {
   print(xtable(data.frame("Sparse Groups" = names(analysis$sparse_groups[analysis$sparse_groups]), check.names = FALSE), align = "cc"), type="html")
 }
 ```
 
 ##combine estimates
-```{r Comparison of estimates from different models}
+```{r Comparison of estimates from different models, results="asis"}
 if (params$crossval) {
   print(xtable(cbind.data.frame(crossval_results$rr_mean_stack_intervals, impact_results$full$rr_mean_intervals, impact_results$time$rr_mean_intervals, impact_results$time_no_offset$rr_mean_intervals, impact_results$its$rr_mean_intervals, impact_results$pca$rr_mean_intervals), align = "ccccccc"), type="html")
 } else {
@@ -124,7 +124,7 @@ plots$summary
 
 
 ##Number of variables selected in SC analysis
-```{r modelsize}
+```{r modelsize, results="asis"}
 model_size = data.frame(t(analysis$model_size))
 print(xtable(setNames(model_size, c("Model Size")), align=rep("c", ncol(model_size) + 1)), type="html")
 ```
@@ -144,12 +144,12 @@ for (group in analysis$groups) {
 rownames(incl_probs) <- NULL
 ```
 
-```{r incl_table}
+```{r incl_table, results="asis"}
 print(xtable(incl_probs, align = rep("c", ncol(incl_probs) + 1)), type="html")
 ```
 
 ## Weight Sensitivity Analysis
-```{r sensitivity}
+```{r sensitivity, results="asis"}
 if (exists("sensitivity_results")) {
   print(xtable(sensitivity_results$sensitivity_table_intervals, align = rep("c", ncol(sensitivity_results$sensitivity_table_intervals) + 1)), type="html")
 }
