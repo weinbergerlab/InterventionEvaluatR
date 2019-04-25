@@ -63,8 +63,8 @@ pages:
     paths:
       - public
   environment:
-    name: production
-    url: https://airbornemint.gitlab.io/InterventionEvaluatR
+    name: "weinbergerlab.gitlab.io"
+    url: "http://weinbergerlab.gitlab.io/InterventionEvaluatR"
   dependencies:
     - build-release
   only:
