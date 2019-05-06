@@ -13,6 +13,7 @@ knitr::opts_chunk$set(
 )
 
 ## ----setup_packages, include=FALSE, echo=TRUE----------------------------
+library(xtable)
 library(knitr)
 library(InterventionEvaluatR)
 
@@ -39,8 +40,4 @@ analysis <- evaluatr.init(
   denom_name = "ach_noj" #Denominator variable name
 )
 set.seed(1)
-
-## ----univariate, fig.width=3, fig.height=5-------------------------------
- glmer_results= evaluatr.univariate(analysis)
- lapply(glmer_results,plot.evaluatr.univariate)
 

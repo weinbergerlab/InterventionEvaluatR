@@ -1356,8 +1356,10 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
                     preds.stage1.regmean<- as.matrix(covars3) %*% t(pred.coefs.reg.mean) 
                     re.int<-rnorm(n<-length(preds.stage1.regmean), mean=0, sd=re.sd) 
                     preds.stage1.regmean<-preds.stage1.regmean+re.int
-                    preds.stage2<-rpois(n=ncol(preds.stage1.regmean)*100, exp(preds.stage1.regmean))
+             
+                    preds.stage2<-rpois(n=length(preds.stage1.regmean)*100, exp(preds.stage1.regmean))
                     preds.stage2<-matrix(preds.stage2, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)*100)
+                    
                     post.preds1.manual<-preds.stage2[eval.start.index:nrow(preds.stage1.regmean),]
                     post.preds.sums1.manual<-apply(post.preds1.manual,2,sum)
                     post.obs.sum<-  sum(ds1[ eval.start.index:nrow(preds.stage1.regmean),'outcome'])
