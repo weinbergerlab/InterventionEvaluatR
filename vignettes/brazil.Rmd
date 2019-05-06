@@ -26,6 +26,13 @@ knitr::opts_chunk$set(
 ---
 
 ```{r setup_packages, include=FALSE, echo=TRUE}
+##THE FIRST TIME YOU USE THE PACKAGE, RUN THE FOLLOWING CODE
+#install.packages('devtools') 
+#library(devtools) 
+
+#YOU WILL NEED TO MANUALLY SELECT A NUMBER AFTER RUNNIN THE FOLLOWING LINE TO INDICATE WHETHER YOU WANT TO UPDATE PACKAGES
+#devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR') 
+
 library(xtable)
 library(knitr)
 library(InterventionEvaluatR)
@@ -82,6 +89,8 @@ The results are ordered by goodness of fit (based on AIC scores), with best fitt
  glmer_results= evaluatr.univariate(analysis)
  lapply(glmer_results,evaluatr.univariate.plot)
 ```
+
+
 
 ## Run the main analysis
 Save the results in object 'impact_results'
