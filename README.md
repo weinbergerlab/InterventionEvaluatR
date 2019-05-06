@@ -2,15 +2,17 @@
 This package is designed to run several different types of analyses to evaluate the effect of interventions using time series data of counts. The package implements synthetic controls analyses (Broderson; Bruhn), STL+PCA analysis (Shioda), a simple time trend analysis (with or without an offset term), and a classic interrupted time series analysis. In all approaches, a Poisson model is used with an observation-level random intercept to capture overdispersion. The synthetic controls analysis uses Bayesian variable selection (spike and slab priors, as implemented in the pogit package) to fit the model.
 
 ## Installing the package:
-Install and load devtools in R. Then run:
- devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR')
+Install and load devtools in R.
+#install.packages('devtools')
+library(devtools)
+devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR')
 library(InterventionEvaluatR)
 
 ### Note to Mac users: 
 You need to have Xcode installed on your machine; not all OS have this pre loaded. Install Xcode from the Apple App Store, and then follow the instructions above.
 
 ## Getting started
-After loading the package, run: vignette('brazil')
+After loading the package, run: vignette('brazil'). You can view the compiled vignette at https://weinbergerlab.gitlab.io/InterventionEvaluatR/brazil.html
 
 ## Sample Data
 
