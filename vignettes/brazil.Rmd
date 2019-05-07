@@ -53,8 +53,26 @@ Here we load the data and do some minor pre-processing to subset the dataset. We
 ```{r viewdata, include=TRUE}
     data(pnas_brazil, package = "InterventionEvaluatR") #load the data
     head(pnas_brazil[,1:5]) #View first few rows and columns
-    
-    pnas_brazil2<-pnas_brazil[pnas_brazil$age_group %in% c(9,8),] #Subset to age groups 8 and 9
+```
+
+Ensure your date variable is in an R date format. If your variable is in a character or factor format, you need to tell R the format. 
+-- %m is a 2 digit month; %b is a month abbreviation (ie Jan, Feb)
+-- %d is a 2 digit day (0-31), 
+-- %Y is a 4 digit year (e.g. 2011), %y is a 2 digit year (e.g. 11).  
+These codes are separated by a dash or slash or space. Modify the tryFormats script below if needed to match the format in your dataset
+```{r}
+
+pnas_brazil$date<-as.Date(pnas_brazil$date, tryFormats=c('%Y-%m-%d',
+                                                    '%m-%d-%Y',
+                                                    '%m/%d/%Y',
+                                                    '%Y/%m/%d',
+                                                    '%d/%m/%Y'
+                                                    ) )
+```
+
+Subset the dataset; restricting to age group 9 (<12m old kids) and date after Jan 1 2004.
+```{r}
+    pnas_brazil2<-pnas_brazil[pnas_brazil$age_group %in% c(9),] #Subset to age groups 8 and 9
     pnas_brazil2<-pnas_brazil2[order(pnas_brazil2$age_group, pnas_brazil2$date),] #Sort data by age group and month
     pnas_brazil2<-pnas_brazil2[as.Date(pnas_brazil2$date)>=as.Date('2004-01-01'),] #Ignore 2003
 ```
