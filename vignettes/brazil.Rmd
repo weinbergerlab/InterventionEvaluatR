@@ -184,7 +184,7 @@ if (exists("sensitivity_results")) {
 
 
 ## Plot Observed vs expected monthly time series
-```{r plots, results = 'asis', plot.width=5, plot.height=12}
+```{r plots, results = 'asis', fig.width=5, fig.height=4}
 for (group in names(plots$groups)) {
       par(mfrow=c(4,1))
       print(plots$groups[[group]]$pred_full )
@@ -195,7 +195,7 @@ for (group in names(plots$groups)) {
 ```
 
 ## Plot Observed vs expected yearly time series
-```{r plots2, results = 'asis', plot.width=5, plot.height=12}
+```{r plots2, results = 'asis', fig.width=5, fig.height=4}
 for (group in names(plots$groups)) {
       par(mfrow=c(4,1))
       print(plots$groups[[group]]$pred_full_agg )
@@ -208,7 +208,7 @@ for (group in names(plots$groups)) {
 ## Plot cumulative cases prevented
 Estimated using the 'best' model, between SC and STL+PCA
 
-```{r plots3, results = 'asis', plot.width=5, plot.height=12}
+```{r plots3, results = 'asis', fig.width=5, fig.height=4}
 for (group in names(plots$groups)) {
       par(mfrow=c(4,1))
       print(plots$groups[[group]]$cumsum_prevented )
