@@ -837,6 +837,7 @@ evaluatr.sensitivity = function(analysis) {
 
 
 #Formats the data
+#' @importFrom plyr rbind.fill
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   # Setup data
   prelog_data <-
