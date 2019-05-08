@@ -1123,7 +1123,20 @@ incrementProgressPart <- function(analysis) {
   analysis$.private$progress_idx = analysis$.private$progress_idx + 1
 }
 
-
+#' Perform analysis controling for 1 variable at a time
+#' @param analysis Analysis object, initialized by TODO.init.
+#' @return Univariate analysis results, `results`, as described below
+#'
+#' `results$rr` Rate ratio (RR) estimate (median) from single control model
+#' 
+#' `results$rr.ucl` RR Upper 95% CrI from single control model
+#' 
+#' `results$rr.lcl` RR Lower 95% CrI from single control model
+#'  
+#' `results$aic.wgt` Akaike weight of the univariate model
+#' 
+#' `results$covar` Name of the control variable used for adjustment
+#'
 #' @export
 evaluatr.univariate <- function(analysis) {
   evaluatr.impact.pre(analysis,run.stl=FALSE) #formats the data
