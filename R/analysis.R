@@ -856,8 +856,9 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   }))
   for(i in 1:length(prelog_data.split)){
     var.floor <- 1e-6
-    bad.cols <- !is.na(variance.vars[[i]]) & variance.vars[[i]] < 1e-6
-    for (name in  names(prelog_data.split[[i]])[bad.cols]) {
+    # Flag low-variance columns; don't touch data in group/date/denom/outcome columns
+    bad.cols <- !is.na(variance.vars[[i]]) & variance.vars[[i]] < 1e-6 & !(names(prelog_data) %in% c(analysis$group_name, analysis$date_name, analysis$outcome_name, analysis$denom_name))
+    for (name in names(prelog_data.split[[i]])[bad.cols]) {
       warning(paste0("Data for '", name, "' removed from group '", names(prelog_data.split)[i], "' due to zero variance.\n"))
     }
     prelog_data.split[[i]] <- prelog_data.split[[i]][,!bad.cols]
