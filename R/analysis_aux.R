@@ -1373,7 +1373,10 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
   return(results)
 }
 
+#' Generate plot of univariate results
 #' @importFrom graphics plot axis abline arrows
+#' @param ds Object imported from evaluatr.univariate
+#' @return Univariate analysis plot, `results`, as described below
 #' @export
 
 evaluatr.univariate.plot<-function(ds){

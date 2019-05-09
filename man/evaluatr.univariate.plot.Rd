@@ -6,6 +6,9 @@
 \usage{
 evaluatr.univariate.plot(ds)
 }
+\arguments{
+\item{ds}{Object imported from evaluatr.univariate}
+}
 \value{
 Univariate analysis plot, `results`, as described below
 }
