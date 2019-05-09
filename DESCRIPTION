@@ -8,6 +8,7 @@ Description: Intervention evaluation package
 Depends:
     R(>= 3.5.0)
 Imports: 
+    plyr,
     parallel,
     pomp,
     splines,
