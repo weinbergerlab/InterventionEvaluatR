@@ -59,6 +59,7 @@
 #' `analysis$sparse_threshold` as passed to `sparse_threshold`
 #'
 #' @importFrom listenv listenv
+#' @importFrom lubridate is.Date
 #' @export
 
 evaluatr.init <- function(country,
@@ -136,22 +137,39 @@ evaluatr.init <- function(country,
   analysis$year_def <-
     year_def #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
   
+  normalizeDate <- function(d) {
+    if (is.Date(d)) {
+      d
+    } else {
+      as.Date(as.character(d), tryFormats = c("%m/%d/%Y", '%Y-%m-%d','%Y/%m/%d'))
+    }
+  }
   
+
+  # Parse date formats of various inputs  
+  data[, date_name] <- normalizeDate(data[, date_name])
+  post_period_start <- normalizeDate(post_period_start)
+  post_period_end <- normalizeDate(post_period_end)
+  eval_period_start <- normalizeDate(eval_period_start)
+  eval_period_end <- normalizeDate(eval_period_end)
+  
+
+  # Identify various significant dates  
   if(pre_period_start=='start'){
   first.date.data<-
-      as.character(sort(unique(data[,date_name]))[1])
+      sort(unique(data[,date_name]))[1]
   }else{
-    first.date.data<-pre_period_start
+    first.date.data<-normalizeDate(pre_period_start)
   }
   
   #MOST DATES MUST BE IN FORMAT "YYYY-MM-01", exception is end of pre period, which is 1 day before end of post period
+  analysis$post_period <-
+    as.Date(c(post_period_start, post_period_end)) #Range from the intervention date to the end date.
   analysis$pre_period_end<- 
     analysis$post_period[1] - 1
   analysis$pre_period <-
     as.Date(c(first.date.data, analysis$pre_period_end)) #Range over which the data is trained for the CausalImpact model.
   analysis$start_date <- analysis$pre_period[1]
-  analysis$post_period <-
-    as.Date(c(post_period_start, post_period_end)) #Range from the intervention date to the end date.
   analysis$intervention_date <- analysis$post_period[1] - 1
   analysis$end_date <- analysis$post_period[2]
   
@@ -871,10 +889,6 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   }
   
   # Format covars
-  prelog_data[, analysis$date_name] <-
-    as.Date(as.character(prelog_data[, analysis$date_name]),
-            tryFormats = c("%m/%d/%Y", '%Y-%m-%d','%Y/%m/%d' ))
-  
   #test<-split(prelog_data, factor(prelog_data[,analysis$group_name]))
   #outcome.na<-sapply(test, function(x) sum(is.na(x[,analysis$outcome_name])))
   prelog_data[, analysis$date_name] <-
