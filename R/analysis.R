@@ -837,6 +837,7 @@ evaluatr.sensitivity = function(analysis) {
 
 
 #Formats the data
+#' @importFrom plyr rbind.fill
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   # Setup data
   prelog_data <-
@@ -845,6 +846,29 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
     as.character(unique(unlist(prelog_data[, analysis$group_name], use.names = FALSE)))
   analysis$groups <-
     analysis$groups[!(analysis$groups %in% analysis$.private$exclude_group)]
+    
+  # Identify variables and groups that have zero variance
+  # Zero-variance groups within a variable are replaced with NA
+  # Entire zero-variance variables are removed from analysis
+  prelog_data.split <- split(prelog_data, prelog_data[[analysis$group_name]])
+  variance.vars <- lapply(prelog_data.split, function(group) apply(group[1:nrow(group),], 2, function(row) { 
+    suppressWarnings(var(row))
+  }))
+  for(i in 1:length(prelog_data.split)){
+    var.floor <- 1e-6
+    # Flag low-variance columns; don't touch data in group/date/denom/outcome columns
+    bad.cols <- !is.na(variance.vars[[i]]) & variance.vars[[i]] < 1e-6 & !(names(prelog_data) %in% c(analysis$group_name, analysis$date_name, analysis$outcome_name, analysis$denom_name))
+    for (name in names(prelog_data.split[[i]])[bad.cols]) {
+      warning(paste0("Data for '", name, "' removed from group '", names(prelog_data.split)[i], "' due to zero variance.\n"))
+    }
+    prelog_data.split[[i]] <- prelog_data.split[[i]][,!bad.cols]
+  }
+  names.before = names(prelog_data)
+  prelog_data <- rbind.fill(prelog_data.split)
+  names.after = names(prelog_data)
+  for (name in setdiff(names.before, names.after)) {
+    warning(paste0("Data for '", name, "' removed from all groups due to zero variance.\n"))
+  }
   
   # Format covars
   prelog_data[, analysis$date_name] <-
