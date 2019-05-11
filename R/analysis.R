@@ -855,7 +855,7 @@ evaluatr.sensitivity = function(analysis) {
 
 
 #Formats the data
-#' @importFrom plyr rbind.fill
+#' @importFrom plyr rbind.fill arrange
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   # Setup data
   prelog_data <-
@@ -883,6 +883,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   }
   names.before = names(prelog_data)
   prelog_data <- rbind.fill(prelog_data.split)
+  prelog_data <- arrange(prelog_data, prelog_data[[analysis$group_name]], prelog_data[[analysis$date_name]])
   names.after = names(prelog_data)
   for (name in setdiff(names.before, names.after)) {
     warning(paste0("Data for '", name, "' removed from all groups due to zero variance.\n"))
