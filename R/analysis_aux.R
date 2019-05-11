@@ -488,15 +488,23 @@ rrPredQuantiles <-
     
     eval_obs <- sum(impact$observed.y[eval_indices])
     
+    # Time values
+    # * If year_def is cal_year, then times are (numeric) years.
+    #   For example, a data point in year 2000 will have numeric time value of 2000
+    # * If year_def is epi_year, then times are (numeric) years corresponding to the first year in the jul-jun epi year
+    #   For example, a data point in June 2000 will have numeric time value of 1999.
+    #   On the other hand, a data point in July 2000 will have numeric time value of 2000.
+    
     if (year_def == 'epi_year') {
       yr <- year(time_points)
       month <- month(time_points)
       yr[month <= 6] <- yr[month <= 6] - 1
-      year <- as.factor(paste0(yr - 1, '/', yr))
+      year <- yr
     } else{
       year <- year(time_points)
     }
-    #aggregate observed and predicted
+
+        #aggregate observed and predicted
     obs.y.year <- tapply(impact$observed.y, year, sum)
     pred.yr.spl <- split(as.data.frame(pred_samples), year)
     pred.yr.spl.sum <-
@@ -778,6 +786,7 @@ plotPred <-
   }
 
 #Plot aggregated predictions.
+#' @importFrom ggplot2 scale_x_date waiver
 plotPredAgg <-
   function(ann_pred_quantiles,
            time_points,
@@ -790,27 +799,34 @@ plotPredAgg <-
            sensitivity_pred_quantiles = NULL,
            sensitivity_title = 'Sensitivity Plots',
            plot_sensitivity = FALSE) {
+    
+    # See rrPredQuantiles about the meaning of time values. Short version, numeric X for cal_years and factor "X/X+1" for epi_years.
+
+    # Intervention marker is a vertical line placed midway between 
+    # a. the last complete year preceding the post period
+    # b. the first year overlapping the post period
+    
     # Convert intervention date (a date) into the corresponding X-axis value
     if (year_def == 'epi_year') {
-      # If year_def is epi_year, then time axis scale is a factor containing epi year names such as "2009/2010"
-      month.int <- month(intervention_date)
-      year.int <- year(intervention_date)
-      epiyr.int <- ifelse(month.int <=6, year.int - 1, year.int)
-      epiyr.start <- paste0(epiyr.int, "-07-01")
-      epiyr.end <- paste0(epiyr.int + 1, "-06-30")
-      
-      decimal.int <- time_length(interval(epiyr.start, intervention_date)) / time_length(interval(epiyr.start, epiyr.end))
-      
-      year.intervention <-
-        which(as.numeric(substr(
-          as.character(ann_pred_quantiles$year), 1, 4
-        )) == epiyr.int) + decimal.int
-    } else{
-      # Otherwise, time axis scale is a number such as 2009; we just need to convert the date to a decimal value
-      year.intervention = year(intervention_date)
-      last_date = yday(paste0(year.intervention, "-12-31"))
-      year.intervention <- year.intervention + yday(intervention_date) / last_date
+      # epi_year. Years span from July of year N to Jun of year N+1, and values are N from rrPredQuantiles.
+      # Marker goes 0.5 years before the beginning of the first year overlapping the post period (identified from intervention_date+1), 
+      # which is (approximately) the same as being at the beginning of year N
+      month.post <- month(intervention_date + 1)
+      year.post <- year(intervention_date + 1)
+      year.post = ifelse(month.post <= 6, year.post - 1, year.post)
+      # Time axis labels are "year/year" for epi years
+      date.labels = function(date) { 
+        paste0(year(date), '/', year(date) + 1)
+      }
+    } else {
+      # cal_year. Time axis is numeric. Years span from N to N+1. Marker goes 0.5 years before beginning of year containing start of post period, which is at intervention_date+1
+      year.post = year(intervention_date + 1)
+      # Default time axis labels are fine for calendar years
+      date.labels = waiver()
     }
+    # Put the intervention marker at 0.5 years before the first post-intervention year
+    year.intervention = as.Date(paste0(year.post - 1, "-07-01"))
+
     #how mny time points in each aggregation period?
     if (year_def == 'epi_year') {
       yrvec <- year(time_points)
@@ -822,6 +838,10 @@ plotPredAgg <-
       n.months.year <- as.vector(table(year(time_points)))
     }
     
+    year.date <- function(y) {
+      as.Date(paste0(y, "-01-01"), "%Y-%m-%d")
+    }
+    
     ann_pred_quantiles[, c('2.5%', '50%', '97.5%', 'obs')] <-
       ann_pred_quantiles[, c('2.5%', '50%', '97.5%', 'obs')] * 12 / n.months.year # for partial years, inflate the counts proportional to N months
     pred_plot <- ggplot() +
@@ -829,17 +849,17 @@ plotPredAgg <-
       geom_ribbon(
         data = ann_pred_quantiles,
         aes(
-          x = as.numeric(year),
+          x = year.date(year),
           ymin = ann_pred_quantiles$'2.5%',
           ymax = ann_pred_quantiles$'97.5%'
         ),
         alpha = 0.5,
         fill = 'lightgray'
       ) +
-      geom_point(data = ann_pred_quantiles, aes_string(x = as.numeric(ann_pred_quantiles$year), y = ann_pred_quantiles$obs)) +
+      geom_point(data = ann_pred_quantiles, aes_string(x = year.date(ann_pred_quantiles$year), y = ann_pred_quantiles$obs)) +
       geom_line(
         data = ann_pred_quantiles,
-        aes_string(x = as.numeric(ann_pred_quantiles$year), y = ann_pred_quantiles$'50%'),
+        aes_string(x = year.date(ann_pred_quantiles$year), y = ann_pred_quantiles$'50%'),
         linetype = 'solid',
         color = 'black'
       ) +
@@ -850,6 +870,7 @@ plotPredAgg <-
       ylim(0, max(ann_pred_quantiles$'97.5%')) +
       ggtitle(title) +
       theme_bw() +
+      scale_x_date(labels = date.labels) +
       #scale_x_continuous(breaks = 1:nrow(ann_pred_quantiles), labels = levels(ann_pred_quantiles$year)) +
       theme(
         axis.line = element_line(colour = "black"),
