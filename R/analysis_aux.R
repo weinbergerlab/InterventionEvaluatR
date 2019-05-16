@@ -1255,7 +1255,9 @@ its_func <- function(ds1,
   ds1$post2[time_points >= eval_period[1]] <- 1
   ds1$time_index <- ds1$time_index / max(ds1$time_index)
   ds1$obs <- 1:nrow(ds1)
-  ds1$log.offset <- scale(ds1$log.offset)
+  if (max(ds1$log.offset) > min(ds1$log.offset)) {
+    ds1$log.offset <- scale(ds1$log.offset)
+  }
   eval_indices <-
     match(which(time_points == eval_period[1]), (1:length(ds1$obs))):match(which(time_points ==
                                                                                    eval_period[2]), (1:length(ds1$obs)))
@@ -1274,7 +1276,7 @@ its_func <- function(ds1,
     )
   #GENERATE PREDICTIONS
   covars3 <-
-    as.matrix(cbind(ds1[, c(
+    cbind(ds1[, c(
       's1',
       's2',
       's3',
@@ -1291,7 +1293,13 @@ its_func <- function(ds1,
       'post1',
       'post2'
     )], ds1$time_index * ds1$post1,
-    ds1$time_index * ds1$post2))
+    ds1$time_index * ds1$post2)
+  # If log.offset is degenerate, then it was dropped by glmer and excluded from mod1, and
+  # therefore it should also be excluded from covars3 (otherwise matrix multiplication will fail a few lines below)
+  if (max(ds1$log.offset) == min(ds1$log.offset)) {
+    covars3 = subset(covars3, select=-log.offset)
+  }
+  covars3 = as.matrix(covars3)
   covars3 <- cbind.data.frame(rep(1, times = nrow(covars3)), covars3)
   names(covars3)[1] <- "Intercept"
   pred.coefs.reg.mean <-
@@ -1306,7 +1314,7 @@ its_func <- function(ds1,
   
   #Then for counterfactual, set post-vax effects to 0.
   covars3.cf <-
-    as.matrix(cbind(ds1[, c(
+    cbind(ds1[, c(
       's1',
       's2',
       's3',
@@ -1322,7 +1330,11 @@ its_func <- function(ds1,
       'time_index'
     )], matrix(
       0, nrow = nrow(ds1), ncol = 4
-    )))
+    ))
+  if (max(ds1$log.offset) == min(ds1$log.offset)) {
+    covars3.cf = subset(covars3.cf, select=-log.offset)
+  }
+  covars3.cf = as.matrix(covars3.cf)
   covars3.cf <-
     cbind.data.frame(rep(1, times = nrow(covars3.cf)), covars3.cf)
   preds.stage1.regmean.cf <-
