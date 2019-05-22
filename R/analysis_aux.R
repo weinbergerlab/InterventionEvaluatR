@@ -58,7 +58,7 @@ makeCovars <-
            intervention_date,
            season.dummies,
            ds_group) {
-    if (country == "Brazil") {
+    if (country == "BrazilADJ2008") {
       #Eliminates effects from 2008 coding change
       covars <- ds_group[, 4:ncol(ds_group)]
       month_i <- as.factor(as.numeric(format(time_points, '%m')))
