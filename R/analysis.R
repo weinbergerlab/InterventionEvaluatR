@@ -155,10 +155,10 @@ evaluatr.init <- function(country,
   
 
   # Identify various significant dates  
-  if(pre_period_start=='start'){
   first.date.data<-
       sort(unique(data[,date_name]))[1]
   }else{
+  if(!is.Date(pre_period_start) && pre_period_start=='start'){
     first.date.data<-normalizeDate(pre_period_start)
   }
   
