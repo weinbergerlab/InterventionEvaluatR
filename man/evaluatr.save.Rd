@@ -4,12 +4,14 @@
 \alias{evaluatr.save}
 \title{Save data for TODO}
 \usage{
-evaluatr.save(analysis, output_file)
+evaluatr.save(analysis, output_file, prune = TRUE)
 }
 \arguments{
 \item{analysis}{Analysis object, initialized by TODO.init.}
 
 \item{output_file}{An Rds file in which analysis results will be saved.}
+
+\item{prune}{If TRUE (default) then diagnostic data is not saved. If FALSE, diagnostic data is saved (making the output file much larger).}
 }
 \description{
 Save data for TODO
