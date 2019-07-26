@@ -547,7 +547,7 @@ rrPredQuantiles <-
                probs = c(0.025, 0.5, 0.975),
                na.rm = TRUE)
     names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
-    rr.hdi <- c(rr[,'Point Estimate'], hdi(eval_rr_sum, credMass = 0.95)) 
+    rr.hdi <- c(rr['Point Estimate'], hdi(eval_rr_sum, credMass = 0.95)) 
     mean_rr <- mean(eval_rr_sum)
     sd_log_rr <- sd(log(eval_rr_sum))
     
@@ -1245,7 +1245,8 @@ cumsum_func <-
            quantiles,
            outcome,
            time_points,
-           post_period) {
+           post_period, 
+           hdi=FALSE) {
     is_post_period <- which(time_points >= post_period[1])
     is_pre_period <- which(time_points < post_period[1])
     
@@ -1268,6 +1269,10 @@ cumsum_func <-
         probs = c(0.025, 0.5, 0.975),
         na.rm = TRUE
       ))
+    if(hdi==TRUE){
+    cumsum_prevented <- cbind(cumsum_prevented[,'50%'],  t(hdi( t(cumsum_cases_prevented),credMass = 0.95 )))
+    }
+    return(cumsum_prevented)
   }
 
 #Classic its setup

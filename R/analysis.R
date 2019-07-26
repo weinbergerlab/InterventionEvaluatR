@@ -389,6 +389,17 @@ evaluatr.impact = function(analysis) {
         analysis$post_period,
         simplify = 'array'
       )
+    results[[variant]]$cumsum_prevented_hdi <-
+      sapply(
+        analysis$groups,
+        FUN = cumsum_func,
+        quantiles = results[[variant]]$quantiles,
+        outcome = analysis$outcome,
+        analysis$time_points,
+        analysis$post_period,
+        hdi=T,
+        simplify = 'array'
+      )
   }
   
   #Run a classic ITS analysis
