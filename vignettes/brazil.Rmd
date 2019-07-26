@@ -143,6 +143,7 @@ if (params$crossval) {
 }
 ```
 
+
 ##Cases averted
 How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series
 ```{r}
@@ -221,6 +222,27 @@ for (group in names(plots$groups)) {
       par(mfrow=c(4,1))
       print(plots$groups[[group]]$cumsum_prevented )
 }
+```
+
+
+### Use HDI intervals instead
+The package calcuates both an equal-tail 95% credible interval and a 95% highest posterior density interval (HPD or HDI interval). The latter might be more appropriate when the posterior distribution is skewed. The objects with HDI intervals are saved with an appendix of 'HDI' so --impact_results$best$pred_quantiles gives the estimate for equal tail intervals while --impact_results$best$pred_quantiles_HDI gives the estimate for the HDI interval
+--impact_results$best$cumsum_prevented_hdi gives the estimate of cumulative cases prevented using HPI
+--impact_results$best$ann_pred_HDI gives the annual predicted cases with HDI intervals
+--impact_results$best$rr_mean_HDI gives the overall rate ratio caclulated with HDI intervals
+-- impact_results$best$log_rr_hdi gives the pointswise log-RR with HDI intervals
+Here we compare the version calculated with equal-tailed intervals with HPD intervals. In this example they give very similar coverage
+```{r}
+impact_results$best$rr_mean
+impact_results$best$rr_mean_hdi
+
+```
+
+Compare pointwise coverage of the 95% CrI calculated as HDI or equal-tailed. In this example they are nearly identical
+```{r}
+matplot(impact_results$best$pred_quantiles_HDI[,,1], type='l', col='gray', lty=c(2,1,2), bty='l', ylim=c(0, max(impact_results$best$pred_quantiles_HDI[,,1])), ylab='Count')
+matplot(impact_results$best$pred_quantiles[,,1], type='l', col='red', lty=c(2,1,2), bty='l', ylim=c(0, max(impact_results$best$pred_quantiles_HDI[,,1])), ylab='Count', add=T)
+points(analysis$input_data[, analysis$outcome_name])
 ```
 
 ## Print results
