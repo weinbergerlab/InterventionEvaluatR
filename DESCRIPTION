@@ -23,7 +23,8 @@ Imports:
     pogit,
     pbapply,
     listenv,
-    xtable
+    xtable,
+    HDInterval
 Suggests: 
     knitr,
     rmarkdown
