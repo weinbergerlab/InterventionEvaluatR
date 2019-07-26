@@ -143,12 +143,21 @@ if (params$crossval) {
 }
 ```
 
+##Cases averted
+How many cases were prevented from the time of vaccine introduction to the last time point?
+You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series
+```{r}
+last.point<-dim(impact_results$best$cumsum_prevented)[1]
+cum.prevented<-impact_results$best$cumsum_prevented[last.point,,]
+print(cum.prevented)
+```
+
+
 ##Plot of Rate ratios, with size proportional to cross validation weights
 ```{r mainplot1, echo=FALSE}
 plots <- evaluatr.plots(analysis)
 plots$summary
 ```
-
 
 ##Number of variables selected in SC analysis
 ```{r modelsize, results="asis"}
