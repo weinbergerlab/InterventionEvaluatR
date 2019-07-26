@@ -75,12 +75,12 @@ makeCovars <-
     } else {
       covars <- ds_group[, 4:ncol(ds_group), drop = FALSE]
     }
-    if (intervention_date > as.Date('2009-09-01')) {
-      covars$pandemic <-
-        ifelse(time_points == '2009-08-01',
-               1,
-               ifelse(time_points == '2009-09-01', 1, 0))
-    }
+    # if (intervention_date > as.Date('2009-09-01')) {
+    #   covars$pandemic <-
+    #     ifelse(time_points == '2009-08-01',
+    #            1,
+    #            ifelse(time_points == '2009-09-01', 1, 0))
+    # }
     covars <-
       as.data.frame(lapply(covars[, apply(covars, 2, var) != 0, drop = FALSE], scale), check.names = FALSE)
     covars <- cbind(season.dummies, covars)
