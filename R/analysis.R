@@ -223,6 +223,7 @@ evaluatr.init <- function(country,
 #' @importFrom pomp logmeanexp
 #' @importFrom reshape melt
 #' @importFrom MASS mvrnorm
+#' @importFrom HDInterval hdi
 #' @importFrom RcppRoll roll_sum
 #' @importFrom pogit poissonBvs
 #' @importFrom parallel detectCores makeCluster clusterEvalQ clusterExport stopCluster
@@ -303,8 +304,12 @@ evaluatr.impact = function(analysis) {
     # Predictions, aggregated by year
     results[[variant]]$pred_quantiles <-
       sapply(results[[variant]]$quantiles, getPred, simplify = 'array')
+    results[[variant]]$pred_quantiles_HDI <-
+      sapply(results[[variant]]$quantiles, getPredHDI, simplify = 'array')
     results[[variant]]$ann_pred_quantiles <-
       sapply(results[[variant]]$quantiles, getAnnPred, simplify = FALSE)
+    results[[variant]]$ann_pred_HDI <-
+      sapply(results[[variant]]$quantiles, getAnnPredHDI, simplify = FALSE)
   }
   
   for (variant in c('full', 'best')) {
@@ -350,6 +355,8 @@ evaluatr.impact = function(analysis) {
     # Rate ratios for evaluation period.
     results[[variant]]$rr_mean <-
       t(sapply(results[[variant]]$quantiles, getRR))
+    results[[variant]]$rr_mean_hdi <-
+      t(sapply(results[[variant]]$quantiles, getRRHDI))
   }
   
   results$best$log_rr <- t(sapply(results$best$quantiles, getsdRR))
