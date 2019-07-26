@@ -144,8 +144,7 @@ if (params$crossval) {
 ```
 
 ##Cases averted
-How many cases were prevented from the time of vaccine introduction to the last time point?
-You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series
+How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series
 ```{r}
 last.point<-dim(impact_results$best$cumsum_prevented)[1]
 cum.prevented<-impact_results$best$cumsum_prevented[last.point,,]
