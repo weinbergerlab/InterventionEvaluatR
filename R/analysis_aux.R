@@ -480,7 +480,7 @@ rrPredQuantiles <-
         probs = c(0.025, 0.5, 0.975),
         na.rm = TRUE
       ))
-    pred.hdi <- cbind( pred[,'50%'],t(hdi(t(pred_samples), credMass = 0.95)))
+    pred.hdi <- cbind( pred[,'50%'],t(hdi(t(pred_samples), credMass = 0.95)) )
       
     eval_indices <-
       match(which(time_points == eval_period[1]), (1:length(impact$observed.y))):match(which(time_points ==
@@ -597,7 +597,7 @@ rrPredQuantiles <-
         probs = c(0.025, 0.5, 0.975),
         na.rm = TRUE
       ))
-    log_rr_full_t_hdi <- cbind(log_rr_full_t_quantiles[,'50%'],hdi(log_rr_full_t_samples, credMass=0.95) )
+    log_rr_full_t_hdi <- cbind(log_rr_full_t_quantiles[,'50%'],t(hdi(log_rr_full_t_samples, credMass=0.95) ))
     log_rr_full_t_sd <-
       t(apply(log_rr_full_t_samples, 2, sd, na.rm = TRUE))
     #

@@ -332,6 +332,18 @@ evaluatr.impact = function(analysis) {
         },
         simplify = 'array'
       )
+    
+    results[[variant]]$log_rr_hdi <-
+      sapply(
+        results[[variant]]$quantiles,
+        FUN = function(quantiles) {
+          quantiles$log_rr_full_t_hdi
+        },
+        simplify = 'array'
+      )
+    dimnames(results[[variant]]$log_rr_hdi)[[1]] <-
+      analysis$time_points
+    
     results[[variant]]$log_rr_full_t_samples.prec <-
       sapply(
         results[[variant]]$quantiles,
