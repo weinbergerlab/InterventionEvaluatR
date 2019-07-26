@@ -7,7 +7,7 @@
 #' `plots$groups` TODO
 #'
 #' @importFrom graphics legend matplot par points
-#' @importFrom ggplot2 aes aes_string aes_ geom_line geom_point geom_polygon geom_ribbon geom_vline ggplot ggtitle scale_colour_manual scale_fill_hue theme theme_bw element_blank element_line element_rect element_text labs geom_errorbar scale_shape_manual scale_size_manual guides geom_hline ylim coord_cartesian
+#' @importFrom ggplot2 aes aes_string aes_ geom_line scale_fill_manual geom_point geom_polygon geom_ribbon geom_vline ggplot ggtitle scale_colour_manual scale_fill_hue theme theme_bw element_blank element_line element_rect element_text labs geom_errorbar scale_shape_manual scale_size_manual guides geom_hline ylim coord_cartesian
 #'
 #' @export
 
@@ -432,9 +432,9 @@ evaluatr.plots <- function(analysis) {
       
     }
     #Plot cumulative sums
-    cumsum.ds<- impact_results$best$cumsum_prevented[, , group]
+    cumsum.ds<- as.data.frame(impact_results$best$cumsum_prevented[, , group])
     last.cumsum<-round(cumsum.ds[nrow(cumsum.ds),])
-    prevented.print<- paste0(last.cumsum[,'50%'],' (', last.cumsum[,'2.5%'], ', ', last.cumsum[,'97.5%'],')'  )
+    prevented.print<- paste0(last.cumsum['50%'],' (', last.cumsum['2.5%'], ', ', last.cumsum['97.5%'],')'  )
     cumsum_prevented_plot <-
       ggplot(cumsum.ds) +  geom_line(aes(y=cumsum.ds[,'50%'], x=analysis$time_points, colour = "Cumulative Cases prevented"))+
       geom_ribbon(aes(ymin=cumsum.ds[,'2.5%'], ymax=cumsum.ds[,'97.5%'], x=analysis$time_points, fill = "band"), alpha = 0.3)+
