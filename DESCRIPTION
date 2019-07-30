@@ -24,6 +24,7 @@ Imports:
     pbapply,
     listenv,
     xtable,
+    htmlTable,
     HDInterval
 Suggests: 
     knitr,

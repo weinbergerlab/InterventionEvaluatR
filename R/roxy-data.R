@@ -113,3 +113,17 @@ NULL
 #'   8: 80+ years
 #'   9: <12 months
 NULL
+
+
+#' TODO
+#' 
+#' @name ecuador_mortality
+#' @docType data
+#' @format Monthly time series of cause-specific deaths from Ecuador, as described in Oliveira and Shioda et al., 2019 
+#' The columns refer to sets of ICD10 codes. "acm_noj_prim" is all deaths excluding those who have a
+#' respiratory cause of death (J-chapter) anywhere in the record
+#' 'age_group' categories: 
+#'   ec 2-23m A: 2-23 months, National-level 
+#'   ec 24-59m A: 24-59 months, National-level 
+#'   ec 2-59m A: 2-59 months, National-level 
+NULL

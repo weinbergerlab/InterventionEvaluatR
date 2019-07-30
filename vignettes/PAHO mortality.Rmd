@@ -1,0 +1,281 @@
+---
+author: "Daniel Weinberger"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PAHO mortality example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+params:
+  sensitivity: TRUE
+  crossval: FALSE
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.height = 3,
+  fig.width = 5,
+  fig.align = "center", 
+  dpi=300, 
+	out.width="600px"
+)
+```
+
+---
+
+## Installing the package
+Uncomment and run the following 3 lines of code to install the package. You will be prompted to manually select a number to indicate whether to update dependencies and which ones. 
+```{r}
+#install.packages('devtools') 
+#library(devtools) 
+#devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR') 
+```
+
+```{r setup_packages, include=FALSE, echo=TRUE}
+library(xtable)
+library(knitr)
+library(htmlTable)
+library(InterventionEvaluatR)
+```
+
+
+```{r, echo=F}
+#Save the Ecuador mortality data as part of the package
+# library(RCurl)
+# script <- getURL("https://raw.githubusercontent.com/weinbergerlab/paho-pneumonia-mortality/master/Data/PAHO%20all%20age%20cuts_SubChapters.csv", ssl.verifypeer = FALSE)
+# 
+# paho1 <-read.csv(text=getURL("https://raw.githubusercontent.com/weinbergerlab/paho-pneumonia-mortality/master/Data/PAHO%20all%20age%20cuts_SubChapters.csv"),  header=T)
+# ecuador_mortality<-paho1[paho1$age_group %in% c('ec 2-59m A','ec 2-23m A','ec 24-59m A'), ]
+# ecuador_mortality$age_group<-factor(ecuador_mortality$age_group)
+# save(ecuador_mortality, file='../data/ecuador_mortality.rda')
+```
+
+---
+title: "Estimated change in mortality associated with the introduction of vaccine in Ecuador"
+---
+## Analysis goal
+The goal for this analysis is to quantify changes in the rates of mortality due to pneumonia  following the introduction of PCV10 in Ecuador in **August 2010**. To do this, we will use data from the national mortality registry from Ecuador for the period from 2005-2016. We will learn how to analyze these time series data and how to interpret the results.
+
+The main outcome of interest for the analysis will be to evaluate changes in **J12_J18_prim**, which is the number of deaths where J12-J18 is coded as the primary cause of death (In Ecuador, only a single cause of death is recorded). 
+
+---
+## View dataset
+We are using a dataset that has 3 different age strata: 2-23 months, 24-59 months, and 2-59 months, combined. The dataset contains monthly time series for a number of different causes of death that are classified by ICD10 sub-chapter. The columns have counts per month of deaths for the causes indicated by the range of ICD10 codes indicated in the header name. 
+
+Let's load the data, which are included with the package
+```{r viewdata, include=TRUE}
+    data(ecuador_mortality, package = "InterventionEvaluatR") #load the data
+    head(ecuador_mortality[,1:5]) #View first few rows and columns
+    ds<-ecuador_mortality
+```
+
+Ensure your date variable is in an R date format. If your variable is in a character or factor format, you need to tell R the format. 
+-- %m is a 2 digit month; %b is a month abbreviation (ie Jan, Feb)
+-- %d is a 2 digit day (0-31), 
+-- %Y is a 4 digit year (e.g. 2011), %y is a 2 digit year (e.g. 11).  
+These codes are separated by a dash or slash or space. Modify the tryFormats script below if needed to match the format in your dataset
+```{r}
+ds$monthdate<-as.Date(ds$monthdate, tryFormats=c('%Y-%m-%d',
+                                                    '%m-%d-%Y',
+                                                    '%m/%d/%Y',
+                                                    '%Y/%m/%d',
+                                                    '%d/%m/%Y'
+                                                    ) )
+```
+
+#Sort data by age group and month
+```{r}
+    ds<-ds[order(ds$age_group, ds$monthdate),] #Sort data by age group and month
+```
+
+## Set parameters for analysis
+
+Here we need to set a few parameters. We Use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any).
+
+```{r setup_data, echo=TRUE}
+
+analysis <- evaluatr.init(
+  country = "Ecuador", data = ds,
+  post_period_start = "2010-08-01", #First 'post-intervention' month is Jan 2012
+  eval_period_start = "2011-08-01", #We ignore first 12 month of data to allow for vaccine ramp up
+  eval_period_end = "2015-12-01", #The evaluation period lasts 2 years
+  n_seasons = 12, #This is monthly data, so select 12
+  year_def = "cal_year", # we are in southern hemisphere, so aggregate results by calendar year (Jan-Dec)
+  group_name = "age_group",  #Strata categry name
+  date_name = "monthdate", #Date variable name
+  outcome_name = "J12_J18_prim", #Outcome variable name
+  denom_name = "acm_noj_prim" #Denominator variable name
+)
+set.seed(1)
+```
+
+## Run a simple analysis controlling for 1 control variable at a time
+
+Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. this allows us to see how the use of different controls influences the results
+
+The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top.
+```{r univariate, fig.width=3, fig.height=5}
+ glmer_results= evaluatr.univariate(analysis)
+ lapply(glmer_results,evaluatr.univariate.plot)
+```
+
+
+
+## Run the main analysis
+Save the results in object 'impact_results'
+```{r main analysis, include = FALSE}
+impact_results = evaluatr.impact(analysis)
+```
+
+##Run sensitivity analyses
+Sequentially drop the top 1,2, or 3 variables in synthetic controls analysis
+```{r sensitivity_analyses, include = FALSE}
+if (params$sensitivity) {
+  sensitivity_results <- evaluatr.sensitivity(analysis)
+}
+```
+
+
+#`r params$country` Results
+
+
+```{r sparse, results="asis"}
+if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(names(analysis$sparse_groups[analysis$sparse_groups])) != 0) {
+  print(xtable(data.frame("Sparse Groups" = names(analysis$sparse_groups[analysis$sparse_groups]), check.names = FALSE), align = "cc"), type="html")
+}
+```
+
+##combine estimates
+```{r Comparison of estimates from different models, results="asis"}
+results.table<- cbind.data.frame(
+  #impact_results$best$rr_mean_intervals, 
+  impact_results$full$rr_mean_intervals, 
+  impact_results$time$rr_mean_intervals, 
+  #impact_results$time_no_offset$rr_mean_intervals, 
+  impact_results$its$rr_mean_intervals, 
+  impact_results$pca$rr_mean_intervals)
+
+  table<-xtable(results.table)
+  htmlTable(table)
+```
+
+
+##Cases averted
+How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series
+```{r}
+last.point<-dim(impact_results$best$cumsum_prevented)[1]
+cum.prevented<-impact_results$best$cumsum_prevented[last.point,,]
+```
+Format and print table 
+```{r}
+cum1<- round(t(cum.prevented))
+cum2<- paste0(cum1[,'50%'], ' (', cum1[,'2.5%'],', ',cum1[,'97.5%'],')')
+cum3<-cbind.data.frame(row.names(cum1), cum2)
+names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
+  htmlTable(cum3, align='l')
+```
+
+##Number of variables selected in SC analysis
+The Synthetic controls analysis uses a Bayesian variable selection algorithm to weight the candidate covariates. In each MCMC iteration, it tests a different combination of variables. The model size indicates how many variables are selected in any given model. If <1 variable is selected on average, this indicates that no suitable control variables were identified. 
+In this example 1-2 variables were selected on average in the 2-23m and 2-59 m age categories, while no controls were identified in the 24-59m age group (the average model size is <1 (0.44)).
+```{r modelsize, results="asis"}
+model_size = data.frame(t(analysis$model_size))
+htmlTable(model_size, align='c')
+```
+
+##Inclusion Probabilities
+```{r incl, include = FALSE}
+incl_probs <- NULL
+for (group in analysis$groups) {
+  incl_prob <- impact_results$full$groups[[group]]$inclusion_probs[-c(1:(analysis$n_seasons - 1)), ]
+  incl_prob <- incl_prob[order(-incl_prob$inclusion_probs), ]
+  incl_prob <- incl_prob[c(1:3), ]
+  incl_prob2 <- round(incl_prob[, 2],2)
+  incl_prob_names <- incl_prob[, 1]
+  incl_prob3 <- data.frame("Group" = group, "Greatest Inclusion Variable" = incl_prob_names[1], "Greatest Inclusion Probability" = incl_prob2[1], "Second Greatest Inclusion Variable" = incl_prob_names[2], "Second Greatest Inclusion Probability" = incl_prob2[2], "Third Greatest Inclusion Variable" = incl_prob_names[3], "Third Greatest Inclusion Probability" = incl_prob2[3], check.names = FALSE)
+  incl_probs <- rbind(incl_probs, incl_prob3)
+}
+rownames(incl_probs) <- NULL
+```
+
+Here we can see which variables received the most weight in the models for each strata. Values range from 0-1, with values closer to 1 indicating that the variable was included in a larger proportion of the variable combinations that were tested A value of 1 would indicate that the variable was always included in the model, a value of 0.48 would indicate the variable was included in 48% of the models that were tested.
+```{r incl_table, results="asis"}
+htmlTable(incl_probs)
+```
+
+## Weight Sensitivity Analysis
+The purpose of this analysis is to evaluate the sensitivity of the synthetic controls results to the inclusion of specific control variables. The model is first fit with all variables, then the top-weighted variable is excluded, and the model is re-run. If the results change drastically after dropping 1 variable, this indicates that that variable is highly influential on the results. If the results don't change, this indicates that the results are robust to the exclusion of that variable (this assumes that the variable that is excluded received a decent amount of weight prior to exclusion)
+
+```{r sensitivity, results="asis"}
+if (exists("sensitivity_results")) {
+  htmlTable(sensitivity_results$sensitivity_table_intervals)
+}
+```
+
+##Generate and save the plots
+```{r mainplot1, echo=FALSE}
+plots <- evaluatr.plots(analysis)
+```
+
+## Plot the results for 1 age group
+###First look at the results from the synthetic controls model for 1 age group.
+
+This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
+```{r, fig.width=5, fig.height=4}
+      plots$groups[["ec 2-59m A"]]$pred_full 
+```
+
+It is sometimes easier to look at if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
+
+```{r, fig.width=5, fig.height=4}
+      plots$groups[["ec 2-59m A"]]$pred_full_agg 
+```
+
+```{r, fig.width=5, fig.height=4}
+      plots$groups[["ec 2-59m A"]]$cumsum_prevented 
+```
+
+
+## Printing plots for all models and age groups
+We instead might want to just print everything. We can use the following code to do that
+
+## Plot Observed vs expected yearly time series
+```{r plots2, results = 'asis', fig.width=5, fig.height=4}
+for (group in names(plots$groups)) {
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$pred_full_agg )
+      print(plots$groups[[group]]$pred_best_agg )
+      print(plots$groups[[group]]$pred_time_agg )
+      print(plots$groups[[group]]$pred_pca_agg )
+}
+```
+
+## Use HDI intervals instead
+The package calcuates both an equal-tail 95% credible interval and a 95% highest posterior density interval (HPD or HDI interval). The latter might be more appropriate when the posterior distribution is skewed. The objects with HDI intervals are saved with an appendix of 'HDI' so --impact_results$best$pred_quantiles gives the estimate for equal tail intervals while --impact_results$best$pred_quantiles_HDI gives the estimate for the HDI interval
+--impact_results$best$cumsum_prevented_hdi gives the estimate of cumulative cases prevented using HPI
+--impact_results$best$ann_pred_HDI gives the annual predicted cases with HDI intervals
+--impact_results$best$rr_mean_HDI gives the overall rate ratio caclulated with HDI intervals
+-- impact_results$best$log_rr_hdi gives the pointswise log-RR with HDI intervals
+Here we compare the version calculated with equal-tailed intervals with HPD intervals. In this example they give very similar coverage
+
+```{r}
+impact_results$best$rr_mean
+impact_results$best$rr_mean_hdi
+
+```
+
+Compare pointwise coverage of the 95% CrI calculated as HDI or equal-tailed. In this example they are nearly identical
+```{r}
+matplot(impact_results$best$pred_quantiles_HDI[,,1], type='l', col='gray', lty=c(2,1,2), bty='l', ylim=c(0, max(impact_results$best$pred_quantiles_HDI[,,1])), ylab='Count')
+matplot(impact_results$best$pred_quantiles[,,1], type='l', col='red', lty=c(2,1,2), bty='l', ylim=c(0, max(impact_results$best$pred_quantiles_HDI[,,1])), ylab='Count', add=T)
+points(analysis$input_data[, analysis$outcome_name])
+```
+
+## Print results
+```{r save_results, echo=FALSE}
+output_file <- "Results" # Directory where results will be saved.
+output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
+evaluatr.save(analysis, output_file)
+```

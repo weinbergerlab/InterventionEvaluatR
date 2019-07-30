@@ -13,6 +13,7 @@
 
 evaluatr.plots <- function(analysis) {
   plots = list(groups = list())
+  cumsum_prevented_plot= list(groups = list())
   
   impact_results = analysis$results$impact
   crossval_results = analysis$results$crossval
@@ -214,6 +215,35 @@ evaluatr.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'STL+PCA estimate')
       )
+    ##
+    #Plot cumulative sums
+    cumsum.ds<- as.data.frame(impact_results$best$cumsum_prevented[, , group])
+    last.cumsum<-round(cumsum.ds[nrow(cumsum.ds),])
+    prevented.print<- paste0(last.cumsum['50%'],' (', last.cumsum['2.5%'], ', ', last.cumsum['97.5%'],')'  )
+    cumsum_prevented_plot[[group]] <- ggplot(cumsum.ds) +  
+      geom_line(aes(y=cumsum.ds[,'50%'], x=analysis$time_points, colour = "Cumulative Cases prevented"))+
+      geom_ribbon(aes(ymin=cumsum.ds[,'2.5%'], ymax=cumsum.ds[,'97.5%'], x=analysis$time_points, fill = "band"), alpha = 0.3)+
+      scale_colour_manual("",values="black")+
+      scale_fill_manual("",values="grey12")+
+      theme(legend.position = "none")+
+      labs(x = 'Time', y = 'Cumulative Cases Prevented') +
+      ggtitle(paste(group, prevented.print, 'Cases Prevented')) +
+      theme_bw() +
+      theme(
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()
+      ) +
+      theme(
+        legend.title = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+      )
+    ##
     
     if (!is.na(sensitivity_results)) {
       pred_sensitivity_plot <-
@@ -281,7 +311,8 @@ evaluatr.plots <- function(analysis) {
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank()
       )
-    rr_roll_full_plot <-
+    
+      rr_roll_full_plot <-
       ggplot(
         melt(
           as.data.frame(impact_results$full$rr_roll[, , group]),
@@ -431,33 +462,7 @@ evaluatr.plots <- function(analysis) {
         )
       
     }
-    #Plot cumulative sums
-    cumsum.ds<- as.data.frame(impact_results$best$cumsum_prevented[, , group])
-    last.cumsum<-round(cumsum.ds[nrow(cumsum.ds),])
-    prevented.print<- paste0(last.cumsum['50%'],' (', last.cumsum['2.5%'], ', ', last.cumsum['97.5%'],')'  )
-    cumsum_prevented_plot <-
-      ggplot(cumsum.ds) +  geom_line(aes(y=cumsum.ds[,'50%'], x=analysis$time_points, colour = "Cumulative Cases prevented"))+
-      geom_ribbon(aes(ymin=cumsum.ds[,'2.5%'], ymax=cumsum.ds[,'97.5%'], x=analysis$time_points, fill = "band"), alpha = 0.3)+
-      scale_colour_manual("",values="black")+
-      scale_fill_manual("",values="grey12")+
-      theme(legend.position = "none")+
-      labs(x = 'Time', y = 'Cumulative Sum Prevented') +
-      ggtitle(paste(group, prevented.print, 'Cases Prevented')) +
-      theme_bw() +
-      theme(
-        axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()
-      ) +
-      theme(
-        legend.title = element_blank(),
-        legend.position = "none",
-        plot.title = element_text(hjust = 0.5),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()
-      )
+   
     
     if (!is.na(crossval_results)) {
       cumsum_prevented_stack_plot <-
@@ -537,7 +542,7 @@ evaluatr.plots <- function(analysis) {
         rr_roll_full = rr_roll_full_plot,
         rr_roll_time = rr_roll_time_plot,
         rr_roll_pca = rr_roll_pca_plot,
-        cumsum_prevented = cumsum_prevented_plot
+        cumsum_prevented = cumsum_prevented_plot[[group]]
       )
     }
   }
