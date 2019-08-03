@@ -221,8 +221,8 @@ evaluatr.plots <- function(analysis) {
     last.cumsum<-round(cumsum.ds[nrow(cumsum.ds),])
     prevented.print<- paste0(last.cumsum['50%'],' (', last.cumsum['2.5%'], ', ', last.cumsum['97.5%'],')'  )
     cumsum_prevented_plot[[group]] <- ggplot(cumsum.ds) +  
-      geom_line(aes(y=cumsum.ds[,'50%'], x=analysis$time_points, colour = "Cumulative Cases prevented"))+
-      geom_ribbon(aes(ymin=cumsum.ds[,'2.5%'], ymax=cumsum.ds[,'97.5%'], x=analysis$time_points, fill = "band"), alpha = 0.3)+
+      geom_line(aes_(y=cumsum.ds[,'50%'], x=analysis$time_points, colour = "Cumulative Cases prevented"))+
+      geom_ribbon(aes_(ymin=cumsum.ds[,'2.5%'], ymax=cumsum.ds[,'97.5%'], x=analysis$time_points, fill = "band"), alpha = 0.3)+
       scale_colour_manual("",values="black")+
       scale_fill_manual("",values="grey12")+
       theme(legend.position = "none")+
