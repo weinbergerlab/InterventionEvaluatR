@@ -12,7 +12,7 @@ library(InterventionEvaluatR)
 You need to have Xcode installed on your machine; not all OS have this pre loaded. Install Xcode from the Apple App Store, and then follow the instructions above.
 
 ## Getting started
-After loading the package, run: vignette('brazil'). You can view the compiled vignette at https://weinbergerlab.gitlab.io/InterventionEvaluatR/brazil.html
+After loading the package, run: vignette('PAHO-mortality'). You can view the compiled vignette at https://weinbergerlab.gitlab.io/InterventionEvaluatR/PAHO-mortality.html
 
 ## Important notes on the input data
 -The input data should contain 1 variable with a grouping variable (e.g., age_group). If there is no grouping variable, include a column of 1s
