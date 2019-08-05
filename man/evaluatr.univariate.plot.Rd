@@ -4,7 +4,7 @@
 \alias{evaluatr.univariate.plot}
 \title{Generate plot of univariate results}
 \usage{
-evaluatr.univariate.plot(ds)
+evaluatr.univariate.plot(ds, plot.labs = "Univariate")
 }
 \arguments{
 \item{ds}{Object imported from evaluatr.univariate}

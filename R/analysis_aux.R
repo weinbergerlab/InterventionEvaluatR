@@ -1394,7 +1394,7 @@ its_func <- function(ds1,
 
 #' @importFrom lme4 VarCorr
 
-single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period){
+single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, eval.period){
   #GLMER
   outcome.pre<-ds1[,'outcome']
   outcome.pre[as.Date(time_points)>=intro.date] <-NA
@@ -1445,9 +1445,10 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
 #' @return Univariate analysis plot, `results`, as described below
 #' @export
 
-evaluatr.univariate.plot<-function(ds){
-  plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), ylab='' , ylim=c(nrow(ds),1))
-  arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl, length =0)
+evaluatr.univariate.plot<-function(ds, plot.labs='Univariate'){
+  plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), 
+        ylab='' , xlab='Univariate Rate Ratio',ylim=c(nrow(ds),1), main=plot.labs)
+  arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl,  length =0)
   axis(side=2, at=1:length(ds$covar), labels=ds$covar,las=1, cex.axis=0.6)
   abline(v=1, lty=2, col='gray')
 }
