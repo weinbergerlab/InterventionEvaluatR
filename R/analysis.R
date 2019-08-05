@@ -305,6 +305,14 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       results$pca$quantiles[analysis$model_size < 1]
     results$best$quantiles <-
       setNames(results$best$quantiles, analysis$groups)
+
+    results$best$variant <-
+      vector("list", length(results$full$quantiles))
+    results$best$variant[analysis$model_size >= 1] <- "full"
+    results$best$variant[analysis$model_size < 1] <- "pca"
+    results$best$variant <-
+      setNames(results$best$variant, analysis$groups)
+
     variants = c("best", variants)
   }
   
