@@ -1445,7 +1445,7 @@ single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, ev
 #' @return Univariate analysis plot, `results`, as described below
 #' @export
 
-evaluatr.univariate.plot<-function(ds, plot.labs){
+evaluatr.univariate.plot<-function(ds, plot.labs='Univariate'){
   plot(y=1:nrow(ds), x=ds$rr, bty='l',yaxt='n', pch=16 , xlim=c(0.2,2), 
         ylab='' , xlab='Univariate Rate Ratio',ylim=c(nrow(ds),1), main=plot.labs)
   arrows(y0=1:nrow(ds), x0=ds$rr.lcl,x1=ds$rr.ucl,  length =0)
