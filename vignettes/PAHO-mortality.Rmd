@@ -119,7 +119,7 @@ Before getting into more complicated analyses, we will first try to fit a simple
  glmer_results= evaluatr.univariate(analysis)
 ```
 
-Then plot the results. The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top. Each plot represents a different age group. Overall, we see a generally consistent pattern. The use of the subchapter R00-09 as a control variable leads to estimates that are closer to 1 (no effect). This subchapter is "Symptoms and signs involving the circulatory and respiratory systems". These are often considered non-specific 'junk' codes. There could be arguments for or against using this subchapter as a control. On the downside, it is possible that actual pneumonia deaths incorrectly were assigned a code of R00-99, and the vaccine could therefore reduce the incidence of R00-09 codes and bias the estimates towards no effect. On the upside, the inclusion of these junk codes could help to adjust for underlying improvements or changes in coding quality.   
+Then plot the results. The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top. Each plot represents a different age group. Overall, we see a generally consistent pattern. The use of the subchapter R00-09 as a control variable leads to estimates that are closer to 1 (no effect). This subchapter is "Symptoms and signs involving the circulatory and respiratory systems". These are often considered non-specific 'junk' codes. There could be arguments for or against using this subchapter as a control. On the downside, it is possible that actual pneumonia deaths incorrectly were assigned a code of R00-99, and the vaccine could therefore reduce the incidence of R00-09 codes and bias the estimates towards no effect. On the upside, the use of these junk codes as a control could help to adjust for underlying improvements or changes in coding quality.   
 
 ```{r univariate_plot,fig.width=4, fig.height=5}
 par(mar=c(4,5,1,1)) #fix margins
@@ -136,7 +136,7 @@ impact_results = evaluatr.impact(analysis)
 ```
 
 ##Run sensitivity analyses
-Sequentially drop the top 1,2, or 3 variables in synthetic controls analysis
+In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of the apsecific variable
 ```{r sensitivity_analyses, include = FALSE}
 if (params$sensitivity) {
   sensitivity_results <- evaluatr.sensitivity(analysis)
@@ -147,13 +147,14 @@ if (params$sensitivity) {
 #`r params$country` Results
 
 
-```{r sparse, results="asis"}
+```{r sparse, results="asis", echo=F}
 if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(names(analysis$sparse_groups[analysis$sparse_groups])) != 0) {
   print(xtable(data.frame("Sparse Groups" = names(analysis$sparse_groups[analysis$sparse_groups]), check.names = FALSE), align = "cc"), type="html")
 }
 ```
 
-##combine estimates
+##Compare estimates from different models
+This shows the estimated rate ratio and 95% credible intervals from a synthetic controls analysis; a time-trend analysis where we used the specified denominator (all non-respiratory deaths) to adjust the number of pneumonia deaths in each month and a linear trend for time; a classic interrupted time series analysis (segmented regression); and the STL+PCA approach, which smooths and combines the control variables prior to including them in the model. 
 ```{r Comparison of estimates from different models, results="asis"}
 results.table<- cbind.data.frame(
   #impact_results$best$rr_mean_intervals, 
@@ -174,6 +175,7 @@ How many cases were prevented from the time of vaccine introduction to the last 
 last.point<-dim(impact_results$best$cumsum_prevented)[1]
 cum.prevented<-impact_results$best$cumsum_prevented[last.point,,]
 ```
+
 Format and print table 
 ```{r}
 cum1<- round(t(cum.prevented))
@@ -233,7 +235,7 @@ This first plot shows a monthly time series, with observed, fitted, and counterf
       plots$groups[["ec 2-59m A"]]$pred_full 
 ```
 
-It is sometimes easier to look at if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
+It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
 
 ```{r, fig.width=5, fig.height=4}
       plots$groups[["ec 2-59m A"]]$pred_full_agg 
@@ -269,10 +271,10 @@ Here we compare the version calculated with equal-tailed intervals with HPD inte
 
 ```{r}
 print("Equal tailed intervals")
-impact_results$best$rr_mean[,c(2,1,3)]
+round(impact_results$best$rr_mean[,c(2,1,3)],2)
 
 print("HPD intervals")
-impact_results$best$rr_mean_hdi
+round(impact_results$best$rr_mean_hdi,2)
 
 ```
 
