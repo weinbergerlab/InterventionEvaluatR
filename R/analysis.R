@@ -223,6 +223,7 @@ evaluatr.init <- function(country,
 #' @importFrom pomp logmeanexp
 #' @importFrom reshape melt
 #' @importFrom MASS mvrnorm
+#' @importFrom HDInterval hdi
 #' @importFrom RcppRoll roll_sum
 #' @importFrom pogit poissonBvs
 #' @importFrom parallel detectCores makeCluster clusterEvalQ clusterExport stopCluster
@@ -311,8 +312,12 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     # Predictions, aggregated by year
     results[[variant]]$pred_quantiles <-
       sapply(results[[variant]]$quantiles, getPred, simplify = 'array')
+    results[[variant]]$pred_quantiles_HDI <-
+      sapply(results[[variant]]$quantiles, getPredHDI, simplify = 'array')
     results[[variant]]$ann_pred_quantiles <-
       sapply(results[[variant]]$quantiles, getAnnPred, simplify = FALSE)
+    results[[variant]]$ann_pred_HDI <-
+      sapply(results[[variant]]$quantiles, getAnnPredHDI, simplify = FALSE)
   }
 
   for (variant in intersect(c('full', 'best'), variants)) {
@@ -335,6 +340,18 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         },
         simplify = 'array'
       )
+    
+    results[[variant]]$log_rr_hdi <-
+      sapply(
+        results[[variant]]$quantiles,
+        FUN = function(quantiles) {
+          quantiles$log_rr_full_t_hdi
+        },
+        simplify = 'array'
+      )
+    dimnames(results[[variant]]$log_rr_hdi)[[1]] <-
+      analysis$time_points
+    
     results[[variant]]$log_rr_full_t_samples.prec <-
       sapply(
         results[[variant]]$quantiles,
@@ -358,6 +375,8 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     # Rate ratios for evaluation period.
     results[[variant]]$rr_mean <-
       t(sapply(results[[variant]]$quantiles, getRR))
+    results[[variant]]$rr_mean_hdi <-
+      t(sapply(results[[variant]]$quantiles, getRRHDI))
   }
   
   if ('best' %in% variants) {
@@ -392,6 +411,17 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         outcome = analysis$outcome,
         analysis$time_points,
         analysis$post_period,
+        simplify = 'array'
+      )
+    results[[variant]]$cumsum_prevented_hdi <-
+      sapply(
+        analysis$groups,
+        FUN = cumsum_func,
+        quantiles = results[[variant]]$quantiles,
+        outcome = analysis$outcome,
+        analysis$time_points,
+        analysis$post_period,
+        hdi=T,
         simplify = 'array'
       )
   }

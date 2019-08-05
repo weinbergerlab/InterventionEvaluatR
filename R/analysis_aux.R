@@ -75,12 +75,12 @@ makeCovars <-
     } else {
       covars <- ds_group[, 4:ncol(ds_group), drop = FALSE]
     }
-    if (intervention_date > as.Date('2009-09-01')) {
-      covars$pandemic <-
-        ifelse(time_points == '2009-08-01',
-               1,
-               ifelse(time_points == '2009-09-01', 1, 0))
-    }
+    # if (intervention_date > as.Date('2009-09-01')) {
+    #   covars$pandemic <-
+    #     ifelse(time_points == '2009-08-01',
+    #            1,
+    #            ifelse(time_points == '2009-09-01', 1, 0))
+    # }
     covars <-
       as.data.frame(lapply(covars[, apply(covars, 2, var) != 0, drop = FALSE], scale), check.names = FALSE)
     covars <- cbind(season.dummies, covars)
@@ -480,6 +480,8 @@ rrPredQuantiles <-
         probs = c(0.025, 0.5, 0.975),
         na.rm = TRUE
       ))
+    pred.hdi <- cbind( pred[,'50%'],t(hdi(t(pred_samples), credMass = 0.95)) )
+      
     eval_indices <-
       match(which(time_points == eval_period[1]), (1:length(impact$observed.y))):match(which(time_points ==
                                                                                                eval_period[2]), (1:length(impact$observed.y)))
@@ -510,6 +512,7 @@ rrPredQuantiles <-
     pred.yr.spl.sum <-
       lapply(pred.yr.spl, function(x)
         apply(x, 2, sum))
+    pred.yr.spl.sum.hdi<-lapply(pred.yr.spl.sum, hdi, credMass = 0.95) 
     pred.yr.spl.sum.q <-
       lapply(pred.yr.spl.sum,
              quantile,
@@ -525,6 +528,15 @@ rrPredQuantiles <-
     pred.yr.sum.q$obs <- obs.y.year
     pred.yr.sum.q$year <- unique(year)
     
+    pred.yr.sum.hdi <-
+      cbind.data.frame(pred.yr.sum.q[,'50%'] ,matrix(
+        unlist(pred.yr.spl.sum.hdi),
+        ncol = 2,
+        byrow = TRUE
+      ))
+    names(pred.yr.sum.hdi) <- c('median','lcl', 'ucl')
+    pred.yr.sum.hdi$obs <- obs.y.year
+    pred.yr.sum.hdi$year <- unique(year)
     # matplot(unique(year),pred.yr.sum.q[,1:3], type='l', col='lightgray', lty=c(3,1,3), bty='l', xlab="", ylab='Cases (N)', ylim=c(0,max(pred.yr.sum.q) ))
     # points(unique(year),pred.yr.sum.q$obs, pch=16)
     # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
@@ -535,6 +547,7 @@ rrPredQuantiles <-
                probs = c(0.025, 0.5, 0.975),
                na.rm = TRUE)
     names(rr) <- c('Lower CI', 'Point Estimate', 'Upper CI')
+    rr.hdi <- c(rr['Point Estimate'], hdi(eval_rr_sum, credMass = 0.95)) 
     mean_rr <- mean(eval_rr_sum)
     sd_log_rr <- sd(log(eval_rr_sum))
     
@@ -584,6 +597,7 @@ rrPredQuantiles <-
         probs = c(0.025, 0.5, 0.975),
         na.rm = TRUE
       ))
+    log_rr_full_t_hdi <- cbind(log_rr_full_t_quantiles[,'50%'],t(hdi(log_rr_full_t_samples, credMass=0.95) ))
     log_rr_full_t_sd <-
       t(apply(log_rr_full_t_samples, 2, sd, na.rm = TRUE))
     #
@@ -599,6 +613,10 @@ rrPredQuantiles <-
     
     quantiles <-
       list(
+        log_rr_full_t_hdi=log_rr_full_t_hdi,
+        rr.hdi=rr.hdi,
+        pred.yr.sum.hdi=pred.yr.sum.hdi,
+        pred.hdi=pred.hdi,
         unbias_rr_q = unbias_rr_q,
         pred.yr.sum.q = pred.yr.sum.q,
         log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
@@ -620,14 +638,24 @@ getPred <- function(quantiles) {
   return(quantiles$pred)
 }
 
+getPredHDI <- function(quantiles) {
+  return(quantiles$pred.hdi)
+}
+
 getAnnPred <- function(quantiles) {
   return(quantiles$pred.yr.sum.q)
+}
+
+getAnnPredHDI <- function(quantiles) {
+  return(quantiles$pred.yr.sum.hdi)
 }
 
 getRR <- function(quantiles) {
   return(quantiles$rr)
 }
-
+getRRHDI <- function(quantiles) {
+  return(quantiles$rr.hdi)
+}
 getmeanRR <- function(quantiles) {
   return(quantiles$mean_rr)
 }
@@ -1217,7 +1245,8 @@ cumsum_func <-
            quantiles,
            outcome,
            time_points,
-           post_period) {
+           post_period, 
+           hdi=FALSE) {
     is_post_period <- which(time_points >= post_period[1])
     is_pre_period <- which(time_points < post_period[1])
     
@@ -1240,6 +1269,10 @@ cumsum_func <-
         probs = c(0.025, 0.5, 0.975),
         na.rm = TRUE
       ))
+    if(hdi==TRUE){
+    cumsum_prevented <- cbind(cumsum_prevented[,'50%'],  t(hdi( t(cumsum_cases_prevented),credMass = 0.95 )))
+    }
+    return(cumsum_prevented)
   }
 
 #Classic its setup
