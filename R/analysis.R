@@ -226,7 +226,8 @@ evaluatr.init <- function(country,
 #' @importFrom HDInterval hdi
 #' @importFrom RcppRoll roll_sum
 #' @importFrom pogit poissonBvs
-#' @importFrom parallel detectCores makeCluster clusterEvalQ clusterExport stopCluster
+#' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster
+#' @importFrom future availableCores
 #' @importFrom pbapply pblapply
 #' @export
 
@@ -1088,9 +1089,9 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         ##SECTION 2: run first stage models for STL
         analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
         if (Sys.getenv("CI") != "") {
-          analysis$.private$n_cores <- detectCores()
+          analysis$.private$n_cores <- availableCores(methods=c("system"))
         } else {
-              analysis$.private$n_cores <- max(detectCores() - 1, 1)
+              analysis$.private$n_cores <- max(availableCores(methods=c("system")) - 1, 1)
         }
         glm.results <-
           vector("list", length = length(stl.data.setup)) #combine models into a list
