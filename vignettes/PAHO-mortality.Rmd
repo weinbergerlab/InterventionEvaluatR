@@ -246,19 +246,22 @@ Finally, we can look at the cumulative cases prevented. In this example, there h
       plots$groups[["ec 2-59m A"]]$cumsum_prevented 
 ```
 
-
-## Printing plots for all models and age groups
-We instead might want to just print everything for all age groups and models. We can use the following code to do that
-
-## Plot Observed vs expected yearly time series
-```{r plots2, results = 'asis', fig.width=5, fig.height=4}
-for (group in names(plots$groups)) {
-      par(mfrow=c(4,1))
-      print(plots$groups[[group]]$pred_full_agg )
-      print(plots$groups[[group]]$pred_best_agg )
-      print(plots$groups[[group]]$pred_time_agg )
-      print(plots$groups[[group]]$pred_pca_agg )
-}
+## Check model convergence
+These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). If the model has not converged, you might need to add more iterations or a longer burn in period
+```{r}
+trace1<-impact_results$full$rr_iter
+for(i in 1: nrow(trace1)){
+  n.iter<-length(trace1[i,])
+  samp1<-trace1[i,1:round(0.1*n.iter)] #1st 10%
+  samp2<-trace1[i,-c(1:round(0.05*n.iter))] #last 50%
+  geweke.p<- t.test(samp1, samp2)$p.value
+  print(geweke.p)
+if(geweke.p>0.05){con.stat<-'Model.converged'
+  }else{
+    con.stat<-'Not converged'
+  } 
+   plot(trace1[i,], type='l', main=paste0(con.stat,' ',colnames(trace1)[i]), bty='l')
+  }
 ```
 
 ## Use HDI intervals instead
@@ -286,7 +289,22 @@ matplot(impact_results$best$pred_quantiles[,c(1,3),1], type='l', col='red', lty=
 points(analysis$input_data[, analysis$outcome_name])
 ```
 
-## Print results
+
+## Printing plots for all models and age groups
+We instead might want to just print everything for all age groups and models. We can use the following code to do that
+
+## Plot Observed vs expected yearly time series
+```{r plots2, results = 'asis', fig.width=5, fig.height=4}
+for (group in names(plots$groups)) {
+      par(mfrow=c(4,1))
+      print(plots$groups[[group]]$pred_full_agg )
+      print(plots$groups[[group]]$pred_best_agg )
+      print(plots$groups[[group]]$pred_time_agg )
+      print(plots$groups[[group]]$pred_pca_agg )
+}
+```
+
+## Save results
 ```{r save_results, echo=FALSE}
 output_file <- "Results" # Directory where results will be saved.
 output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")

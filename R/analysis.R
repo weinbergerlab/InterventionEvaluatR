@@ -367,6 +367,8 @@ evaluatr.impact = function(analysis) {
     # Rate ratios for evaluation period.
     results[[variant]]$rr_mean <-
       t(sapply(results[[variant]]$quantiles, getRR))
+    results[[variant]]$rr_iter <-
+      t(sapply(results[[variant]]$quantiles, getRRiter))
     results[[variant]]$rr_mean_hdi <-
       t(sapply(results[[variant]]$quantiles, getRRHDI))
   }

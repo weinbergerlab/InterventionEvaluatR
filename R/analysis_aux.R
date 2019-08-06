@@ -542,6 +542,7 @@ rrPredQuantiles <-
     # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
     
     eval_rr_sum <- eval_obs / pred_eval_sum
+    rr.iter<-eval_rr_sum
     rr <-
       quantile(eval_rr_sum,
                probs = c(0.025, 0.5, 0.975),
@@ -629,7 +630,8 @@ rrPredQuantiles <-
         roll_rr = roll_rr,
         log_rr_full_t_quantiles = log_rr_full_t_quantiles,
         log_rr_full_t_sd = log_rr_full_t_sd,
-        rr = rr
+        rr = rr,
+        rr.iter=rr.iter
       )
     return(quantiles)
   }
@@ -652,6 +654,9 @@ getAnnPredHDI <- function(quantiles) {
 
 getRR <- function(quantiles) {
   return(quantiles$rr)
+}
+getRRiter <- function(quantiles) {
+  return(quantiles$rr.iter)
 }
 getRRHDI <- function(quantiles) {
   return(quantiles$rr.hdi)
