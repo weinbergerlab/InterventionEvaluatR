@@ -115,7 +115,7 @@ set.seed(1)
 
 Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. this allows us to see how the use of different controls influences the results
 
-```{r univariate, echo = T, results = 'hide'}
+```{r univariate, echo = T, results = 'hide',warning=FALSE}
  glmer_results= evaluatr.univariate(analysis)
 ```
 
