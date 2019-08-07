@@ -181,6 +181,10 @@ doCausalImpact <-
             deltafix = deltafix.mod,
             ri = ri.select,
             clusterID = cID
+          ),
+          mcmc=list(
+            burnin=burnN,
+            M=sampleN
           )
         )
     } else{
