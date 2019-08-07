@@ -92,7 +92,7 @@ ds$monthdate<-as.Date(ds$monthdate, tryFormats=c('%Y-%m-%d',
 
 ## Set parameters for analysis
 
-Here we need to set a few parameters. We Use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any).
+Here we need to set a few parameters. We Use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any). You can also set the number of interations for the MCMC. the default is to use a burn-in period of 5000 iterations and to sample 10,000 iterations afterthe burn in. This is a decent place to start. After evaluating model convergence (see below), you might want to increase the burn-in period.
 
 ```{r setup_data, echo=TRUE}
 
@@ -107,7 +107,7 @@ analysis <- evaluatr.init(
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
   denom_name = "acm_noj_prim" , #Denominator variable name
-  set.burnN=10000,
+  set.burnN=15000,
   set.sampleN=10000
 )
 set.seed(1)
@@ -249,21 +249,23 @@ Finally, we can look at the cumulative cases prevented. In this example, there h
 ```
 
 ## Check model convergence
-These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). If the model has not converged, you might need to add more iterations or a longer burn in period
+These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). We use Geweke's diagnostic, which tests whether the mean estimate for the rate ratio in the first 10% of the iterations is equal to the mean estimate for the rate ration in the last 50% of the iterations. If the model has not converged, you might need to add more iterations or a longer burn in period
 ```{r}
-trace1<-impact_results$full$rr_iter
+library(coda)
+
+n.iter<-ncol(impact_results$full$rr_iter)
+thin=1
+trace1<-impact_results$full$rr_iter[,seq(from=1, to=n.iter, by=thin)] #thin
 for(i in 1: nrow(trace1)){
-  n.iter<-length(trace1[i,])
-  samp1<-trace1[i,1:round(0.1*n.iter)] #1st 10%
-  samp2<-trace1[i,-c(1:round(0.5*n.iter))] #last 50%
-  geweke.p<- t.test(samp1, samp2)$p.value
+  geweke.p<- pnorm(abs(geweke.diag(mcmc(trace1[i,]))$z),lower.tail=FALSE)*2
   print(geweke.p)
 if(geweke.p>0.05){con.stat<-'Model converged'
   }else{
     con.stat<-'Not converged'
   } 
    plot(trace1[i,], type='l', main=paste0(con.stat,' ',colnames(trace1)[i]), bty='l')
-  }
+}
+
 ```
 
 ## Use HDI intervals instead
