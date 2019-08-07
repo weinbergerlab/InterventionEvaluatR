@@ -8,7 +8,8 @@ evaluatr.init(country, data, pre_period_start = "start",
   post_period_start, post_period_end = eval_period_end,
   eval_period_start, eval_period_end, n_seasons = 12,
   year_def = "cal_year", group_name, date_name, outcome_name,
-  burnN = 5000, sampleN = 10000, denom_name, sparse_threshold = 5)
+  set.burnN = 5000, set.sampleN = 10000, denom_name,
+  sparse_threshold = 5)
 }
 \arguments{
 \item{country}{A one-word label for output (eg country or state name).}
@@ -35,9 +36,9 @@ evaluatr.init(country, data, pre_period_start = "start",
 
 \item{outcome_name}{Name of the outcome (y) variable in the 'data' dataframe. Should be a count}
 
-\item{burnN}{Number of MCMC iterations for burn in (default 5000),}
+\item{set.burnN}{Number of MCMC iterations for burn in (default 5000),}
 
-\item{sampleN}{Number of MCMC iterations post-burn-in to use for inference (default 10000),}
+\item{set.sampleN}{Number of MCMC iterations post-burn-in to use for inference (default 10000),}
 
 \item{denom_name}{Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.}
 
@@ -76,9 +77,9 @@ Initialized analysis object, `analysis` as described below
 
 `analysis$time_points` Vector of time points in the dataset
 
-`analysis$burnN` as passed in in `burnN`
+`analysis$burnN` as passed in in `set.burnN`
 
-`analysis$sampleN` as passed in in `sampleN`
+`analysis$sampleN` as passed in in `set.sampleN`
   
 `analysis$groups` Vector of groups analyzed
 
