@@ -48,9 +48,9 @@
 #' 
 #' `analysis$time_points` Vector of time points in the dataset
 #' 
-#' `analysis$burnN` as passed in in `set.burnN`
+#' `analysis$set.burnN` as passed in in `set.burnN`
 #'
-#' `analysis$sampleN` as passed in in `set.sampleN`
+#' `analysis$set.sampleN` as passed in in `set.sampleN`
 #'   
 #' `analysis$groups` Vector of groups analyzed
 #' 
@@ -264,8 +264,8 @@ evaluatr.impact = function(analysis) {
         var.select.on = analysis$.private$variants[[variant]]$var.select.on,
         time_points = analysis$time_points,
         trend = analysis$.private$variants[[variant]]$trend,
-        burnN=analysis$burnN,
-        sampleN=analysis$sampleN,
+        burnN=analysis$set.burnN,
+        sampleN=analysis$set.sampleN,
         crossval.stage = FALSE
       ),
       analysis$groups
@@ -605,8 +605,8 @@ evaluatr.crossval = function(analysis) {
             analysis$n_seasons,
             time_points = analysis$time_points,
             crossval.stage = TRUE,
-            burnN=analysis$burnN,
-            sampleN=analysis$sampleN,
+            burnN=analysis$set.burnN,
+            sampleN=analysis$set.sampleN,
             var.select.on = analysis$.private$variants[[variant]]$var.select.on
           )
       ),

@@ -77,9 +77,9 @@ Initialized analysis object, `analysis` as described below
 
 `analysis$time_points` Vector of time points in the dataset
 
-`analysis$burnN` as passed in in `set.burnN`
+`analysis$set.burnN` as passed in in `set.burnN`
 
-`analysis$sampleN` as passed in in `set.sampleN`
+`analysis$set.sampleN` as passed in in `set.sampleN`
   
 `analysis$groups` Vector of groups analyzed
 
