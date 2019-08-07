@@ -38,6 +38,7 @@ library(xtable)
 library(knitr)
 library(htmlTable)
 library(InterventionEvaluatR)
+library(coda)
 ```
 
 
@@ -251,8 +252,6 @@ Finally, we can look at the cumulative cases prevented. In this example, there h
 ## Check model convergence
 These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). We use Geweke's diagnostic, which tests whether the mean estimate for the rate ratio in the first 10% of the iterations is equal to the mean estimate for the rate ration in the last 50% of the iterations. If the model has not converged, you might need to add more iterations or a longer burn in period
 ```{r}
-library(coda)
-
 n.iter<-ncol(impact_results$full$rr_iter)
 thin=1
 trace1<-impact_results$full$rr_iter[,seq(from=1, to=n.iter, by=thin)] #thin
@@ -263,7 +262,7 @@ if(geweke.p>0.05){con.stat<-'Model converged'
   }else{
     con.stat<-'Not converged'
   } 
-   plot(trace1[i,], type='l', main=paste0(con.stat,' ',colnames(trace1)[i]), bty='l')
+   plot(trace1[i,], type='l', main=paste0(con.stat,' ',colnames(trace1)[i]), bty='l',, ylim=c(0.2,2))
 }
 
 ```
