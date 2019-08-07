@@ -144,8 +144,10 @@ evaluatr.init <- function(country,
     n_seasons #Number of months (seasons) per year. 12 for monthly, 4 for quarterly, 3 for trimester data.
   analysis$year_def <-
     year_def #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
+  analysis$set.burnN <-set.burnN
+  analysis$set.sampleN <-set.sampleN
   
-  normalizeDate <- function(d) {
+    normalizeDate <- function(d) {
     if (is.Date(d)) {
       d
     } else {

@@ -107,7 +107,7 @@ analysis <- evaluatr.init(
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
   denom_name = "acm_noj_prim" , #Denominator variable name
-  set.burnN=5000,
+  set.burnN=10000,
   set.sampleN=10000
 )
 set.seed(1)
@@ -255,7 +255,7 @@ trace1<-impact_results$full$rr_iter
 for(i in 1: nrow(trace1)){
   n.iter<-length(trace1[i,])
   samp1<-trace1[i,1:round(0.1*n.iter)] #1st 10%
-  samp2<-trace1[i,-c(1:round(0.05*n.iter))] #last 50%
+  samp2<-trace1[i,-c(1:round(0.5*n.iter))] #last 50%
   geweke.p<- t.test(samp1, samp2)$p.value
   print(geweke.p)
 if(geweke.p>0.05){con.stat<-'Model converged'
