@@ -7,7 +7,8 @@
 evaluatr.init(country, data, pre_period_start = "start",
   post_period_start, post_period_end = eval_period_end,
   eval_period_start, eval_period_end, n_seasons = 12,
-  year_def = "cal_year", group_name, date_name, outcome_name, denom_name,
+  year_def = "cal_year", group_name, date_name, outcome_name,
+  set.burnN = 5000, set.sampleN = 10000, denom_name,
   sparse_threshold = 5)
 }
 \arguments{
@@ -34,6 +35,10 @@ evaluatr.init(country, data, pre_period_start = "start",
 \item{date_name}{Name of the variable with the date for the time series}
 
 \item{outcome_name}{Name of the outcome (y) variable in the 'data' dataframe. Should be a count}
+
+\item{set.burnN}{Number of MCMC iterations for burn in (default 5000),}
+
+\item{set.sampleN}{Number of MCMC iterations post-burn-in to use for inference (default 10000),}
 
 \item{denom_name}{Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.}
 
@@ -72,6 +77,10 @@ Initialized analysis object, `analysis` as described below
 
 `analysis$time_points` Vector of time points in the dataset
 
+`analysis$set.burnN` as passed in in `set.burnN`
+
+`analysis$set.sampleN` as passed in in `set.sampleN`
+  
 `analysis$groups` Vector of groups analyzed
 
 `analysis$sparse_groups` Vector indicating which groups were too sparse to analyze

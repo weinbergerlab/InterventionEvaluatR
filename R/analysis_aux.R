@@ -117,6 +117,8 @@ doCausalImpact <-
            crossval.stage = FALSE,
            var.select.on = TRUE,
            n_iter = 10000,
+           burnN,
+           sampleN,
            trend = FALSE) {
     #Format outcome and covariates for regular and cross-validations
     if (crossval.stage) {
@@ -194,6 +196,11 @@ doCausalImpact <-
               deltafix = deltafix.mod,
               ri = TRUE,
               clusterID = cID
+            ),
+            mcmc=list(
+              burnin=burnN,
+              M=sampleN
+              
             )
           )
       } else{
@@ -203,20 +210,30 @@ doCausalImpact <-
               y = y.pre ,
               X = x.pre,
               BVS = FALSE,
-              model = list(ri = TRUE, clusterID = cID)
+              model = list(ri = TRUE, clusterID = cID),
+              mcmc=list(
+                burnin=burnN,
+                M=sampleN
+                
+              )
             )
         } else{
-          bsts_model.pois  <- poissonBvs(y = y.pre , X = x.pre, BVS = FALSE)
+          bsts_model.pois  <- poissonBvs(y = y.pre , X = x.pre, BVS = FALSE,
+                                         mcmc=list(
+                                           burnin=burnN,
+                                           M=sampleN
+                                           
+                                         ))
         }
       }
     }
     
-    beta.mat <- bsts_model.pois$samplesP$beta[-c(1:2000), ]
+    beta.mat <- bsts_model.pois$samplesP$beta[-c(1:burnN), ]
     x.fit <- cbind(rep(1, nrow(x)), x)
     #Generate  predictions with prediction interval
     if (ri.select) {
       disp <-
-        bsts_model.pois$samplesP$thetaBeta[-c(1:2000), 1] ##note theta beta is signed--bimodal dist---take abs value
+        bsts_model.pois$samplesP$thetaBeta[-c(1:burnN), 1] ##note theta beta is signed--bimodal dist---take abs value
       disp.mat <-
         rnorm(
           n = length(disp) * length(y.full),
@@ -243,12 +260,12 @@ doCausalImpact <-
     #points(y.full)
     
     #Inclusion probabilities Poisson model
-    incl.probs.mat <- t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:2000), ])
+    incl.probs.mat <- t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:burnN), ])
     inclusion_probs <- apply(incl.probs.mat, 1, mean)
     summary.pois <- summary(bsts_model.pois)
     covar.names <- dimnames(x.pre)[[2]]
     if (ri.select) {
-      rand.eff <- bsts_model.pois$samplesP$bi[-c(1:2000), ]
+      rand.eff <- bsts_model.pois$samplesP$bi[-c(1:burnN), ]
     } else{
       rand.eff = 0
     }
@@ -542,6 +559,7 @@ rrPredQuantiles <-
     # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
     
     eval_rr_sum <- eval_obs / pred_eval_sum
+    rr.iter<-eval_rr_sum
     rr <-
       quantile(eval_rr_sum,
                probs = c(0.025, 0.5, 0.975),
@@ -629,7 +647,8 @@ rrPredQuantiles <-
         roll_rr = roll_rr,
         log_rr_full_t_quantiles = log_rr_full_t_quantiles,
         log_rr_full_t_sd = log_rr_full_t_sd,
-        rr = rr
+        rr = rr,
+        rr.iter=rr.iter
       )
     return(quantiles)
   }
@@ -652,6 +671,9 @@ getAnnPredHDI <- function(quantiles) {
 
 getRR <- function(quantiles) {
   return(quantiles$rr)
+}
+getRRiter <- function(quantiles) {
+  return(quantiles$rr.iter)
 }
 getRRHDI <- function(quantiles) {
   return(quantiles$rr.hdi)
@@ -929,7 +951,9 @@ weightSensitivityAnalysis <-
            n_iter = 10000,
            eval_period = NULL,
            post_period = NULL,
-           year_def) {
+           year_def,
+           burnN=2000,
+           sampleN=8000) {
     par(mar = c(5, 4, 1, 2) + 0.1)
     covar_df <- as.matrix(covars[[group]])
     #colnames(covar_df)<-substring(colnames(covar_df), 2)
@@ -963,12 +987,15 @@ weightSensitivityAnalysis <-
             deltafix = deltafix.mod,
             ri = TRUE,
             clusterID = cID
-          )
-        )
+          ),
+          mcmc=list(
+            burnin=burnN,
+            M=sampleN
+        ))
       
-      beta.mat <- bsts_model$samplesP$beta[-c(1:2000), ]
+      beta.mat <- bsts_model$samplesP$beta[-c(1:burnN), ]
       #Generate  predictions with prediction interval
-      disp <- bsts_model$samplesP$thetaBeta[-c(1:2000), ]
+      disp <- bsts_model$samplesP$thetaBeta[-c(1:burnN), ]
       disp.mat <- rnorm(n = length(disp) * length(y),
                         mean = 0,
                         sd = abs(disp))
