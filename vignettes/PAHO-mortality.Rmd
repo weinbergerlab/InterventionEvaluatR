@@ -106,7 +106,9 @@ analysis <- evaluatr.init(
   group_name = "age_group",  #Strata categry name
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
-  denom_name = "acm_noj_prim" #Denominator variable name
+  denom_name = "acm_noj_prim" , #Denominator variable name
+  burnN=5000,
+  sampleN=10000
 )
 set.seed(1)
 ```
@@ -256,7 +258,7 @@ for(i in 1: nrow(trace1)){
   samp2<-trace1[i,-c(1:round(0.05*n.iter))] #last 50%
   geweke.p<- t.test(samp1, samp2)$p.value
   print(geweke.p)
-if(geweke.p>0.05){con.stat<-'Model.converged'
+if(geweke.p>0.05){con.stat<-'Model converged'
   }else{
     con.stat<-'Not converged'
   } 

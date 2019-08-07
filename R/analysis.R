@@ -4,6 +4,8 @@
 #' @param data Input dataframe. There should be a row for each time point (e.g., month) and category (e.g., age group). There should be variables for the date, for the category (or a column of 1s if only 1 category), for the outcome variable (a count), for the denominator (or a column of 1s if no denominator), and columns for each control variable. 
 #' @param pre_period_start Date when analysis starts, YYYY-MM-01. defaults to first date in dataset.
 #' @param post_period_start Month when intervention introduced. YYY-MM-01
+#' @param burnN Number of MCMC iterations for burn in (default 2000),
+#' @param sampleN Number of MCMC iterations post-burn-in to use for inference (default 8000),
 #' @param post_period_end Date when analysis ends, YYYY-MM-01. defaults to first date in dataset. Defaults to end of evaluation period.
 #' @param eval_period_start First month of the period when the effect of intervention is evaluated. YYYY-MM-01. typically 12-24 months after post_period_start.
 #' @param eval_period_end Last month of the period when the effect of intervention is evaluated. YYYY-MM-01. 
@@ -46,6 +48,10 @@
 #' 
 #' `analysis$time_points` Vector of time points in the dataset
 #' 
+#' `analysis$burnN` as passed in in `burnN`
+#'
+#' `analysis$sampleN` as passed in in `sampleN`
+#'   
 #' `analysis$groups` Vector of groups analyzed
 #' 
 #' `analysis$sparse_groups` Vector indicating which groups were too sparse to analyze
@@ -74,6 +80,8 @@ evaluatr.init <- function(country,
                         group_name,
                         date_name,
                         outcome_name,
+                        burnN=2000,
+                        sampleN=8000,
                         denom_name,
                         sparse_threshold = 5) {
   analysis = listenv(
@@ -595,6 +603,8 @@ evaluatr.crossval = function(analysis) {
             analysis$n_seasons,
             time_points = analysis$time_points,
             crossval.stage = TRUE,
+            burnN=analysis$burnN,
+            sampleN=analysis$sampleN,
             var.select.on = analysis$.private$variants[[variant]]$var.select.on
           )
       ),
