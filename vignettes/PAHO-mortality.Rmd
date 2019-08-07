@@ -262,7 +262,7 @@ if(geweke.p>0.05){con.stat<-'Model converged'
   }else{
     con.stat<-'Not converged'
   } 
-   plot(trace1[i,], type='l', main=paste0(con.stat,' ',colnames(trace1)[i]), bty='l')
+   plot(trace1[i,], type='l', main=paste0(con.stat,' ',colnames(trace1)[i]), bty='l',, ylim=c(0.2,2))
 }
 
 ```
