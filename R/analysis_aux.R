@@ -117,8 +117,8 @@ doCausalImpact <-
            crossval.stage = FALSE,
            var.select.on = TRUE,
            n_iter = 10000,
-           burnN=2000,
-           sampleN=8000,
+           burnN,
+           sampleN,
            trend = FALSE) {
     #Format outcome and covariates for regular and cross-validations
     if (crossval.stage) {
