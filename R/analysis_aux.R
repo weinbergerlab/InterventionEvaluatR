@@ -624,11 +624,11 @@ rrPredQuantiles <-
       t(apply(log_rr_full_t_samples, 2, sd, na.rm = TRUE))
     #
     #   #Covariance matrix for pooled analysis
-    log_rr_full_t_samples.covar <- cov(log_rr_full_t_samples)
+    #log_rr_full_t_samples.covar <- cov(log_rr_full_t_samples)
     post.indices <-
       which(time_points == post_period[1]):which(time_points == post_period[2])
-    log_rr_full_t_samples.prec.post <-
-      solve(log_rr_full_t_samples.covar) #NOT INVERTIBLE?
+   # log_rr_full_t_samples.prec.post <-
+     # solve(log_rr_full_t_samples.covar) #NOT INVERTIBLE?
     #
     # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
     # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
@@ -641,7 +641,7 @@ rrPredQuantiles <-
         pred.hdi=pred.hdi,
         unbias_rr_q = unbias_rr_q,
         pred.yr.sum.q = pred.yr.sum.q,
-        log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
+       # log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
         pred_samples = pred_samples,
         pred = pred,
         rr = rr,
