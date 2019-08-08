@@ -581,8 +581,8 @@ rrPredQuantiles <-
     pre_obs <- sum(impact$observed.y[pre_indices])
     rr_sum_pre <- pre_obs / pred_pre_sum  #Should be 0!
     
-    unbias_rr <- eval_rr_sum / rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
-    unbias_rr_q <- quantile(unbias_rr, probs = c(0.025, 0.5, 0.975))
+    #unbias_rr <- eval_rr_sum / rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
+    #unbias_rr_q <- quantile(unbias_rr, probs = c(0.025, 0.5, 0.975))
     
     plot_rr_start <- which(time_points == post_period[1]) - n_seasons
     roll_rr_indices <-
@@ -639,7 +639,7 @@ rrPredQuantiles <-
         rr.hdi=rr.hdi,
         pred.yr.sum.hdi=pred.yr.sum.hdi,
         pred.hdi=pred.hdi,
-        unbias_rr_q = unbias_rr_q,
+      #  unbias_rr_q = unbias_rr_q,
         pred.yr.sum.q = pred.yr.sum.q,
        # log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
         pred_samples = pred_samples,
