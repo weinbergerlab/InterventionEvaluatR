@@ -2,16 +2,20 @@
 #'
 #' @param analysis Analysis object, initialized by TODO.init.
 #' @param output_file An Rds file in which analysis results will be saved.
+#' @param prune If TRUE (default) then diagnostic data is not saved. If FALSE, diagnostic data is saved (making the output file much larger).
 #'
 #' @export
 
-evaluatr.save <- function (analysis, output_file) {
+evaluatr.save <- function (analysis, output_file, prune=TRUE) {
   dir.create(dirname(output_file),
              recursive = TRUE,
              showWarnings = FALSE)
   
+  if (prune) {
+    analysis = evaluatr.prune(analysis)
+  }
   saved = list(
-    version = 1,
+    version = 2,
     input = list(
       country = analysis$country,
       data = analysis$input_data,
@@ -29,4 +33,24 @@ evaluatr.save <- function (analysis, output_file) {
   )
   
   saveRDS(saved, output_file)
+}
+
+#' Prune unneeded data from the analysis object. Used internally before saving to reduce size of saved data.
+
+#' @export
+#' @keywords internal
+
+evaluatr.prune <- function(analysis) {
+  analysis$.private$ds = NULL
+  analysis$.private$data = NULL
+  analysis$.private$data.cv = NULL
+  
+  for (variant in c("best", names(analysis$.private$variants))) {
+    analysis$results$impact[[variant]]$log_rr_full_t_samples.prec = NULL
+    analysis$results$impact[[variant]]$log_rr_quantiles = NULL
+    analysis$results$impact[[variant]]$quantiles = NULL
+    analysis$results$impact[[variant]]$groups = NULL
+  }
+  
+  analysis
 }

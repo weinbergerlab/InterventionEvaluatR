@@ -4,10 +4,12 @@
 \alias{evaluatr.impact}
 \title{Perform impact analysis}
 \usage{
-evaluatr.impact(analysis)
+evaluatr.impact(analysis, variants = names(analysis$.private$variants))
 }
 \arguments{
-\item{analysis}{Analysis object, initialized by TODO.init.}
+\item{analysis}{Analysis object, initialized by evaluatr.init.}
+
+\item{variants}{List of one or more of the following analysis types to perform: 'time', 'time_no_offset', 'pca', and 'full'. Defaults to all 4.}
 }
 \value{
 Analysis results, `results`, as described below

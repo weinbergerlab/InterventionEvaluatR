@@ -10,6 +10,7 @@ Depends:
 Imports: 
     plyr,
     parallel,
+    future,
     pomp,
     splines,
     MASS,
