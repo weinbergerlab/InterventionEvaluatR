@@ -16,6 +16,7 @@ You need to have Xcode installed on your machine; not all OS have this pre loade
 After loading the package, run: vignette('PAHO-mortality'). You can view the compiled vignette at https://weinbergerlab.gitlab.io/InterventionEvaluatR/PAHO-mortality.html
 
 ## Important notes on the input data
+
 -The input data should contain 1 variable with a grouping variable (e.g., age_group). If there is no grouping variable, include a column of 1s
 -The input data should contain a date variable, preferably in the format YYYY-mm-01
 -The code currently assumes the data are measured at monthly or quarterly time steps. Other time resolutions are not currently supported
