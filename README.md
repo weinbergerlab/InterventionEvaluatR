@@ -32,10 +32,15 @@ After loading the package, run: vignette('PAHO-mortality'). You can view the com
 ## Sample Data
 
 Sample data, which are described in Bruhn et al., are included with the package. There are five files, each containing time series of hospitalization for various conditions from five countries in the Americas. The data are subsetted by age group. The data can be accessed by:     
+
 br1<-data(pnas_brazil, package = "InterventionEvaluatR") #load the data
+
 ch1<-data(pnas_chile, package = "InterventionEvaluatR") #load the data
+
 ec1<-data(pnas_ecuador, package = "InterventionEvaluatR") #load the data
+
 mx1<-data(pnas_mexico, package = "InterventionEvaluatR") #load the data
+
 us1<-data(pnas_us, package = "InterventionEvaluatR") #load the data
 
 
