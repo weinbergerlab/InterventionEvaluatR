@@ -4,9 +4,13 @@ This package is designed to run several different types of analyses to evaluate 
 ## Installing the package:
 
 -Install and load devtools in R.
+
 -#install.packages('devtools')
+
 -library(devtools)
+
 -devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR')
+
 -library(InterventionEvaluatR)
 
 ### Note to Mac users: 
