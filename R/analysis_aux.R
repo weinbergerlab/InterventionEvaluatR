@@ -117,6 +117,8 @@ doCausalImpact <-
            crossval.stage = FALSE,
            var.select.on = TRUE,
            n_iter = 10000,
+           burnN,
+           sampleN,
            trend = FALSE) {
     #Format outcome and covariates for regular and cross-validations
     if (crossval.stage) {
@@ -179,6 +181,10 @@ doCausalImpact <-
             deltafix = deltafix.mod,
             ri = ri.select,
             clusterID = cID
+          ),
+          mcmc=list(
+            burnin=burnN,
+            M=sampleN
           )
         )
     } else{
@@ -194,6 +200,11 @@ doCausalImpact <-
               deltafix = deltafix.mod,
               ri = TRUE,
               clusterID = cID
+            ),
+            mcmc=list(
+              burnin=burnN,
+              M=sampleN
+              
             )
           )
       } else{
@@ -203,20 +214,30 @@ doCausalImpact <-
               y = y.pre ,
               X = x.pre,
               BVS = FALSE,
-              model = list(ri = TRUE, clusterID = cID)
+              model = list(ri = TRUE, clusterID = cID),
+              mcmc=list(
+                burnin=burnN,
+                M=sampleN
+                
+              )
             )
         } else{
-          bsts_model.pois  <- poissonBvs(y = y.pre , X = x.pre, BVS = FALSE)
+          bsts_model.pois  <- poissonBvs(y = y.pre , X = x.pre, BVS = FALSE,
+                                         mcmc=list(
+                                           burnin=burnN,
+                                           M=sampleN
+                                           
+                                         ))
         }
       }
     }
     
-    beta.mat <- bsts_model.pois$samplesP$beta[-c(1:2000), ]
+    beta.mat <- bsts_model.pois$samplesP$beta[-c(1:burnN), ]
     x.fit <- cbind(rep(1, nrow(x)), x)
     #Generate  predictions with prediction interval
     if (ri.select) {
       disp <-
-        bsts_model.pois$samplesP$thetaBeta[-c(1:2000), 1] ##note theta beta is signed--bimodal dist---take abs value
+        bsts_model.pois$samplesP$thetaBeta[-c(1:burnN), 1] ##note theta beta is signed--bimodal dist---take abs value
       disp.mat <-
         rnorm(
           n = length(disp) * length(y.full),
@@ -243,12 +264,12 @@ doCausalImpact <-
     #points(y.full)
     
     #Inclusion probabilities Poisson model
-    incl.probs.mat <- t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:2000), ])
+    incl.probs.mat <- t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:burnN), ])
     inclusion_probs <- apply(incl.probs.mat, 1, mean)
     summary.pois <- summary(bsts_model.pois)
     covar.names <- dimnames(x.pre)[[2]]
     if (ri.select) {
-      rand.eff <- bsts_model.pois$samplesP$bi[-c(1:2000), ]
+      rand.eff <- bsts_model.pois$samplesP$bi[-c(1:burnN), ]
     } else{
       rand.eff = 0
     }
@@ -542,6 +563,7 @@ rrPredQuantiles <-
     # abline(v=year(intervention_date )+0.5, col='gray', lty=2)
     
     eval_rr_sum <- eval_obs / pred_eval_sum
+    rr.iter<-eval_rr_sum
     rr <-
       quantile(eval_rr_sum,
                probs = c(0.025, 0.5, 0.975),
@@ -559,8 +581,8 @@ rrPredQuantiles <-
     pre_obs <- sum(impact$observed.y[pre_indices])
     rr_sum_pre <- pre_obs / pred_pre_sum  #Should be 0!
     
-    unbias_rr <- eval_rr_sum / rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
-    unbias_rr_q <- quantile(unbias_rr, probs = c(0.025, 0.5, 0.975))
+    #unbias_rr <- eval_rr_sum / rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
+    #unbias_rr_q <- quantile(unbias_rr, probs = c(0.025, 0.5, 0.975))
     
     plot_rr_start <- which(time_points == post_period[1]) - n_seasons
     roll_rr_indices <-
@@ -602,11 +624,11 @@ rrPredQuantiles <-
       t(apply(log_rr_full_t_samples, 2, sd, na.rm = TRUE))
     #
     #   #Covariance matrix for pooled analysis
-    log_rr_full_t_samples.covar <- cov(log_rr_full_t_samples)
+    #log_rr_full_t_samples.covar <- cov(log_rr_full_t_samples)
     post.indices <-
       which(time_points == post_period[1]):which(time_points == post_period[2])
-    log_rr_full_t_samples.prec.post <-
-      solve(log_rr_full_t_samples.covar) #NOT INVERTIBLE?
+   # log_rr_full_t_samples.prec.post <-
+     # solve(log_rr_full_t_samples.covar) #NOT INVERTIBLE?
     #
     # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
     # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
@@ -617,9 +639,9 @@ rrPredQuantiles <-
         rr.hdi=rr.hdi,
         pred.yr.sum.hdi=pred.yr.sum.hdi,
         pred.hdi=pred.hdi,
-        unbias_rr_q = unbias_rr_q,
+      #  unbias_rr_q = unbias_rr_q,
         pred.yr.sum.q = pred.yr.sum.q,
-        log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
+       # log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
         pred_samples = pred_samples,
         pred = pred,
         rr = rr,
@@ -629,7 +651,8 @@ rrPredQuantiles <-
         roll_rr = roll_rr,
         log_rr_full_t_quantiles = log_rr_full_t_quantiles,
         log_rr_full_t_sd = log_rr_full_t_sd,
-        rr = rr
+        rr = rr,
+        rr.iter=rr.iter
       )
     return(quantiles)
   }
@@ -652,6 +675,9 @@ getAnnPredHDI <- function(quantiles) {
 
 getRR <- function(quantiles) {
   return(quantiles$rr)
+}
+getRRiter <- function(quantiles) {
+  return(quantiles$rr.iter)
 }
 getRRHDI <- function(quantiles) {
   return(quantiles$rr.hdi)
@@ -929,7 +955,9 @@ weightSensitivityAnalysis <-
            n_iter = 10000,
            eval_period = NULL,
            post_period = NULL,
-           year_def) {
+           year_def,
+           burnN=2000,
+           sampleN=8000) {
     par(mar = c(5, 4, 1, 2) + 0.1)
     covar_df <- as.matrix(covars[[group]])
     #colnames(covar_df)<-substring(colnames(covar_df), 2)
@@ -963,12 +991,15 @@ weightSensitivityAnalysis <-
             deltafix = deltafix.mod,
             ri = TRUE,
             clusterID = cID
-          )
-        )
+          ),
+          mcmc=list(
+            burnin=burnN,
+            M=sampleN
+        ))
       
-      beta.mat <- bsts_model$samplesP$beta[-c(1:2000), ]
+      beta.mat <- bsts_model$samplesP$beta[-c(1:burnN), ]
       #Generate  predictions with prediction interval
-      disp <- bsts_model$samplesP$thetaBeta[-c(1:2000), ]
+      disp <- bsts_model$samplesP$thetaBeta[-c(1:burnN), ]
       disp.mat <- rnorm(n = length(disp) * length(y),
                         mean = 0,
                         sd = abs(disp))
@@ -1394,7 +1425,7 @@ its_func <- function(ds1,
 
 #' @importFrom lme4 VarCorr
 
-single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period){
+single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, eval.period){
   #GLMER
   outcome.pre<-ds1[,'outcome']
   outcome.pre[as.Date(time_points)>=intro.date] <-NA
@@ -1446,7 +1477,7 @@ single.var.glmer<-function(ds1,  intro.date, time_points,n_seasons, eval.period)
 #' @export
 #' @importFrom ggplot2 ggplot geom_segment geom_point coord_cartesian theme_minimal scale_y_discrete
 
-evaluatr.univariate.plot<-function(ds){
+evaluatr.univariate.plot<-function(ds, plot.labs='Univariate'){
   ylevels = rev(levels(ds$covar))
   ggplot(ds) +
     geom_point(aes(x=rr, y=covar)) + 
@@ -1454,6 +1485,6 @@ evaluatr.univariate.plot<-function(ds){
     coord_cartesian(xlim=c(0.2, 2)) +
     geom_segment(aes(x=1, y=min(ylevels), xend=1, yend=max(ylevels)), linetype="dashed", color="gray") +
     scale_y_discrete(limits = ylevels) +
-    labs(y=NULL) +
+    labs(title=plot.labs, x='Univariate Rate Ratio', y=NULL) +
     theme_minimal()
 }

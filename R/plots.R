@@ -137,7 +137,7 @@ evaluatr.plots <- function(analysis) {
         analysis$post_period,
         min_max,
         analysis$outcome[, group],
-        title = paste(group, 'Interupted time series estimate')
+        title = paste(group, 'Time trend adjustment estimate (with offset)')
       )
     pred_pca_plot <-
       plotPred(
@@ -202,7 +202,7 @@ evaluatr.plots <- function(analysis) {
         analysis$post_period,
         min_max,
         analysis$outcome[, group],
-        title = paste(group, 'Interupted time series estimate')
+        title = paste(group, 'Time trend adjustment estimate (with offset)')
       )
     pred_pca_plot_agg <-
       plotPredAgg(
