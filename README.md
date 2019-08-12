@@ -17,9 +17,12 @@ After loading the package, run: vignette('PAHO-mortality'). You can view the com
 
 ## Important notes on the input data
 
-Markup : *The input data should contain 1 variable with a grouping variable (e.g., age_group). If there is no grouping variable, include a column of 1s
+*The input data should contain 1 variable with a grouping variable (e.g., age_group). If there is no grouping variable, include a column of 1s
+
 *The input data should contain a date variable, preferably in the format YYYY-mm-01
+
 *The code currently assumes the data are measured at monthly or quarterly time steps. Other time resolutions are not currently supported
+
 *The outcome variable and all of the control variables should be counts. The control variables are log transformed in the program prior to model fitting. A continuity correction (addition of 0.5) is used to allow for log-transformation of the count variables when 0s are included. Because the control variables are log-transformed, negative values are not allowed.
 
 ## Sample Data
