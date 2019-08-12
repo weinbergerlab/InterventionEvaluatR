@@ -8,6 +8,8 @@ evaluatr.univariate.plot(ds, plot.labs = "Univariate")
 }
 \arguments{
 \item{ds}{Object imported from evaluatr.univariate}
+
+\item{plot.labs}{Plot title}
 }
 \value{
 Univariate analysis plot, `results`, as described below
