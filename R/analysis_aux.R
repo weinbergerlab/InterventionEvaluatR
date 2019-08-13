@@ -263,6 +263,24 @@ doCausalImpact <-
     #matplot(predict.bsts.q, type='l', col=c('gray','black','gray'), lty=c(2,1,2), bty='l', ylab="N hospitalizations")
     #points(y.full)
     
+    
+    #DIC
+    pred.count<-reg.mean[time_points < as.Date(intervention_date),] #lambda
+    pred.count.mean<-apply(pred.count,1,mean)
+    log.like.func<-function(x1){
+    neg_two_loglike_poisson<- -2*sum(dpois(as.vector(y.pre), 
+                                             lambda = x1, 
+                                             log = TRUE))
+    }
+    log.lik.mat<-apply(pred.count,2,log.like.func) #Object of length D, with -2LL estimates
+      #Calculate the mean of the fitted values. Prd.count mean, is a vector of length N,
+    #And use this to calculate neg_two_loglike_poisson_mean
+    neg_two_loglike_poisson_mean<- -2*sum(dpois(as.vector(y.pre),
+                                                lambda = pred.count.mean,
+                                                log = TRUE))
+    DIC<- 2*(mean(log.lik.mat)) -   neg_two_loglike_poisson_mean
+    p_D<-  mean(log.lik.mat)  -   neg_two_loglike_poisson_mean #number of parameters
+    
     #Inclusion probabilities Poisson model
     incl.probs.mat <- t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:burnN), ])
     inclusion_probs <- apply(incl.probs.mat, 1, mean)
@@ -286,7 +304,9 @@ doCausalImpact <-
           predict.bsts,
           inclusion_probs,
           post.period.response = post_period_response,
-          observed.y = y.full
+          observed.y = y.full,
+          DIC,
+          p_D
         )
       names(impact) <-
         c(
@@ -299,7 +319,9 @@ doCausalImpact <-
           'predict.bsts',
           'inclusion_probs',
           'post_period_response',
-          'observed.y'
+          'observed.y',
+          'DIC',
+          'p_D'
         )
     } else{
       impact <-
@@ -312,7 +334,9 @@ doCausalImpact <-
           predict.bsts,
           inclusion_probs,
           post.period.response = post_period_response,
-          observed.y = y.full
+          observed.y = y.full,
+          DIC,
+          p_D
         )
       names(impact) <-
         c(
@@ -324,7 +348,9 @@ doCausalImpact <-
           'predict.bsts',
           'inclusion_probs',
           'post_period_response',
-          'observed.y'
+          'observed.y',
+          'DIC',
+          'p_D'
         )
     }
     return(impact)

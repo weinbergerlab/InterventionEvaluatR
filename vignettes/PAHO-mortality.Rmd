@@ -108,8 +108,8 @@ analysis <- evaluatr.init(
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
   denom_name = "acm_noj_prim" , #Denominator variable name
-  set.burnN=15000,
-  set.sampleN=10000
+  set.burnN=5000,
+  set.sampleN=5000
 )
 set.seed(1)
 ```
@@ -129,8 +129,6 @@ par(mar=c(4,5,1,1)) #fix margins
 group.labels<-as.character(unique(analysis$input_data[,analysis$group_name]))
 mapply(evaluatr.univariate.plot,ds=glmer_results,plot.labs=group.labels)
 ```
-
-
 
 ## Run the main analysis
 Save the results in object 'impact_results'
@@ -163,7 +161,6 @@ Calculate DIC
 #This function calculate the -2*log likelihood for each column D
 #y are the observed counts
 
-#Need to calculate pred count mean by calculating mean of each of the betas and RE, then calculate pred count from that
 pre.index<- which( unique(analysis$input_data[, analysis$date_name])< analysis$intervention_date)
 
 post.mat<-impact_results$full$groups$`ec 2-23m A`$reg.mean #lambda
