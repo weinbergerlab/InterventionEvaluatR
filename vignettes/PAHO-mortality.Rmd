@@ -156,6 +156,45 @@ if(geweke.p>0.05){con.stat<-'Model converged'
 
 ```
 
+Calculate DIC
+```{r}
+
+#DIC
+#This function calculate the -2*log likelihood for each column D
+#y are the observed counts
+
+#Need to calculate pred count mean by calculating mean of each of the betas and RE, then calculate pred count from that
+pre.index<- which( unique(analysis$input_data[, analysis$date_name])< analysis$intervention_date)
+
+post.mat<-impact_results$full$groups$`ec 2-23m A`$reg.mean #lambda
+post.mat.pre<-post.mat[pre.index,]
+obs<-impact_results$full$groups$`ec 2-23m A`$observed.y
+
+pred.count<- post.mat.pre #lambda
+pred.count.mean<-apply(pred.count,1,mean)
+obs.pre<-obs[pre.index]
+
+y<-obs.pre
+
+log.like.func<-function(x1){
+ neg_two_loglike_poisson<- -2*sum(dpois(as.vector(y), 
+                                             lambda = x1, 
+                                             log = TRUE))
+ }
+log.lik.mat<-apply(pred.count,2,log.like.func) #Object of length D, with -2LL estimates
+
+#Calculate the mean of the fitted values. Prd.count mean, is a vector of length N,
+#And use this to calculate neg_two_loglike_poisson_mean
+neg_two_loglike_poisson_mean<- -2*sum(dpois(as.vector(y),
+                                            lambda = pred.count.mean,
+                                            log = TRUE))
+
+DIC2<- 2*(mean(log.lik.mat)) -   neg_two_loglike_poisson_mean
+p_D<-  mean(log.lik.mat)  -   neg_two_loglike_poisson_mean #number of parameters
+```
+
+
+
 ##Run sensitivity analyses
 In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of the apsecific variable
 ```{r sensitivity_analyses, include = FALSE}
