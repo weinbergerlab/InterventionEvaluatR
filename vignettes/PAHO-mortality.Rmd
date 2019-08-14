@@ -86,11 +86,6 @@ ds$monthdate<-as.Date(ds$monthdate, tryFormats=c('%Y-%m-%d',
                                                     ) )
 ```
 
-#Sort data by age group and month
-```{r}
-    ds<-ds[order(ds$age_group, ds$monthdate),] #Sort data by age group and month
-```
-
 ## Set parameters for analysis
 
 Here we need to set a few parameters. We Use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any). You can also set the number of interations for the MCMC. the default is to use a burn-in period of 5000 iterations and to sample 10,000 iterations afterthe burn in. This is a decent place to start. After evaluating model convergence (see below), you might want to increase the burn-in period.
@@ -108,10 +103,15 @@ analysis <- evaluatr.init(
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
   denom_name = "acm_noj_prim" , #Denominator variable name
-  set.burnN=10000,
-  set.sampleN=15000
+  set.burnN=5000,
+  set.sampleN=5000
 )
 set.seed(1)
+```
+
+#Sort data by age group and month
+```{r}
+    ds<-ds[order(ds[, analysis$group_name], ds[,analysis$date_name]),] #Sort data by age group and month
 ```
 
 ## Run a simple analysis controlling for 1 control variable at a time

@@ -239,6 +239,7 @@ evaluatr.init <- function(country,
 #' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster
 #' @importFrom future availableCores
 #' @importFrom pbapply pblapply
+#' @importFrom coda geweke.diag
 #' @export
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
@@ -401,7 +402,18 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     results[[variant]]$rr_mean_hdi <-
       t(sapply(results[[variant]]$quantiles, getRRHDI))
     
-  }
+    #Convergence status
+    trace1<-results[[variant]]$rr_mean_hdi
+    n.iter<-length(trace1)
+    geweke.p<- pnorm(abs(geweke.diag(mcmc(trace1))$z),lower.tail=FALSE)*2
+    print(geweke.p)
+    if(geweke.p>0.05){con.stat<-'Model converged'
+    }else{
+      con.stat<-'Not converged'
+    } 
+        results[[variant]]$converge<-con.stat 
+  
+    }
   
   if ('best' %in% variants) {
     results$best$log_rr <- t(sapply(results$best$quantiles, getsdRR))
