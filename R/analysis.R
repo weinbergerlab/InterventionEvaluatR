@@ -404,15 +404,18 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     
     #Convergence status
     trace1<-results[[variant]]$rr_iter
-    n.iter<-length(trace1)
-    geweke.p<- pnorm(abs(geweke.diag(mcmc(trace1))$z),lower.tail=FALSE)*2
-    print(geweke.p)
-    if(geweke.p>0.05){con.stat<-'Model converged'
-    }else{
-      con.stat<-'Not converged'
-    } 
-        results[[variant]]$converge<-con.stat 
-  
+    con.stat<-matrix(NA, nrow=nrow(trace1), ncol=2)
+    colnames(con.stat)<- c('geweke.p','status')
+    for(i in 1: nrow(trace1)){
+      geweke.p<- pnorm(abs(geweke.diag(mcmc(trace1[i,]))$z),lower.tail=FALSE)*2
+      con.stat[i,1]<-geweke.p
+      if(geweke.p>0.05){
+        con.stat[i,2]<-'Model converged'
+      }else{
+        con.stat[i,2]<-'Not converged'
+      } 
+    }
+      results[[variant]]$converge<-con.stat 
     }
   
   if ('best' %in% variants) {
