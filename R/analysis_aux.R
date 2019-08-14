@@ -234,6 +234,9 @@ doCausalImpact <-
     
     beta.mat <- bsts_model.pois$samplesP$beta[-c(1:burnN), ]
     x.fit <- cbind(rep(1, nrow(x)), x)
+    x.fit.pre<- x.fit[time_points < as.Date(intervention_date),]
+    rand.int.fitted <- bsts_model.pois$samplesP$bi[-c(1:burnN), ]
+
     #Generate  predictions with prediction interval
     if (ri.select) {
       disp <-
@@ -251,9 +254,12 @@ doCausalImpact <-
     }
     if (trend) {
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)  * offset.t
+      offset.t.pre<-offset.t[time_points < as.Date(intervention_date)]
+      reg.mean.fitted<-exp((x.fit.pre %*% t(beta.mat)) + t(rand.int.fitted))  * offset.t.pre
     } else{
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)
-    }
+      reg.mean.fitted<- exp((x.fit.pre %*% t(beta.mat)) + t(rand.int.fitted) )
+        }
     predict.bsts <- rpois(length(reg.mean), lambda = reg.mean)
     predict.bsts <-
       matrix(predict.bsts,
@@ -265,7 +271,7 @@ doCausalImpact <-
     
     
     #DIC
-    pred.count<-reg.mean[time_points < as.Date(intervention_date),] #lambda
+    pred.count<-reg.mean.fitted #lambda
     pred.count.mean<-apply(pred.count,1,mean)
     log.like.func<-function(x1){
     neg_two_loglike_poisson<- -2*sum(dpois(as.vector(y.pre), 
