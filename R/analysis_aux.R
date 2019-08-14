@@ -718,6 +718,7 @@ plotPred <-
            sensitivity_pred_quantiles = NULL,
            sensitivity_title = 'Sensitivity Plots',
            plot_sensitivity = FALSE) {
+    pre_period <- which(time_points < post_period[1])
     post_period_start <- which(time_points == post_period[1])
     post_period_end <- which(time_points == post_period[2])
     post_dates <-
@@ -745,12 +746,17 @@ plotPred <-
         #   color = 'red'
         # ) +
         geom_line(
+          data = data.frame(time = time_points[pre_period], pred_outcome = pred_quantiles[pre_period, 2]),
+          aes_string(x = 'time', y = 'pred_outcome'),
+          linetype = '11',
+          color = 'black'
+        ) +
+        geom_line(
           data = data.frame(time = time_points[post_period_start:post_period_end], pred_outcome = pred_quantiles[post_period_start:post_period_end, 2]),
           aes_string(x = 'time', y = 'pred_outcome'),
           linetype = 'dashed',
           color = 'black'
         ) +
-        
         labs(x = 'Time', y = 'Number of Cases') +
         #scale_colour_manual(values = c('black', 'white')) +
         scale_fill_hue(guide = 'none') +
@@ -905,50 +911,43 @@ plotPredAgg <-
     ann_obs <- ann_pred_quantiles
 
     # But we don't care about predicted data before intervention date
-    ann_pred_quantiles <- subset(ann_pred_quantiles, year >= year.post)
+    ann_pred_quantiles_pre <- subset(ann_pred_quantiles, year < year.post)
+    ann_pred_quantiles_post <- subset(ann_pred_quantiles, year >= year.post)
     
     # However, for display purposes, we force the predicted time series to converge on the observed time series at the point of intervention
     # last_pre_intervention = as.data.frame(t(colMeans(ann_obs[ann_obs$year %in% c(year.post - 1, year.post),])))
     last_pre_intervention = ann_obs[ann_obs$year == year.post - 1,]
     last_pre_intervention$'2.5%' = last_pre_intervention$'50%' = last_pre_intervention$'97.5%' = last_pre_intervention$obs
-    ann_pred_quantiles <- rbind(last_pre_intervention, ann_pred_quantiles)
+    ann_pred_quantiles_post <- rbind(last_pre_intervention, ann_pred_quantiles_post)
 
     pred_plot <- ggplot() +
       geom_ribbon(
         aes_(
-          x = year.date(ann_pred_quantiles$year),
-          ymin = ann_pred_quantiles$'2.5%',
-          ymax = ann_pred_quantiles$'97.5%'
+          x = year.date(ann_pred_quantiles_post$year),
+          ymin = ann_pred_quantiles_post$'2.5%',
+          ymax = ann_pred_quantiles_post$'97.5%'
         ),
         alpha = 0.5,
         fill = 'lightgray'
       ) +
-      # geom_pointrange(
-      #   data = ann_pred_quantiles,
-      #     aes(
-      #       x = year.date(year),
-      #       y = ann_pred_quantiles$'50%',
-      #       ymin = ann_pred_quantiles$'2.5%',
-      #       ymax = ann_pred_quantiles$'97.5%'
-      #     ),
-      #   color = 'black', shape=1
-      # ) + 
       geom_line(
         aes_(x = year.date(ann_obs$year), y = ann_obs$obs), 
         linetype = "solid", 
         color = "black"
       ) +
       geom_line(
-        aes_(x = year.date(ann_pred_quantiles$year), y = ann_pred_quantiles$'50%'),
+        aes_(x = year.date(ann_pred_quantiles_pre$year), y = ann_pred_quantiles_pre$'50%'),
+        linetype = '11',
+        color = 'black'
+      ) +
+      geom_line(
+        aes_(x = year.date(ann_pred_quantiles_post$year), y = ann_pred_quantiles_post$'50%'),
         linetype = 'dashed',
         color = 'black'
       ) +
       labs(x = 'Year', y = 'Number of Cases') +
-      # geom_vline(xintercept = year.intervention,
-      #            linetype = 'dashed',
-      #            color = 'gray') +
       coord_cartesian(
-        ylim=c(0, max(ann_pred_quantiles$'97.5%'))
+        ylim=c(0, max(ann_pred_quantiles_post$'97.5%'))
       ) +
       ggtitle(title) +
       theme_bw() +
