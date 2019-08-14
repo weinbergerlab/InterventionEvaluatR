@@ -108,8 +108,8 @@ analysis <- evaluatr.init(
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
   denom_name = "acm_noj_prim" , #Denominator variable name
-  set.burnN=5000,
-  set.sampleN=5000
+  set.burnN=10000,
+  set.sampleN=15000
 )
 set.seed(1)
 ```
@@ -140,8 +140,7 @@ impact_results = evaluatr.impact(analysis)
 These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). We use Geweke's diagnostic, which tests whether the mean estimate for the rate ratio in the first 10% of the iterations is equal to the mean estimate for the rate ration in the last 50% of the iterations. If the model has not converged, you might need to add more iterations or a longer burn in period
 ```{r}
 n.iter<-ncol(impact_results$full$rr_iter)
-thin=1
-trace1<-impact_results$full$rr_iter[,seq(from=1, to=n.iter, by=thin)] #thin
+trace1<-impact_results$full$rr_iter[,seq(from=1, to=n.iter)] 
 for(i in 1: nrow(trace1)){
   geweke.p<- pnorm(abs(geweke.diag(mcmc(trace1[i,]))$z),lower.tail=FALSE)*2
   print(geweke.p)
@@ -154,40 +153,26 @@ if(geweke.p>0.05){con.stat<-'Model converged'
 
 ```
 
-Calculate DIC
+Extract the DIC
 ```{r}
 
-#DIC
-#This function calculate the -2*log likelihood for each column D
-#y are the observed counts
+dic.full<-sapply(impact_results$full$groups, "[[", "DIC")
+dic.time<-sapply(impact_results$time$groups, "[[", "DIC")
+dic.time_no_offset<-sapply(impact_results$time_no_offset$groups, "[[", "DIC")
+dic.pca<-sapply(impact_results$pca$groups, "[[", "DIC")
+dic.compare<-cbind.data.frame('Synthetic controls'=dic.full,'Time trend'=dic.time,'No offset'=dic.time_no_offset,'STL+PCA'=dic.pca)
+  htmlTable(round(dic.compare,1), align='l')
 
-pre.index<- which( unique(analysis$input_data[, analysis$date_name])< analysis$intervention_date)
+```
 
-post.mat<-impact_results$full$groups$`ec 2-23m A`$reg.mean #lambda
-post.mat.pre<-post.mat[pre.index,]
-obs<-impact_results$full$groups$`ec 2-23m A`$observed.y
-
-pred.count<- post.mat.pre #lambda
-pred.count.mean<-apply(pred.count,1,mean)
-obs.pre<-obs[pre.index]
-
-y<-obs.pre
-
-log.like.func<-function(x1){
- neg_two_loglike_poisson<- -2*sum(dpois(as.vector(y), 
-                                             lambda = x1, 
-                                             log = TRUE))
- }
-log.lik.mat<-apply(pred.count,2,log.like.func) #Object of length D, with -2LL estimates
-
-#Calculate the mean of the fitted values. Prd.count mean, is a vector of length N,
-#And use this to calculate neg_two_loglike_poisson_mean
-neg_two_loglike_poisson_mean<- -2*sum(dpois(as.vector(y),
-                                            lambda = pred.count.mean,
-                                            log = TRUE))
-
-DIC2<- 2*(mean(log.lik.mat)) -   neg_two_loglike_poisson_mean
-p_D<-  mean(log.lik.mat)  -   neg_two_loglike_poisson_mean #number of parameters
+Extract the effective number of parameters
+```{r}
+pd.full<-sapply(impact_results$full$groups, "[[", "p_D")
+pd.time<-sapply(impact_results$time$groups, "[[", "p_D")
+pd.time_no_offset<-sapply(impact_results$time_no_offset$groups, "[[", "p_D")
+pd.pca<-sapply(impact_results$pca$groups, "[[", "p_D")
+pd.compare<-cbind.data.frame('Synthetic controls'=pd.full,'Time trend'=pd.time,'No offset'=pd.time_no_offset,'STL+PCA'=pd.pca)
+  htmlTable(round(pd.compare), align='c', width=8,align.header ='c')
 ```
 
 

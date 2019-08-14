@@ -400,8 +400,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       t(sapply(results[[variant]]$quantiles, getRRiter))
     results[[variant]]$rr_mean_hdi <-
       t(sapply(results[[variant]]$quantiles, getRRHDI))
-  }
-  
+
   if ('best' %in% variants) {
     results$best$log_rr <- t(sapply(results$best$quantiles, getsdRR))
   }
@@ -419,7 +418,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         )
       )
   }
-  
+
   if ('time' %in% variants) {
     colnames(results$time$rr_mean) <-
       paste('Time_trend', colnames(results$time$rr_mean))
