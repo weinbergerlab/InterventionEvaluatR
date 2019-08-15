@@ -153,30 +153,6 @@ if(geweke.p>0.05){con.stat<-'Model converged'
 
 ```
 
-Extract the DIC
-```{r}
-
-dic.full<-sapply(impact_results$full$groups, "[[", "DIC")
-dic.time<-sapply(impact_results$time$groups, "[[", "DIC")
-dic.time_no_offset<-sapply(impact_results$time_no_offset$groups, "[[", "DIC")
-dic.pca<-sapply(impact_results$pca$groups, "[[", "DIC")
-dic.compare<-cbind.data.frame('Synthetic controls'=dic.full,'Time trend'=dic.time,'No offset'=dic.time_no_offset,'STL+PCA'=dic.pca)
-  htmlTable(round(dic.compare,1), align='l')
-
-```
-
-Extract the effective number of parameters
-```{r}
-pd.full<-sapply(impact_results$full$groups, "[[", "p_D")
-pd.time<-sapply(impact_results$time$groups, "[[", "p_D")
-pd.time_no_offset<-sapply(impact_results$time_no_offset$groups, "[[", "p_D")
-pd.pca<-sapply(impact_results$pca$groups, "[[", "p_D")
-pd.compare<-cbind.data.frame('Synthetic controls'=pd.full,'Time trend'=pd.time,'No offset'=pd.time_no_offset,'STL+PCA'=pd.pca)
-  htmlTable(round(pd.compare), align='c', width=8,align.header ='c')
-```
-
-
-
 ##Run sensitivity analyses
 In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of the apsecific variable
 ```{r sensitivity_analyses, include = FALSE}
