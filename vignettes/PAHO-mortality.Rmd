@@ -103,8 +103,8 @@ analysis <- evaluatr.init(
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
   denom_name = "acm_noj_prim" , #Denominator variable name
-  set.burnN=5000,
-  set.sampleN=5000
+  set.burnN=1000,
+  set.sampleN=2000
 )
 set.seed(1)
 ```
@@ -139,16 +139,13 @@ impact_results = evaluatr.impact(analysis)
 ## Check model convergence
 These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). We use Geweke's diagnostic, which tests whether the mean estimate for the rate ratio in the first 10% of the iterations is equal to the mean estimate for the rate ration in the last 50% of the iterations. If the model has not converged, you might need to add more iterations or a longer burn in period
 ```{r}
-n.iter<-ncol(impact_results$full$rr_iter)
-trace1<-impact_results$full$rr_iter[,seq(from=1, to=n.iter)] 
-for(i in 1: nrow(trace1)){
-  geweke.p<- pnorm(abs(geweke.diag(mcmc(trace1[i,]))$z),lower.tail=FALSE)*2
-  print(geweke.p)
-if(geweke.p>0.05){con.stat<-'Model converged'
-  }else{
-    con.stat<-'Not converged'
-  } 
-   plot(trace1[i,], type='l', main=paste0(con.stat,' ',colnames(trace1)[i]), bty='l', ylim=c(0.2,2))
+all.traces<-sapply(impact_results,'[[', 'rr_iter')
+cats<-dimnames(all.traces[[1]])[[1]]
+all.converge.status<-sapply(impact_results,'[[', 'converge')
+for(j in c('full','time','pca')){
+for(i in 1: nrow(all.traces[[1]])){
+   plot(all.traces[[j]][i,], type='l', main=paste0(j,' ',cats[i],' ' ,all.converge.status[[j]][i,2],' ',colnames(trace1)[i]), bty='l', ylim=c(0.2,2))
+}
 }
 
 ```

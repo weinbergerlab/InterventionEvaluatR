@@ -239,7 +239,7 @@ evaluatr.init <- function(country,
 #' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster
 #' @importFrom future availableCores
 #' @importFrom pbapply pblapply
-#' @importFrom coda geweke.diag
+#' @importFrom coda geweke.diag mcmc
 #' @export
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
