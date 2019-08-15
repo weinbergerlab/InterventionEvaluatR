@@ -1035,7 +1035,7 @@ weightSensitivityAnalysis <-
       disp.mat <- rnorm(n = length(disp) * length(y),
                         mean = 0,
                         sd = abs(disp))
-      disp.mat <- t(matrix(disp.mat, nrow = length(disp), ncol = length(y)))
+      disp.mat <- t(matrix(disp.mat, nrow = length(disp), ncol = length(y),byrow=T ))
       x.fit <- cbind(rep(1, nrow(covar_df)), covar_df)
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)
       predict.bsts <- rpois(length(reg.mean), lambda = reg.mean)
