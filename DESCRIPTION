@@ -26,7 +26,8 @@ Imports:
     listenv,
     xtable,
     htmlTable,
-    HDInterval
+    HDInterval,
+    coda
 Suggests: 
     knitr,
     rmarkdown
