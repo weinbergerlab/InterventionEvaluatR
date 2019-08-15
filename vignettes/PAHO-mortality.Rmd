@@ -103,8 +103,8 @@ analysis <- evaluatr.init(
   date_name = "monthdate", #Date variable name
   outcome_name = "J12_J18_prim", #Outcome variable name
   denom_name = "acm_noj_prim" , #Denominator variable name
-  set.burnN=1000,
-  set.sampleN=2000
+  set.burnN=5000,
+  set.sampleN=10000
 )
 set.seed(1)
 ```
