@@ -144,7 +144,7 @@ cats<-dimnames(all.traces[[1]])[[1]]
 all.converge.status<-sapply(impact_results,'[[', 'converge')
 for(j in c('full','time','pca')){
 for(i in 1: nrow(all.traces[[1]])){
-   plot(all.traces[[j]][i,], type='l', main=paste0(j,' ',cats[i],' ' ,all.converge.status[[j]][i,2],' ',colnames(trace1)[i]), bty='l', ylim=c(0.2,2))
+   plot(all.traces[[j]][i,], type='l', main=paste0(j,' ',cats[i],' ' ,all.converge.status[[j]][i,2],' ',colnames(all.traces[[j]])[i]), bty='l', ylim=c(0.2,2))
 }
 }
 
