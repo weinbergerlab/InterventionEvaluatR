@@ -718,6 +718,7 @@ plotPred <-
            sensitivity_pred_quantiles = NULL,
            sensitivity_title = 'Sensitivity Plots',
            plot_sensitivity = FALSE) {
+    pre_period <- which(time_points < post_period[1])
     post_period_start <- which(time_points == post_period[1])
     post_period_end <- which(time_points == post_period[2])
     post_dates <-
@@ -737,20 +738,25 @@ plotPred <-
           data = data.frame(time = time_points, outcome = outcome_plot),
           aes_string(x = 'time', y = 'outcome')
         ) +
+        # geom_line(
+        #   data = data.frame(time = time_points[1:(post_period_start - 1)], pred_outcome = pred_quantiles[1:(post_period_start -
+        #                                                                                                       1), 2]),
+        #   aes_string(x = 'time', y = 'pred_outcome'),
+        #   linetype = 'dashed',
+        #   color = 'red'
+        # ) +
         geom_line(
-          data = data.frame(time = time_points[1:(post_period_start - 1)], pred_outcome = pred_quantiles[1:(post_period_start -
-                                                                                                              1), 2]),
+          data = data.frame(time = time_points[pre_period], pred_outcome = pred_quantiles[pre_period, 2]),
           aes_string(x = 'time', y = 'pred_outcome'),
-          linetype = 'dashed',
-          color = 'red'
+          linetype = '11',
+          color = 'black'
         ) +
         geom_line(
           data = data.frame(time = time_points[post_period_start:post_period_end], pred_outcome = pred_quantiles[post_period_start:post_period_end, 2]),
           aes_string(x = 'time', y = 'pred_outcome'),
           linetype = 'dashed',
-          color = 'white'
+          color = 'black'
         ) +
-        
         labs(x = 'Time', y = 'Number of Cases') +
         #scale_colour_manual(values = c('black', 'white')) +
         scale_fill_hue(guide = 'none') +
@@ -840,7 +846,8 @@ plotPred <-
   }
 
 #Plot aggregated predictions.
-#' @importFrom ggplot2 scale_x_date waiver
+#' @importFrom ggplot2 scale_x_date waiver geom_pointrange
+#' @importFrom lubridate date_decimal
 plotPredAgg <-
   function(ann_pred_quantiles,
            time_points,
@@ -879,7 +886,7 @@ plotPredAgg <-
       date.labels = waiver()
     }
     # Put the intervention marker at 0.5 years before the first post-intervention year
-    year.intervention = as.Date(paste0(year.post - 1, "-07-01"))
+    year.intervention = as.Date(date_decimal(year.post - 0.5))
 
     #how mny time points in each aggregation period?
     if (year_def == 'epi_year') {
@@ -893,35 +900,55 @@ plotPredAgg <-
     }
     
     year.date <- function(y) {
-      as.Date(paste0(y, "-01-01"), "%Y-%m-%d")
+      as.Date(date_decimal(y))
     }
     
+    # ann_pred_quantiles has observed and predicted data for all years
     ann_pred_quantiles[, c('2.5%', '50%', '97.5%', 'obs')] <-
       ann_pred_quantiles[, c('2.5%', '50%', '97.5%', 'obs')] * 12 / n.months.year # for partial years, inflate the counts proportional to N months
+    
+    # We care about observed data from all years
+    ann_obs <- ann_pred_quantiles
+
+    # But we don't care about predicted data before intervention date
+    ann_pred_quantiles_pre <- subset(ann_pred_quantiles, year < year.post)
+    ann_pred_quantiles_post <- subset(ann_pred_quantiles, year >= year.post)
+    
+    # However, for display purposes, we force the predicted time series to converge on the observed time series at the point of intervention
+    # last_pre_intervention = as.data.frame(t(colMeans(ann_obs[ann_obs$year %in% c(year.post - 1, year.post),])))
+    last_pre_intervention = ann_obs[ann_obs$year == year.post - 1,]
+    last_pre_intervention$'2.5%' = last_pre_intervention$'50%' = last_pre_intervention$'97.5%' = last_pre_intervention$obs
+    ann_pred_quantiles_post <- rbind(last_pre_intervention, ann_pred_quantiles_post)
+
     pred_plot <- ggplot() +
-      #geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound', color='variable'), alpha = 0.3) +
       geom_ribbon(
-        data = ann_pred_quantiles,
-        aes(
-          x = year.date(year),
-          ymin = ann_pred_quantiles$'2.5%',
-          ymax = ann_pred_quantiles$'97.5%'
+        aes_(
+          x = year.date(ann_pred_quantiles_post$year),
+          ymin = ann_pred_quantiles_post$'2.5%',
+          ymax = ann_pred_quantiles_post$'97.5%'
         ),
         alpha = 0.5,
         fill = 'lightgray'
       ) +
-      geom_point(data = ann_pred_quantiles, aes_string(x = year.date(ann_pred_quantiles$year), y = ann_pred_quantiles$obs)) +
       geom_line(
-        data = ann_pred_quantiles,
-        aes_string(x = year.date(ann_pred_quantiles$year), y = ann_pred_quantiles$'50%'),
-        linetype = 'solid',
+        aes_(x = year.date(ann_obs$year), y = ann_obs$obs), 
+        linetype = "solid", 
+        color = "black"
+      ) +
+      geom_line(
+        aes_(x = year.date(ann_pred_quantiles_pre$year), y = ann_pred_quantiles_pre$'50%'),
+        linetype = '11',
+        color = 'black'
+      ) +
+      geom_line(
+        aes_(x = year.date(ann_pred_quantiles_post$year), y = ann_pred_quantiles_post$'50%'),
+        linetype = 'dashed',
         color = 'black'
       ) +
       labs(x = 'Year', y = 'Number of Cases') +
-      geom_vline(xintercept = year.intervention,
-                 linetype = 'dashed',
-                 color = 'gray') +
-      ylim(0, max(ann_pred_quantiles$'97.5%')) +
+      coord_cartesian(
+        ylim=c(0, max(ann_pred_quantiles_post$'97.5%'))
+      ) +
       ggtitle(title) +
       theme_bw() +
       scale_x_date(labels = date.labels) +
