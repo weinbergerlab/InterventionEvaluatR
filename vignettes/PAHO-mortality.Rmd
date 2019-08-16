@@ -127,7 +127,7 @@ Then plot the results. The results are ordered by goodness of fit (based on AIC 
 ```{r univariate_plot,fig.width=4, fig.height=5}
 par(mar=c(4,5,1,1)) #fix margins
 group.labels<-as.character(unique(analysis$input_data[,analysis$group_name]))
-mapply(evaluatr.univariate.plot,ds=glmer_results,plot.labs=group.labels)
+lapply(glmer_results,evaluatr.univariate.plot)
 ```
 
 ## Run the main analysis
