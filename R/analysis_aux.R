@@ -248,7 +248,7 @@ doCausalImpact <-
           sd = abs(disp)
         ) #Note: confirmed that median(abs(disp)) is same as sd(rand.eff)
       disp.mat <-
-        t(matrix(disp.mat, nrow = length(disp), ncol = length(y.full)))
+        t(matrix(disp.mat, nrow = length(disp), ncol = length(y.full), byrow=T ) )
     } else{
       disp.mat = 0 #if no random effect in model, just set to 0.
     }
