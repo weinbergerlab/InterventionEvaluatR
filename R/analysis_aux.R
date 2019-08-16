@@ -235,30 +235,34 @@ doCausalImpact <-
     beta.mat <- bsts_model.pois$samplesP$beta[-c(1:burnN), ]
     x.fit <- cbind(rep(1, nrow(x)), x)
     x.fit.pre<- x.fit[time_points < as.Date(intervention_date),]
-    rand.int.fitted <- bsts_model.pois$samplesP$bi[-c(1:burnN), ]
+    rand.beta.int.fitted <- bsts_model.pois$samplesP$bi[-c(1:burnN), ]
+    beta <-   bsts_model.pois$samplesP$beta[-c(1:burnN), ]
 
+  
     #Generate  predictions with prediction interval
     if (ri.select) {
-      disp <-
+      thetabeta <-
         bsts_model.pois$samplesP$thetaBeta[-c(1:burnN), 1] ##note theta beta is signed--bimodal dist---take abs value
-      disp.mat <-
+      fitted.rand.effects.mat<- rand.beta.int.fitted*thetabeta
+      rand.eff.sd.iter<-apply(fitted.rand.effects.mat,1,sd)
+       disp.mat <-
         rnorm(
-          n = length(disp) * length(y.full),
+          n = length(thetabeta) * length(y.full),
           mean = 0,
-          sd = abs(disp)
+          sd = rand.eff.sd.iter
         ) #Note: confirmed that median(abs(disp)) is same as sd(rand.eff)
       disp.mat <-
-        t(matrix(disp.mat, nrow = length(disp), ncol = length(y.full)))
+        t(matrix(disp.mat, nrow = length(thetabeta), ncol = length(y.full)))
     } else{
       disp.mat = 0 #if no random effect in model, just set to 0.
     }
     if (trend) {
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)  * offset.t
       offset.t.pre<-offset.t[time_points < as.Date(intervention_date)]
-      reg.mean.fitted<-exp((x.fit.pre %*% t(beta.mat)) + t(rand.int.fitted))  * offset.t.pre
+      reg.mean.fitted<-exp((x.fit.pre %*% t(beta.mat)) + t(fitted.rand.effects.mat))  * offset.t.pre
     } else{
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)
-      reg.mean.fitted<- exp((x.fit.pre %*% t(beta.mat)) + t(rand.int.fitted) )
+      reg.mean.fitted<- exp((x.fit.pre %*% t(beta.mat)) + t(fitted.rand.effects.mat) )
         }
     predict.bsts <- rpois(length(reg.mean), lambda = reg.mean)
     predict.bsts <-
