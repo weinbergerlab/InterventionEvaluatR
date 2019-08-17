@@ -748,7 +748,7 @@ plotPred <-
         geom_line(
           data = data.frame(time = time_points[pre_period], pred_outcome = pred_quantiles[pre_period, 2]),
           aes_string(x = 'time', y = 'pred_outcome'),
-          linetype = '11',
+          linetype = 'dotted',
           color = 'black'
         ) +
         geom_line(
@@ -937,7 +937,7 @@ plotPredAgg <-
       ) +
       geom_line(
         aes_(x = year.date(ann_pred_quantiles_pre$year), y = ann_pred_quantiles_pre$'50%'),
-        linetype = '11',
+        linetype = 'dotted',
         color = 'black'
       ) +
       geom_line(
