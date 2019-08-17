@@ -1506,12 +1506,12 @@ single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, ev
 #' @importFrom ggplot2 ggplot geom_segment geom_point coord_cartesian theme_minimal scale_y_discrete
 
 evaluatr.univariate.plot<-function(ds, plot.labs='Univariate'){
-  ylevels = rev(levels(ds$covar))
+  ylevels = rev(ds$covar)
   ggplot(ds) +
     geom_point(aes(x=rr, y=covar)) + 
     geom_segment(aes(x=rr.lcl, xend=rr.ucl, y=covar, yend=covar)) +
     coord_cartesian(xlim=c(0.2, 2)) +
-    geom_segment(aes(x=1, y=min(ylevels), xend=1, yend=max(ylevels)), linetype="dashed", color="gray") +
+    geom_segment(aes(x=1, y=head(ylevels, 1), xend=1, yend=tail(ylevels, 1)), linetype="dashed", color="gray") +
     scale_y_discrete(limits = ylevels) +
     labs(title=plot.labs, x='Univariate Rate Ratio', y=NULL) +
     theme_minimal()
