@@ -109,7 +109,7 @@ analysis <- evaluatr.init(
 set.seed(1)
 ```
 
-#Sort data by age group and month
+### Sort data by age group and month
 ```{r}
     ds<-ds[order(ds[, analysis$group_name], ds[,analysis$date_name]),] #Sort data by age group and month
 ```
@@ -159,7 +159,7 @@ if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(na
 }
 ```
 
-##Compare estimates from different models
+## Compare estimates from different models
 This shows the estimated rate ratio and 95% credible intervals from a synthetic controls analysis; a time-trend analysis where we used the specified denominator (all non-respiratory deaths) to adjust the number of pneumonia deaths in each month and a linear trend for time; a classic interrupted time series analysis (segmented regression); and the STL+PCA approach, which smooths and combines the control variables prior to including them in the model. 
 ```{r Comparison of estimates from different models, results="asis"}
 results.table<- cbind.data.frame(
@@ -175,7 +175,7 @@ results.table<- cbind.data.frame(
 ```
 
 
-##Cases averted
+## Cases averted
 How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series
 ```{r}
 last.point<-dim(impact_results$best$cumsum_prevented)[1]
@@ -191,7 +191,7 @@ names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
   htmlTable(cum3, align='l')
 ```
 
-##Number of variables selected in SC analysis
+## Number of variables selected in SC analysis
 The Synthetic controls analysis uses a Bayesian variable selection algorithm to weight the candidate covariates. In each MCMC iteration, it tests a different combination of variables. The model size indicates how many variables are selected in any given model. If <1 variable is selected on average, this indicates that no suitable control variables were identified. 
 In this example 1-2 variables were selected on average in the 2-23m and 2-59 m age categories, while no controls were identified in the 24-59m age group (the average model size is <1 (0.44)).
 ```{r modelsize, results="asis"}
@@ -199,7 +199,7 @@ model_size = data.frame(t(analysis$model_size))
 htmlTable(model_size, align='c')
 ```
 
-##Inclusion Probabilities
+## Inclusion Probabilities
 ```{r incl, include = FALSE}
 incl_probs <- NULL
 for (group in analysis$groups) {
@@ -220,7 +220,7 @@ htmlTable(incl_probs)
 ```
 
 
-##Run sensitivity analyses
+## Run sensitivity analyses
 In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of the apsecific variable
 ```{r sensitivity_analyses, include = FALSE}
 if (params$sensitivity) {
@@ -237,13 +237,13 @@ if (exists("sensitivity_results")) {
 }
 ```
 
-##Generate and save the plots
+## Generate and save the plots
 ```{r mainplot1, echo=FALSE}
 plots <- evaluatr.plots(analysis)
 ```
 
 ## Plot the results for 1 age group
-###First look at the results from the synthetic controls model for 1 age group.
+### First look at the results from the synthetic controls model for 1 age group.
 
 This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
 ```{r, fig.width=5, fig.height=4}
