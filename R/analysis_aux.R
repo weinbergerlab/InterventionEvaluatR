@@ -726,7 +726,6 @@ plotPred <-
     
     if (!plot_sensitivity) {
       pred_plot <- ggplot() +
-        #geom_polygon(data = data.frame(time = c(post_dates, rev(post_dates)), pred_bound = c(pred_quantiles[which(time_points %in% post_dates), 3], rev(pred_quantiles[which(time_points %in% post_dates), 1]))), aes_string(x = 'time', y = 'pred_bound', color='variable'), alpha = 0.3) +
         geom_ribbon(aes(
           x = time_points[post_period_start:post_period_end],
           ymin = pred_quantiles[which(time_points %in% post_dates), 1],
@@ -738,13 +737,6 @@ plotPred <-
           data = data.frame(time = time_points, outcome = outcome_plot),
           aes_string(x = 'time', y = 'outcome')
         ) +
-        # geom_line(
-        #   data = data.frame(time = time_points[1:(post_period_start - 1)], pred_outcome = pred_quantiles[1:(post_period_start -
-        #                                                                                                       1), 2]),
-        #   aes_string(x = 'time', y = 'pred_outcome'),
-        #   linetype = 'dashed',
-        #   color = 'red'
-        # ) +
         geom_line(
           data = data.frame(time = time_points[pre_period], pred_outcome = pred_quantiles[pre_period, 2]),
           aes_string(x = 'time', y = 'pred_outcome'),
@@ -758,7 +750,6 @@ plotPred <-
           color = 'black'
         ) +
         labs(x = 'Time', y = 'Number of Cases') +
-        #scale_colour_manual(values = c('black', 'white')) +
         scale_fill_hue(guide = 'none') +
         ggtitle(title) +
         theme_bw() +
