@@ -150,15 +150,6 @@ for(i in 1: nrow(all.traces[[1]])){
 
 ```
 
-##Run sensitivity analyses
-In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of the apsecific variable
-```{r sensitivity_analyses, include = FALSE}
-if (params$sensitivity) {
-  sensitivity_results <- evaluatr.sensitivity(analysis)
-}
-```
-
-
 #`r params$country` Results
 
 
@@ -226,6 +217,15 @@ rownames(incl_probs) <- NULL
 Here we can see which variables received the most weight in the models for each strata. Values range from 0-1, with values closer to 1 indicating that the variable was included in a larger proportion of the variable combinations that were tested A value of 1 would indicate that the variable was always included in the model, a value of 0.48 would indicate the variable was included in 48% of the models that were tested.
 ```{r incl_table, results="asis"}
 htmlTable(incl_probs)
+```
+
+
+##Run sensitivity analyses
+In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of the apsecific variable
+```{r sensitivity_analyses, include = FALSE}
+if (params$sensitivity) {
+  sensitivity_results <- evaluatr.sensitivity(analysis)
+}
 ```
 
 ## Weight Sensitivity Analysis
