@@ -750,6 +750,9 @@ plotPred <-
           color = 'black'
         ) +
         labs(x = 'Time', y = 'Number of Cases') +
+        coord_cartesian(
+          ylim=c(0, max(pred_quantiles[,3], outcome_plot))
+        ) +
         scale_fill_hue(guide = 'none') +
         ggtitle(title) +
         theme_bw() +
@@ -938,7 +941,7 @@ plotPredAgg <-
       ) +
       labs(x = 'Year', y = 'Number of Cases') +
       coord_cartesian(
-        ylim=c(0, max(ann_pred_quantiles_post$'97.5%'))
+        ylim=c(0, max(ann_pred_quantiles_post$'97.5%', ann_obs$obs))
       ) +
       ggtitle(title) +
       theme_bw() +
