@@ -234,6 +234,9 @@ doCausalImpact <-
     
     beta.mat <- bsts_model.pois$samplesP$beta[-c(1:burnN), ]
     x.fit <- cbind(rep(1, nrow(x)), x)
+    x.fit.pre<- x.fit[time_points < as.Date(intervention_date),]
+    rand.int.fitted <- bsts_model.pois$samplesP$bi[-c(1:burnN), ]
+
     #Generate  predictions with prediction interval
     if (ri.select) {
       disp <-
@@ -245,15 +248,18 @@ doCausalImpact <-
           sd = abs(disp)
         ) #Note: confirmed that median(abs(disp)) is same as sd(rand.eff)
       disp.mat <-
-        t(matrix(disp.mat, nrow = length(disp), ncol = length(y.full)))
+        t(matrix(disp.mat, nrow = length(disp), ncol = length(y.full), byrow=T ) )
     } else{
       disp.mat = 0 #if no random effect in model, just set to 0.
     }
     if (trend) {
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)  * offset.t
+      offset.t.pre<-offset.t[time_points < as.Date(intervention_date)]
+      reg.mean.fitted<-exp((x.fit.pre %*% t(beta.mat)) + t(rand.int.fitted))  * offset.t.pre
     } else{
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)
-    }
+      reg.mean.fitted<- exp((x.fit.pre %*% t(beta.mat)) + t(rand.int.fitted) )
+        }
     predict.bsts <- rpois(length(reg.mean), lambda = reg.mean)
     predict.bsts <-
       matrix(predict.bsts,
@@ -262,6 +268,24 @@ doCausalImpact <-
     #predict.bsts.q<-t(apply(predict.bsts,1,quantile, probs=c(0.025,0.5,0.975)))
     #matplot(predict.bsts.q, type='l', col=c('gray','black','gray'), lty=c(2,1,2), bty='l', ylab="N hospitalizations")
     #points(y.full)
+    
+    
+    #DIC
+    pred.count<-reg.mean.fitted #lambda
+    pred.count.mean<-apply(pred.count,1,mean)
+    log.like.func<-function(x1){
+    neg_two_loglike_poisson<- -2*sum(dpois(as.vector(y.pre), 
+                                             lambda = x1, 
+                                             log = TRUE))
+    }
+    log.lik.mat<-apply(pred.count,2,log.like.func) #Object of length D, with -2LL estimates
+      #Calculate the mean of the fitted values. Prd.count mean, is a vector of length N,
+    #And use this to calculate neg_two_loglike_poisson_mean
+    neg_two_loglike_poisson_mean<- -2*sum(dpois(as.vector(y.pre),
+                                                lambda = pred.count.mean,
+                                                log = TRUE))
+    DIC<- 2*(mean(log.lik.mat)) -   neg_two_loglike_poisson_mean
+    p_D<-  mean(log.lik.mat)  -   neg_two_loglike_poisson_mean #number of parameters
     
     #Inclusion probabilities Poisson model
     incl.probs.mat <- t(bsts_model.pois$samplesP$pdeltaBeta[-c(1:burnN), ])
@@ -286,7 +310,9 @@ doCausalImpact <-
           predict.bsts,
           inclusion_probs,
           post.period.response = post_period_response,
-          observed.y = y.full
+          observed.y = y.full,
+          DIC,
+          p_D
         )
       names(impact) <-
         c(
@@ -299,7 +325,9 @@ doCausalImpact <-
           'predict.bsts',
           'inclusion_probs',
           'post_period_response',
-          'observed.y'
+          'observed.y',
+          'DIC',
+          'p_D'
         )
     } else{
       impact <-
@@ -312,7 +340,9 @@ doCausalImpact <-
           predict.bsts,
           inclusion_probs,
           post.period.response = post_period_response,
-          observed.y = y.full
+          observed.y = y.full,
+          DIC,
+          p_D
         )
       names(impact) <-
         c(
@@ -324,7 +354,9 @@ doCausalImpact <-
           'predict.bsts',
           'inclusion_probs',
           'post_period_response',
-          'observed.y'
+          'observed.y',
+          'DIC',
+          'p_D'
         )
     }
     return(impact)
@@ -1024,7 +1056,7 @@ weightSensitivityAnalysis <-
       disp.mat <- rnorm(n = length(disp) * length(y),
                         mean = 0,
                         sd = abs(disp))
-      disp.mat <- t(matrix(disp.mat, nrow = length(disp), ncol = length(y)))
+      disp.mat <- t(matrix(disp.mat, nrow = length(disp), ncol = length(y),byrow=T ))
       x.fit <- cbind(rep(1, nrow(covar_df)), covar_df)
       reg.mean <-   exp((x.fit %*% t(beta.mat)) + disp.mat)
       predict.bsts <- rpois(length(reg.mean), lambda = reg.mean)
