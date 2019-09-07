@@ -902,7 +902,6 @@ evaluatr.sensitivity = function(analysis) {
 #Formats the data
 #' @importFrom plyr rbind.fill arrange
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
-  dataCheckWarning("This is a test warning")
   # Setup data
   prelog_data <-
     analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
