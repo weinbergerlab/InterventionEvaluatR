@@ -902,6 +902,7 @@ evaluatr.sensitivity = function(analysis) {
 #Formats the data
 #' @importFrom plyr rbind.fill arrange
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
+  dataCheckWarning("This is a test warning")
   # Setup data
   prelog_data <-
     analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
@@ -922,7 +923,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
     # Flag low-variance columns; don't touch data in group/date/denom/outcome columns
     bad.cols <- !is.na(variance.vars[[i]]) & variance.vars[[i]] < 1e-6 & !(names(prelog_data) %in% c(analysis$group_name, analysis$date_name, analysis$outcome_name, analysis$denom_name))
     for (name in names(prelog_data.split[[i]])[bad.cols]) {
-      warning(paste0("Data for '", name, "' removed from group '", names(prelog_data.split)[i], "' due to zero variance.\n"))
+      dataCheckWarning(paste0("Data for '", name, "' removed from group '", names(prelog_data.split)[i], "' due to zero variance.\n"))
     }
     prelog_data.split[[i]] <- prelog_data.split[[i]][,!bad.cols]
   }
@@ -931,7 +932,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   prelog_data <- arrange(prelog_data, prelog_data[[analysis$group_name]], prelog_data[[analysis$date_name]])
   names.after = names(prelog_data)
   for (name in setdiff(names.before, names.after)) {
-    warning(paste0("Data for '", name, "' removed from all groups due to zero variance.\n"))
+    dataCheckWarning(paste0("Data for '", name, "' removed from all groups due to zero variance.\n"))
   }
   
   # Format covars
@@ -1247,3 +1248,6 @@ evaluatr.univariate <- function(analysis) {
   }
   
 
+dataCheckWarning = function(message) {
+  warning(warningCondition(message, class="evaluatr.dataCheck"))
+}
