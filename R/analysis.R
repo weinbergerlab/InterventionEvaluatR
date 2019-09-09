@@ -150,7 +150,7 @@ evaluatr.init <- function(country,
     year_def #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
   analysis$set.burnN <-set.burnN
   analysis$set.sampleN <-set.sampleN
-  
+  analysis$log.covars <- log.covars
     normalizeDate <- function(d) {
     if (is.Date(d)) {
       d
@@ -965,7 +965,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
   
   #Log-transform all variables, adding 0.5 to counts of 0.
- if(log.covars){
+ if(analysis$log.covars){
    analysis$.private$ds <-
     setNames(lapply(
       prelog_data,
