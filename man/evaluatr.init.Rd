@@ -9,7 +9,7 @@ evaluatr.init(country, data, pre_period_start = "start",
   eval_period_start, eval_period_end, n_seasons = 12,
   year_def = "cal_year", group_name, date_name, outcome_name,
   set.burnN = 5000, set.sampleN = 10000, denom_name,
-  sparse_threshold = 5)
+  log.covars = TRUE, sparse_threshold = 5)
 }
 \arguments{
 \item{country}{A one-word label for output (eg country or state name).}
@@ -41,6 +41,8 @@ evaluatr.init(country, data, pre_period_start = "start",
 \item{set.sampleN}{Number of MCMC iterations post-burn-in to use for inference (default 10000),}
 
 \item{denom_name}{Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.}
+
+\item{log.covars}{Should the covariate be log transformed? (default: TRUE)}
 
 \item{sparse_threshold}{Threshold for filtering out control variables based on sparsity (mean number of cases per time period). Defaults to 5.}
 }
@@ -80,6 +82,8 @@ Initialized analysis object, `analysis` as described below
 `analysis$set.burnN` as passed in in `set.burnN`
 
 `analysis$set.sampleN` as passed in in `set.sampleN`
+
+`analysis$log.covars` as passed in in `log.covars`
   
 `analysis$groups` Vector of groups analyzed
 
