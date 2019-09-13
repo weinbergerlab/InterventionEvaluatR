@@ -201,12 +201,16 @@ evaluatr.init <- function(country,
   
   #Assign variable values
   analysis$input_data <- data
+  
+  # Setup default progress reporting
+  analysis$.private$progress = showProgress
   return(analysis)
 }
 
 # This is used by the web UI to set up parallel computation 
-evaluatr.initParallel = function(analysis, analysisCluster) {
+evaluatr.initParallel = function(analysis, analysisCluster, progress) {
   cluster(analysis, analysisCluster)
+  analysis$.private$progress = progress
 }
 
 #' Perform impact analysis
@@ -1200,9 +1204,14 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
 }
 
 incrementProgressPart <- function(analysis) {
-  write(paste0("Analysis part ", analysis$.private$progress_idx, " of ", analysis$.private$progress_count, ":"), stdout())
+  analysis$.private$progress(analysis, analysis$.private$progress_idx, analysis$.private$progress_count)
   analysis$.private$progress_idx = analysis$.private$progress_idx + 1
 }
+
+showProgress = function(analysis, done, total) {
+  write(paste0("Analysis part ", done, " of ", total, ":"), stdout())
+}
+
 
 #' Perform analysis controling for 1 variable at a time
 #' @param analysis Analysis object, initialized by TODO.init.
