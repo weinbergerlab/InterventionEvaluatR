@@ -134,8 +134,9 @@ evaluatr.init <- function(country,
       # Computation state
       data = list(),
       data.cv = list(),
-      n_cores = NA,
-      ds = NA
+      ds = NA,
+      cluster = NA,
+      stopCluster = FALSE
     )
   )
   
@@ -203,6 +204,11 @@ evaluatr.init <- function(country,
   return(analysis)
 }
 
+# This is used by the web UI to set up parallel computation 
+evaluatr.initParallel = function(analysis, analysisCluster) {
+  cluster(analysis, analysisCluster)
+}
+
 #' Perform impact analysis
 #'
 #' @param analysis Analysis object, initialized by evaluatr.init.
@@ -249,12 +255,11 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   results = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
-  cl <- makeCluster(analysis$.private$n_cores)
-  clusterEvalQ(cl, {
+  clusterEvalQ(cluster(analysis), {
     library(pogit, quietly = TRUE)
     library(lubridate, quietly = TRUE)
   })
-  clusterExport(cl, c('doCausalImpact'), environment())
+  clusterExport(cluster(analysis), c('doCausalImpact'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
   
@@ -262,7 +267,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     incrementProgressPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
-        cl = cl,
+        cl = cluster(analysis),
         analysis$.private$data[[variant]],
         FUN = doCausalImpact,
         analysis$intervention_date,
@@ -277,7 +282,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       analysis$groups
     )
   }
-  stopCluster(cl)
+  stopCluster(analysis)
   
   for (variant in intersect(c('full', 'time'), variants)) {
     #Save the inclusion probabilities from each of the models
@@ -585,18 +590,17 @@ evaluatr.crossval = function(analysis) {
   }
   
   #Run the models on each of these datasets
-  cl <- makeCluster(analysis$.private$n_cores)
-  clusterEvalQ(cl, {
+  clusterEvalQ(cluster(analysis), {
     library(pogit, quietly = TRUE)
     
     library(lubridate, quietly = TRUE)
   })
-  clusterExport(cl, c('doCausalImpact'), environment())
+  clusterExport(cluster(analysis), c('doCausalImpact'), environment())
   for (variant in names(analysis$.private$variants)) {
     incrementProgressPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
-        cl = cl,
+        cl = cluster(analysis),
         analysis$.private$data.cv[[variant]],
         FUN = function(x)
           lapply(
@@ -614,7 +618,7 @@ evaluatr.crossval = function(analysis) {
       analysis$groups
     )
   }
-  stopCluster(cl)
+  stopCluster(analysis)
   
   ll.cv = list()
   
@@ -791,14 +795,13 @@ evaluatr.sensitivity = function(analysis) {
   
   if (length(sensitivity_groups) != 0) {
     #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
-    cl <- makeCluster(analysis$.private$n_cores)
-    clusterEvalQ(cl, {
+    clusterEvalQ(cluster(analysis), {
       library(pogit, quietly = TRUE)
       library(lubridate, quietly = TRUE)
       library(RcppRoll, quietly = TRUE)
     })
     clusterExport(
-      cl,
+      cluster(analysis),
       c(
         'sensitivity_ds',
         'weightSensitivityAnalysis',
@@ -810,7 +813,7 @@ evaluatr.sensitivity = function(analysis) {
     sensitivity_analysis_full <-
       setNames(
         pblapply(
-          cl = cl,
+          cl = cluster(analysis),
           sensitivity_groups,
           FUN = weightSensitivityAnalysis,
           covars = sensitivity_covars_full,
@@ -826,7 +829,7 @@ evaluatr.sensitivity = function(analysis) {
         ),
         sensitivity_groups
       )
-    stopCluster(cl)
+    stopCluster(analysis)
     
     results$sensitivity_pred_quantiles <-
       lapply(
@@ -1120,32 +1123,26 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         
         ##SECTION 2: run first stage models for STL
         analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
-        if (Sys.getenv("CI") != "") {
-          analysis$.private$n_cores <- availableCores(methods=c("system"))
-        } else {
-              analysis$.private$n_cores <- max(availableCores(methods=c("system")) - 1, 1)
-        }
         glm.results <-
           vector("list", length = length(stl.data.setup)) #combine models into a list
-        cl <- makeCluster(analysis$.private$n_cores)
-        clusterEvalQ(cl, {
+        clusterEvalQ(cluster(analysis), {
           library(lme4, quietly = TRUE)
         })
-        clusterExport(cl,
+        clusterExport(cluster(analysis),
                       c('stl.data.setup', 'glm.fun', 'post.start.index'),
                       environment())
         for (i in 1:length(stl.data.setup)) {
           incrementProgressPart(analysis)
           glm.results[[i]] <-
             pblapply(
-              cl = cl,
+              cl = cluster(analysis),
               stl.data.setup[[i]],
               FUN = function(d) {
                 glm.fun(d, post.start.index)
               }
             )
         }
-        stopCluster(cl)
+        stopCluster(analysis)
   }
   ######################
   
@@ -1249,4 +1246,35 @@ evaluatr.univariate <- function(analysis) {
 
 dataCheckWarning = function(message) {
   warning(warningCondition(message, class="evaluatr.dataCheck"))
+}
+
+cluster = function(analysis, cluster=NULL) {
+  if (is.null(cluster)) {
+    if (is.na(analysis$.private$cluster)) {
+      # We are setting up our own cluster and need to stop it later
+      if (Sys.getenv("CI") != "") {
+        # If running on GitLab, default to multi-session cluster using all cores
+        n_cores <- availableCores(methods=c("system"))
+      } else {
+        # If running on someone's personal computer, default to multi-session cluster leaving one core free (if possible)
+        n_cores <- max(availableCores(methods=c("system")) - 1, 1)
+      }
+      analysis$.private$cluster = makeCluster(n_cores)
+      analysis$.private$stopCluster = TRUE 
+    }
+  } else {
+    # We are using a cluster set up by someone else, and we'll leave it up to them to stop it
+    analysis$.private$cluster = cluster
+    analysis$.private$stopCluster = FALSE 
+  }
+  
+  analysis$.private$cluster
+}
+
+stopCluster = function(analysis) {
+  # Stop cluster only if we set it up
+  if (analysis$.private$stopCluster) {
+    parallel::stopCluster(analysis$.private$cluster)
+    analysis$.private$cluster = NA
+  }
 }
