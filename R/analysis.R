@@ -134,8 +134,9 @@ evaluatr.init <- function(country,
       # Computation state
       data = list(),
       data.cv = list(),
-      n_cores = NA,
-      ds = NA
+      ds = NA,
+      cluster = NA,
+      stopCluster = FALSE
     )
   )
   
@@ -200,7 +201,16 @@ evaluatr.init <- function(country,
   
   #Assign variable values
   analysis$input_data <- data
+  
+  # Setup default progress reporting
+  analysis$.private$progress = showProgress
   return(analysis)
+}
+
+# This is used by the web UI to set up parallel computation 
+evaluatr.initParallel = function(analysis, analysisCluster, progress) {
+  cluster(analysis, analysisCluster)
+  analysis$.private$progress = progress
 }
 
 #' Perform impact analysis
@@ -249,12 +259,11 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   results = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
-  cl <- makeCluster(analysis$.private$n_cores)
-  clusterEvalQ(cl, {
+  clusterEvalQ(cluster(analysis), {
     library(pogit, quietly = TRUE)
     library(lubridate, quietly = TRUE)
   })
-  clusterExport(cl, c('doCausalImpact'), environment())
+  clusterExport(cluster(analysis), c('doCausalImpact'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
   
@@ -262,7 +271,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     incrementProgressPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
-        cl = cl,
+        cl = cluster(analysis),
         analysis$.private$data[[variant]],
         FUN = doCausalImpact,
         analysis$intervention_date,
@@ -277,7 +286,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       analysis$groups
     )
   }
-  stopCluster(cl)
+  stopCluster(analysis)
   
   for (variant in intersect(c('full', 'time'), variants)) {
     #Save the inclusion probabilities from each of the models
@@ -585,18 +594,17 @@ evaluatr.crossval = function(analysis) {
   }
   
   #Run the models on each of these datasets
-  cl <- makeCluster(analysis$.private$n_cores)
-  clusterEvalQ(cl, {
+  clusterEvalQ(cluster(analysis), {
     library(pogit, quietly = TRUE)
     
     library(lubridate, quietly = TRUE)
   })
-  clusterExport(cl, c('doCausalImpact'), environment())
+  clusterExport(cluster(analysis), c('doCausalImpact'), environment())
   for (variant in names(analysis$.private$variants)) {
     incrementProgressPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
-        cl = cl,
+        cl = cluster(analysis),
         analysis$.private$data.cv[[variant]],
         FUN = function(x)
           lapply(
@@ -614,7 +622,7 @@ evaluatr.crossval = function(analysis) {
       analysis$groups
     )
   }
-  stopCluster(cl)
+  stopCluster(analysis)
   
   ll.cv = list()
   
@@ -791,14 +799,13 @@ evaluatr.sensitivity = function(analysis) {
   
   if (length(sensitivity_groups) != 0) {
     #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
-    cl <- makeCluster(analysis$.private$n_cores)
-    clusterEvalQ(cl, {
+    clusterEvalQ(cluster(analysis), {
       library(pogit, quietly = TRUE)
       library(lubridate, quietly = TRUE)
       library(RcppRoll, quietly = TRUE)
     })
     clusterExport(
-      cl,
+      cluster(analysis),
       c(
         'sensitivity_ds',
         'weightSensitivityAnalysis',
@@ -810,7 +817,7 @@ evaluatr.sensitivity = function(analysis) {
     sensitivity_analysis_full <-
       setNames(
         pblapply(
-          cl = cl,
+          cl = cluster(analysis),
           sensitivity_groups,
           FUN = weightSensitivityAnalysis,
           covars = sensitivity_covars_full,
@@ -826,7 +833,7 @@ evaluatr.sensitivity = function(analysis) {
         ),
         sensitivity_groups
       )
-    stopCluster(cl)
+    stopCluster(analysis)
     
     results$sensitivity_pred_quantiles <-
       lapply(
@@ -902,171 +909,177 @@ evaluatr.sensitivity = function(analysis) {
 #Formats the data
 #' @importFrom plyr rbind.fill arrange
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
-  # Setup data
-  prelog_data <-
-    analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
-  analysis$groups <-
-    as.character(unique(unlist(prelog_data[, analysis$group_name], use.names = FALSE)))
-  analysis$groups <-
-    analysis$groups[!(analysis$groups %in% analysis$.private$exclude_group)]
+  clusterUpdateAnalysis(analysis, {
+    # Setup data
+    prelog_data <-
+      analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
+    analysis$groups <-
+      as.character(unique(unlist(prelog_data[, analysis$group_name], use.names = FALSE)))
+    analysis$groups <-
+      analysis$groups[!(analysis$groups %in% analysis$.private$exclude_group)]
     
-  # Identify variables and groups that have zero variance
-  # Zero-variance groups within a variable are replaced with NA
-  # Entire zero-variance variables are removed from analysis
-  prelog_data.split <- split(prelog_data, prelog_data[[analysis$group_name]])
-  variance.vars <- lapply(prelog_data.split, function(group) apply(group[1:nrow(group),], 2, function(row) { 
-    suppressWarnings(var(row))
-  }))
-  for(i in 1:length(prelog_data.split)){
-    var.floor <- 1e-6
-    # Flag low-variance columns; don't touch data in group/date/denom/outcome columns
-    bad.cols <- !is.na(variance.vars[[i]]) & variance.vars[[i]] < 1e-6 & !(names(prelog_data) %in% c(analysis$group_name, analysis$date_name, analysis$outcome_name, analysis$denom_name))
-    for (name in names(prelog_data.split[[i]])[bad.cols]) {
-      dataCheckWarning(paste0("Data for '", name, "' removed from group '", names(prelog_data.split)[i], "' due to zero variance.\n"))
+    # Identify variables and groups that have zero variance
+    # Zero-variance groups within a variable are replaced with NA
+    # Entire zero-variance variables are removed from analysis
+    prelog_data.split <- split(prelog_data, prelog_data[[analysis$group_name]])
+    variance.vars <- lapply(prelog_data.split, function(group) apply(group[1:nrow(group),], 2, function(row) { 
+      suppressWarnings(var(row))
+    }))
+    for(i in 1:length(prelog_data.split)){
+      var.floor <- 1e-6
+      # Flag low-variance columns; don't touch data in group/date/denom/outcome columns
+      bad.cols <- !is.na(variance.vars[[i]]) & variance.vars[[i]] < 1e-6 & !(names(prelog_data) %in% c(analysis$group_name, analysis$date_name, analysis$outcome_name, analysis$denom_name))
+      for (name in names(prelog_data.split[[i]])[bad.cols]) {
+        dataCheckWarning(paste0("Data for '", name, "' removed from group '", names(prelog_data.split)[i], "' due to zero variance.\n"))
+      }
+      prelog_data.split[[i]] <- prelog_data.split[[i]][,!bad.cols]
     }
-    prelog_data.split[[i]] <- prelog_data.split[[i]][,!bad.cols]
-  }
-  names.before = names(prelog_data)
-  prelog_data <- rbind.fill(prelog_data.split)
-  prelog_data <- arrange(prelog_data, prelog_data[[analysis$group_name]], prelog_data[[analysis$date_name]])
-  names.after = names(prelog_data)
-  for (name in setdiff(names.before, names.after)) {
-    dataCheckWarning(paste0("Data for '", name, "' removed from all groups due to zero variance.\n"))
-  }
+    names.before = names(prelog_data)
+    prelog_data <- rbind.fill(prelog_data.split)
+    prelog_data <- arrange(prelog_data, prelog_data[[analysis$group_name]], prelog_data[[analysis$date_name]])
+    names.after = names(prelog_data)
+    for (name in setdiff(names.before, names.after)) {
+      dataCheckWarning(paste0("Data for '", name, "' removed from all groups due to zero variance.\n"))
+    }
   
-  # Format covars
-  #test<-split(prelog_data, factor(prelog_data[,analysis$group_name]))
-  #outcome.na<-sapply(test, function(x) sum(is.na(x[,analysis$outcome_name])))
-  prelog_data[, analysis$date_name] <-
-    formatDate(prelog_data[, analysis$date_name])
-  prelog_data <- setNames(
-    lapply(
-      analysis$groups,
-      FUN = splitGroup,
-      ungrouped_data = prelog_data,
-      group_name = analysis$group_name,
-      date_name = analysis$date_name,
-      start_date = analysis$start_date,
-      end_date = analysis$end_date,
-      no_filter = c(
-        analysis$group_name,
-        analysis$date_name,
-        analysis$outcome_name,
-        analysis$denom_name
-      ),
-      sparse_threshold = analysis$sparse_threshold
-    ),
-    analysis$groups
-  )
-  #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
-  
-  #Log-transform all variables, adding 0.5 to counts of 0.
-  analysis$.private$ds <-
-    setNames(lapply(
-      prelog_data,
-      FUN = logTransform,
-      no_log = c(
-        analysis$group_name,
-        analysis$date_name,
-        analysis$outcome_name
-      )
-    ),
-    analysis$groups)
-  analysis$time_points <-
-    unique(analysis$.private$ds[[1]][, analysis$date_name])
-  
-  #Monthly dummies
-  if (analysis$n_seasons == 4) {
-    dt <- quarter(as.Date(analysis$time_points))
-  }
-  if (analysis$n_seasons == 12) {
-    dt <- month(as.Date(analysis$time_points))
-  }
-  if (analysis$n_seasons == 3) {
-    dt.m <- month(as.Date(analysis$time_points))
-    dt <- dt.m
-    dt[dt.m %in% c(1, 2, 3, 4)] <- 1
-    dt[dt.m %in% c(5, 6, 7, 8)] <- 2
-    dt[dt.m %in% c(9, 10, 11, 12)] <- 3
-  }
-  season.dummies <- dummies::dummy(dt)
-  season.dummies <- as.data.frame(season.dummies)
-  names(season.dummies) <- paste0('s', 1:analysis$n_seasons)
-  season.dummies <- season.dummies[, -analysis$n_seasons]
-  
-  analysis$.private$ds <-
-    lapply(analysis$.private$ds, function(ds) {
-      if (!(analysis$denom_name %in% colnames(ds))) {
-        ds[analysis$denom_name] <- 0
-      }
-      return(ds)
-    })
-  
-  analysis$sparse_groups <-
-    sapply(analysis$.private$ds, function(ds) {
-      return(ncol(ds[!(
-        colnames(ds) %in% c(
-          analysis$date_name,
+    # Format covars
+    #test<-split(prelog_data, factor(prelog_data[,analysis$group_name]))
+    #outcome.na<-sapply(test, function(x) sum(is.na(x[,analysis$outcome_name])))
+    prelog_data[, analysis$date_name] <-
+      formatDate(prelog_data[, analysis$date_name])
+    prelog_data <- setNames(
+      lapply(
+        analysis$groups,
+        FUN = splitGroup,
+        ungrouped_data = prelog_data,
+        group_name = analysis$group_name,
+        date_name = analysis$date_name,
+        start_date = analysis$start_date,
+        end_date = analysis$end_date,
+        no_filter = c(
           analysis$group_name,
-          analysis$denom_name,
+          analysis$date_name,
           analysis$outcome_name,
-          analysis$.private$exclude_covar
+          analysis$denom_name
+        ),
+        sparse_threshold = analysis$sparse_threshold
+      ),
+      analysis$groups
+    )
+    #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
+  
+    #Log-transform all variables, adding 0.5 to counts of 0.
+    analysis$.private$ds <-
+      setNames(lapply(
+        prelog_data,
+        FUN = logTransform,
+        no_log = c(
+          analysis$group_name,
+          analysis$date_name,
+          analysis$outcome_name
         )
-      )]) == 0)
-    })
-  analysis$.private$ds <-
-    analysis$.private$ds[!analysis$sparse_groups]
-  if (length(analysis$.private$ds) == 0) {
-    stop("Unable to proceed with analysis: all groups are sparse")
-  }
-  analysis$groups <- analysis$groups[!analysis$sparse_groups]
+      ),
+      analysis$groups)
+    analysis$time_points <-
+      unique(analysis$.private$ds[[1]][, analysis$date_name])
   
-  #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
-  analysis$covars = list()
-  analysis$covars$full <-
-    setNames(lapply(analysis$.private$ds, function(group) {
-      makeCovars(
-        analysis$country,
-        analysis$time_points,
-        analysis$intervention_date,
-        season.dummies,
-        group
+    #Monthly dummies
+    if (analysis$n_seasons == 4) {
+      dt <- quarter(as.Date(analysis$time_points))
+    }
+    if (analysis$n_seasons == 12) {
+      dt <- month(as.Date(analysis$time_points))
+    }
+    if (analysis$n_seasons == 3) {
+      dt.m <- month(as.Date(analysis$time_points))
+      dt <- dt.m
+      dt[dt.m %in% c(1, 2, 3, 4)] <- 1
+      dt[dt.m %in% c(5, 6, 7, 8)] <- 2
+      dt[dt.m %in% c(9, 10, 11, 12)] <- 3
+    }
+    season.dummies <- dummies::dummy(dt)
+    season.dummies <- as.data.frame(season.dummies)
+    names(season.dummies) <- paste0('s', 1:analysis$n_seasons)
+    season.dummies <- season.dummies[, -analysis$n_seasons]
+  
+    analysis$.private$ds <-
+      lapply(analysis$.private$ds, function(ds) {
+        if (!(analysis$denom_name %in% colnames(ds))) {
+          ds[analysis$denom_name] <- 0
+        }
+        return(ds)
+      })
+  
+    analysis$sparse_groups <-
+      sapply(analysis$.private$ds, function(ds) {
+        return(ncol(ds[!(
+          colnames(ds) %in% c(
+            analysis$date_name,
+            analysis$group_name,
+            analysis$denom_name,
+            analysis$outcome_name,
+            analysis$.private$exclude_covar
+          )
+        )]) == 0)
+      })
+    analysis$.private$ds <-
+      analysis$.private$ds[!analysis$sparse_groups]
+    if (length(analysis$.private$ds) == 0) {
+      stop("Unable to proceed with analysis: all groups are sparse")
+    }
+    analysis$groups <- analysis$groups[!analysis$sparse_groups]
+  
+    #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
+    analysis$covars = list()
+    analysis$covars$full <-
+      setNames(lapply(analysis$.private$ds, function(group) {
+        makeCovars(
+          analysis$country,
+          analysis$time_points,
+          analysis$intervention_date,
+          season.dummies,
+          group
+        )
+      }), analysis$groups)
+    analysis$covars$full <-
+      lapply(
+        analysis$covars$full,
+        FUN = function(covars) {
+          covars[,!(colnames(covars) %in% analysis$.private$exclude_covar), drop = FALSE]
+        }
       )
-    }), analysis$groups)
-  analysis$covars$full <-
-    lapply(
-      analysis$covars$full,
-      FUN = function(covars) {
-        covars[,!(colnames(covars) %in% analysis$.private$exclude_covar), drop = FALSE]
-      }
-    )
-  analysis$covars$time <-
-    setNames(lapply(
-      analysis$covars$full,
-      FUN = function(covars) {
-        as.data.frame(list(cbind(
-          season.dummies, time_index = 1:nrow(covars)
-        )))
-      }
-    ),
-    analysis$groups)
-  analysis$covars$null <-
-    setNames(lapply(
-      analysis$covars$full,
-      FUN = function(covars) {
-        as.data.frame(list(cbind(season.dummies)))
-      }
-    ),
-    analysis$groups)
+    analysis$covars$time <-
+      setNames(lapply(
+        analysis$covars$full,
+        FUN = function(covars) {
+          as.data.frame(list(cbind(
+            season.dummies, time_index = 1:nrow(covars)
+          )))
+        }
+      ),
+      analysis$groups)
+    analysis$covars$null <-
+      setNames(lapply(
+        analysis$covars$full,
+        FUN = function(covars) {
+          as.data.frame(list(cbind(season.dummies)))
+        }
+      ),
+      analysis$groups)
   
-  #Standardize the outcome variable and save the original mean and SD for later analysis.
-  analysis$outcome <-
-    sapply(
-      analysis$.private$ds,
-      FUN = function(data) {
-        data[, analysis$outcome_name]
-      }
-    )
+    #Standardize the outcome variable and save the original mean and SD for later analysis.
+    analysis$outcome <-
+      sapply(
+        analysis$.private$ds,
+        FUN = function(data) {
+          data[, analysis$outcome_name]
+        }
+      )
+    
+    analysis
+  })
+    
+    
   offset <-
     sapply(
       analysis$.private$ds,
@@ -1120,92 +1133,94 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         
         ##SECTION 2: run first stage models for STL
         analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
-        if (Sys.getenv("CI") != "") {
-          analysis$.private$n_cores <- availableCores(methods=c("system"))
-        } else {
-              analysis$.private$n_cores <- max(availableCores(methods=c("system")) - 1, 1)
-        }
         glm.results <-
           vector("list", length = length(stl.data.setup)) #combine models into a list
-        cl <- makeCluster(analysis$.private$n_cores)
-        clusterEvalQ(cl, {
+        clusterEvalQ(cluster(analysis), {
           library(lme4, quietly = TRUE)
         })
-        clusterExport(cl,
+        clusterExport(cluster(analysis),
                       c('stl.data.setup', 'glm.fun', 'post.start.index'),
                       environment())
         for (i in 1:length(stl.data.setup)) {
           incrementProgressPart(analysis)
           glm.results[[i]] <-
             pblapply(
-              cl = cl,
+              cl = cluster(analysis),
               stl.data.setup[[i]],
               FUN = function(d) {
                 glm.fun(d, post.start.index)
               }
             )
         }
-        stopCluster(cl)
+        stopCluster(analysis)
   }
   ######################
   
-  # Combine data
-  #Combine the outcome, covariates, and time point information.
-  analysis$.private$data$full <-
-    setNames(
-      lapply(
-        analysis$groups,
-        makeTimeSeries,
-        outcome = analysis$outcome,
-        covars = analysis$covars$full
-      ),
-      analysis$groups
-    )
-  analysis$.private$data$time <-
-    setNames(
-      lapply(
-        analysis$groups,
-        makeTimeSeries,
-        outcome = analysis$outcome,
-        covars = analysis$covars$time,
-        trend = TRUE,
-        offset = offset
-      ),
-      analysis$groups
-    )
-  if(run.stl==TRUE){
-  analysis$.private$data$pca <-
-    mapply(
-      FUN = pca_top_var,
-      glm.results.in = glm.results,
-      covars = stl.covars,
-      ds.in = analysis$.private$ds,
-      SIMPLIFY = FALSE,
-      MoreArgs = list(
-        outcome_name = analysis$outcome_name,
-        season.dummies = season.dummies
+  clusterUpdateAnalysis(analysis, {
+    # Combine data
+    #Combine the outcome, covariates, and time point information.
+    analysis$.private$data$full <-
+      setNames(
+        lapply(
+          analysis$groups,
+          makeTimeSeries,
+          outcome = analysis$outcome,
+          covars = analysis$covars$full
+        ),
+        analysis$groups
       )
-    )
-  names(analysis$.private$data$pca) <- analysis$groups
-  }
-  #Time trend model but without a denominator
-  analysis$.private$data$time_no_offset <-
-    setNames(
-      lapply(
-        analysis$groups,
-        makeTimeSeries,
-        outcome = analysis$outcome,
-        covars = analysis$covars$time,
-        trend = FALSE
-      ),
-      analysis$groups
-    )
+    analysis$.private$data$time <-
+      setNames(
+        lapply(
+          analysis$groups,
+          makeTimeSeries,
+          outcome = analysis$outcome,
+          covars = analysis$covars$time,
+          trend = TRUE,
+          offset = offset
+        ),
+        analysis$groups
+      )
+    if(run.stl==TRUE){
+    analysis$.private$data$pca <-
+      mapply(
+        FUN = pca_top_var,
+        glm.results.in = glm.results,
+        covars = stl.covars,
+        ds.in = analysis$.private$ds,
+        SIMPLIFY = FALSE,
+        MoreArgs = list(
+          outcome_name = analysis$outcome_name,
+          season.dummies = season.dummies
+        )
+      )
+    names(analysis$.private$data$pca) <- analysis$groups
+    }
+    #Time trend model but without a denominator
+    analysis$.private$data$time_no_offset <-
+      setNames(
+        lapply(
+          analysis$groups,
+          makeTimeSeries,
+          outcome = analysis$outcome,
+          covars = analysis$covars$time,
+          trend = FALSE
+        ),
+        analysis$groups
+      )
+    analysis
+  })
 }
 
 incrementProgressPart <- function(analysis) {
-  write(paste0("Analysis part ", analysis$.private$progress_idx, " of ", analysis$.private$progress_count, ":"), stdout())
+  analysis$.private$progress(analysis, analysis$.private$progress_idx, analysis$.private$progress_count)
   analysis$.private$progress_idx = analysis$.private$progress_idx + 1
 }
+
+showProgress = function(analysis, done, total) {
+  write(paste0("Analysis part ", done, " of ", total, ":"), stdout())
+}
+
 
 #' Perform analysis controling for 1 variable at a time
 #' @param analysis Analysis object, initialized by TODO.init.
@@ -1224,8 +1239,9 @@ incrementProgressPart <- function(analysis) {
 #' @export
 evaluatr.univariate <- function(analysis) {
   evaluatr.impact.pre(analysis,run.stl=FALSE) #formats the data
-      #####
- # analysis$.private$data$full
+  #####
+  # analysis$.private$data$full
+  summary.results = clusterEval1(analysis, {
     results<-lapply( analysis$.private$data$full, single.var.glmer, 
                      n_seasons=analysis$n_seasons,
                     intro.date=analysis$post_period[1],
@@ -1242,11 +1258,58 @@ evaluatr.univariate <- function(analysis) {
      summary.results[[i]]<-summary.results[[i]][order(-summary.results[[i]]$aic.wgt),]
     }
     summary.results
-    analysis$results$univariate<-summary.results
-    return(summary.results)
-  }
+  })
+   
+  analysis$results$univariate<-summary.results
+  return(summary.results)
+}
   
 
 dataCheckWarning = function(message) {
   warning(warningCondition(message, class="evaluatr.dataCheck"))
+}
+
+cluster = function(analysis, cluster=NULL) {
+
+  if (is.null(cluster)) {
+    if (any(is.na(analysis$.private$cluster))) {
+      # We are setting up our own cluster and need to stop it later
+      if (Sys.getenv("CI") != "") {
+        # If running on GitLab, default to multi-session cluster using all cores
+        n_cores <- availableCores(methods=c("system"))
+      } else {
+        # If running on someone's personal computer, default to multi-session cluster leaving one core free (if possible)
+        n_cores <- max(availableCores(methods=c("system")) - 1, 1)
+      }
+      analysis$.private$cluster = makeCluster(analysis$.private$n_cores)
+      analysis$.private$stopCluster = TRUE 
+    }
+  } else {
+    # We are using a cluster set up by someone else, and we'll leave it up to them to stop it
+    analysis$.private$cluster = cluster
+    analysis$.private$stopCluster = FALSE 
+  }
+  
+  analysis$.private$cluster
+}
+
+stopCluster = function(analysis) {
+  # Stop cluster only if we set it up
+  if (analysis$.private$stopCluster) {
+    parallel::stopCluster(analysis$.private$cluster)
+    analysis$.private$cluster = NA
+  }
+}
+
+# This evaluates ... on a single node in a cluster. This doesn't help with performance (in fact, it will slightly decrease it), but it allows WebUI to push computation off the CPU that's doing web stuff
+clusterEval1 = function(analysis, ..., envir=parent.frame()) {
+  future::value(future::remote(..., workers=cluster(analysis), envir=envir))
+}
+
+# This evaluates ... on a single node in a cluster, then updates the analysis object with the result of ... evaluation. It allows WebUI to push updates to the analysis object off to another CPU
+clusterUpdateAnalysis = function(analysis, ..., envir=parent.frame()) {
+  newanalysis = clusterEval1(analysis, ..., envir=envir)
+  # Sending .private$cluster through remote evaluation makes it sad
+  newanalysis$.private$cluster = analysis$.private$cluster
+  analysis[names(newanalysis)] = newanalysis
 }
