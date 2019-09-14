@@ -288,7 +288,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   }
   stopCluster(analysis)
   
-  clusterUpdateAnalysis(analysis, {
+  clusterUpdateAnalysis(analysis, function(analysis) {
     for (variant in intersect(c('full', 'time'), variants)) {
       #Save the inclusion probabilities from each of the models
       results[[variant]]$inclusion_prob <-
@@ -913,7 +913,7 @@ evaluatr.sensitivity = function(analysis) {
 #Formats the data
 #' @importFrom plyr rbind.fill arrange
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
-  clusterUpdateAnalysis(analysis, {
+  clusterUpdateAnalysis(analysis, function(analysis) {
     # Setup data
     prelog_data <-
       analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
@@ -1160,7 +1160,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   }
   ######################
   
-  clusterUpdateAnalysis(analysis, {
+  clusterUpdateAnalysis(analysis, function(analysis) {
     # Combine data
     #Combine the outcome, covariates, and time point information.
     analysis$.private$data$full <-
@@ -1306,13 +1306,13 @@ stopCluster = function(analysis) {
 }
 
 # This evaluates ... on a single node in a cluster. This doesn't help with performance (in fact, it will slightly decrease it), but it allows WebUI to push computation off the CPU that's doing web stuff
-clusterEval1 = function(analysis, ..., envir=parent.frame()) {
-  future::value(future::remote(..., workers=cluster(analysis), envir=envir))
+clusterEval1 = function(analysis, func) {
+  future::value(future::remote(func(analysis), workers=cluster(analysis)))
 }
 
 # This evaluates ... on a single node in a cluster, then updates the analysis object with the result of ... evaluation. It allows WebUI to push updates to the analysis object off to another CPU
-clusterUpdateAnalysis = function(analysis, ..., envir=parent.frame()) {
-  newanalysis = clusterEval1(analysis, ..., envir=envir)
+clusterUpdateAnalysis = function(analysis, func) {
+  newanalysis = clusterEval1(analysis, func)
   # Sending .private$cluster through remote evaluation makes it sad
   newanalysis$.private$cluster = analysis$.private$cluster
   analysis[names(newanalysis)] = newanalysis
