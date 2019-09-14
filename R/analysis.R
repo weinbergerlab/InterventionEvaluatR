@@ -1001,10 +1001,10 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
       dt[dt.m %in% c(5, 6, 7, 8)] <- 2
       dt[dt.m %in% c(9, 10, 11, 12)] <- 3
     }
-    season.dummies <- dummies::dummy(dt)
-    season.dummies <- as.data.frame(season.dummies)
-    names(season.dummies) <- paste0('s', 1:analysis$n_seasons)
-    season.dummies <- season.dummies[, -analysis$n_seasons]
+    analysis$.private$season.dummies <- dummies::dummy(dt)
+    analysis$.private$season.dummies <- as.data.frame(analysis$.private$season.dummies)
+    names(analysis$.private$season.dummies) <- paste0('s', 1:analysis$n_seasons)
+    analysis$.private$season.dummies <- analysis$.private$season.dummies[, -analysis$n_seasons]
   
     analysis$.private$ds <-
       lapply(analysis$.private$ds, function(ds) {
@@ -1041,7 +1041,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
           analysis$country,
           analysis$time_points,
           analysis$intervention_date,
-          season.dummies,
+          analysis$.private$season.dummies,
           group
         )
       }), analysis$groups)
@@ -1057,7 +1057,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         analysis$covars$full,
         FUN = function(covars) {
           as.data.frame(list(cbind(
-            season.dummies, time_index = 1:nrow(covars)
+            analysis$.private$season.dummies, time_index = 1:nrow(covars)
           )))
         }
       ),
@@ -1066,7 +1066,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
       setNames(lapply(
         analysis$covars$full,
         FUN = function(covars) {
-          as.data.frame(list(cbind(season.dummies)))
+          as.data.frame(list(cbind(analysis$.private$season.dummies)))
         }
       ),
       analysis$groups)
@@ -1195,7 +1195,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         SIMPLIFY = FALSE,
         MoreArgs = list(
           outcome_name = analysis$outcome_name,
-          season.dummies = season.dummies
+          season.dummies = analysis$.private$season.dummies
         )
       )
     names(analysis$.private$data$pca) <- analysis$groups
