@@ -1250,3 +1250,8 @@ evaluatr.univariate <- function(analysis) {
 dataCheckWarning = function(message) {
   warning(warningCondition(message, class="evaluatr.dataCheck"))
 }
+
+# This gets us compatibility with versions of R back to 3.0
+.onLoad <- function(libname, pkgname) {
+  backports::import(pkgname)
+}

@@ -27,7 +27,8 @@ Imports:
     xtable,
     htmlTable,
     HDInterval,
-    coda
+    coda,
+    backports
 Suggests: 
     knitr,
     rmarkdown
