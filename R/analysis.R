@@ -1285,7 +1285,7 @@ cluster = function(analysis, cluster=NULL) {
         # If running on someone's personal computer, default to multi-session cluster leaving one core free (if possible)
         n_cores <- max(availableCores(methods=c("system")) - 1, 1)
       }
-      analysis$.private$cluster = makeCluster(analysis$.private$n_cores)
+      analysis$.private$cluster = makeCluster(n_cores)
       analysis$.private$stopCluster = TRUE 
     }
   } else {
