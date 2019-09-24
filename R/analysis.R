@@ -12,6 +12,7 @@
 #' @param n_seasons How many observations per year? Defaults to 12 (monthly data) Change to 4 for quarterly
 #' @param year_def Should results be aggregated by calendar year ('cal_year': the default) or epidemiological year ('epi_year'; July-June)
 #' @param group_name Name of the stratification variable (e.g., age group). If only one age group present, add a column of 1s to the dataset
+#' @param log.covars Should the covariate be log transformed? (default: TRUE)
 #' @param date_name Name of the variable with the date for the time series
 #' @param outcome_name Name of the outcome (y) variable in the 'data' dataframe. Should be a count
 #' @param denom_name Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.
@@ -51,6 +52,8 @@
 #' `analysis$set.burnN` as passed in in `set.burnN`
 #'
 #' `analysis$set.sampleN` as passed in in `set.sampleN`
+#' 
+#' `analysis$log.covars` as passed in in `log.covars`
 #'   
 #' `analysis$groups` Vector of groups analyzed
 #' 
@@ -83,6 +86,7 @@ evaluatr.init <- function(country,
                         set.burnN=5000,
                         set.sampleN=10000,
                         denom_name,
+                        log.covars=TRUE,
                         sparse_threshold = 5) {
   analysis = listenv(
     time_points = NA,
@@ -147,7 +151,7 @@ evaluatr.init <- function(country,
     year_def #Can be cal_year to aggregate results by Jan-Dec; 'epi_year' to aggregate July-June
   analysis$set.burnN <-set.burnN
   analysis$set.sampleN <-set.sampleN
-  
+  analysis$log.covars <- log.covars
     normalizeDate <- function(d) {
     if (is.Date(d)) {
       d
@@ -973,6 +977,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
     #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
   
     #Log-transform all variables, adding 0.5 to counts of 0.
+ if(analysis$log.covars){
     analysis$.private$ds <-
       setNames(lapply(
         prelog_data,
@@ -984,6 +989,13 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         )
       ),
       analysis$groups)
+ }else{
+   analysis$.private$ds <-
+     setNames( prelog_data,
+     analysis$groups)
+   
+ }
+   
     analysis$time_points <-
       unique(analysis$.private$ds[[1]][, analysis$date_name])
   
