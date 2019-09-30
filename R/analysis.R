@@ -252,9 +252,8 @@ evaluatr.initParallel = function(analysis, analysisCluster, progress) {
 #' @importFrom HDInterval hdi
 #' @importFrom RcppRoll roll_sum
 #' @importFrom pogit poissonBvs
-#' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster
+#' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster parLapply
 #' @importFrom future availableCores
-#' @importFrom pbapply pblapply
 #' @importFrom coda geweke.diag mcmc
 #' @export
 
@@ -275,10 +274,10 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   for (variant in variants) {
     progressStartPart(analysis)
     results[[variant]]$groups <- setNames(
-      pblapply(
+      parLapply(
         cl = cluster(analysis),
         analysis$.private$data[[variant]],
-        FUN = doCausalImpact,
+        fun = doCausalImpact,
         analysis$intervention_date,
         analysis$n_seasons,
         var.select.on = analysis$.private$variants[[variant]]$var.select.on,
@@ -612,10 +611,10 @@ evaluatr.crossval = function(analysis) {
   for (variant in names(analysis$.private$variants)) {
     progressStartPart(analysis)
     results[[variant]]$groups <- setNames(
-      pblapply(
+      parLapply(
         cl = cluster(analysis),
         analysis$.private$data.cv[[variant]],
-        FUN = function(x)
+        fun = function(x)
           lapply(
             x,
             doCausalImpact,
@@ -825,10 +824,10 @@ evaluatr.sensitivity = function(analysis) {
     )
     sensitivity_analysis_full <-
       setNames(
-        pblapply(
+        parLapply(
           cl = cluster(analysis),
           sensitivity_groups,
-          FUN = weightSensitivityAnalysis,
+          fun = weightSensitivityAnalysis,
           covars = sensitivity_covars_full,
           ds = sensitivity_ds,
           impact = sensitivity_impact_full,
@@ -1162,10 +1161,10 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         for (i in 1:length(stl.data.setup)) {
           progressStartPart(analysis)
           glm.results[[i]] <-
-            pblapply(
+            parLapply(
               cl = cluster(analysis),
               stl.data.setup[[i]],
-              FUN = function(d) {
+              fun = function(d) {
                 glm.fun(d, post.start.index)
               }
             )
