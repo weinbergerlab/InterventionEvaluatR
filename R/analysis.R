@@ -258,8 +258,8 @@ evaluatr.initParallel = function(analysis, analysisCluster, progress) {
 #' @export
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
-  evaluatr.impact.pre(analysis)
   addProgress(analysis, sprintf("Impact analysis (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
+  evaluatr.impact.pre(analysis)
   results = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
@@ -1149,7 +1149,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         }
         
         ##SECTION 2: run first stage models for STL
-        addProgress(analysis, sprintf("STL first stage (group %s)", analysis$groups))
+        addProgress(analysis, sprintf("STL first stage (group %s)", analysis$groups), after=0)
         glm.results <-
           vector("list", length = length(stl.data.setup)) #combine models into a list
         clusterEvalQ(cluster(analysis), {
@@ -1230,8 +1230,11 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   })
 }
 
-addProgress <- function(analysis, partNames) {
-  analysis$.private$progress_parts = c(analysis$.private$progress_parts, partNames)
+addProgress <- function(analysis, partNames, after=NULL) {
+  if (is.null(after)) {
+    after = length(analysis$.private$progress_parts)
+  }
+  analysis$.private$progress_parts = append(analysis$.private$progress_parts, partNames, after=after)
 }
 
 progressStartPart <- function(analysis) {
