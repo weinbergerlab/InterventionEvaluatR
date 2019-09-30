@@ -207,6 +207,8 @@ evaluatr.init <- function(country,
   analysis$input_data <- data
   
   # Setup default progress reporting
+  analysis$.private$progress_parts = list()
+  analysis$.private$progress_done = 0
   analysis$.private$progress = showProgress
   return(analysis)
 }
@@ -257,9 +259,8 @@ evaluatr.initParallel = function(analysis, analysisCluster, progress) {
 #' @export
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
-  analysis$.private$progress_idx = 1
-  analysis$.private$progress_count = length(analysis$.private$variants)
   evaluatr.impact.pre(analysis)
+  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
   results = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
@@ -272,7 +273,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   analysis$.private$variants = analysis$.private$variants[variants]
   
   for (variant in variants) {
-    incrementProgressPart(analysis)
+    progressStartPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
         cl = cluster(analysis),
@@ -289,6 +290,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       ),
       analysis$groups
     )
+    progressEndPart(analysis)
   }
   stopCluster(analysis)
   
@@ -586,8 +588,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
 #' @export
 
 evaluatr.crossval = function(analysis) {
-  analysis$.private$progress_idx = 1
-  analysis$.private$progress_count = length(analysis$.private$variants)
+  addProgress(analysis, sprintf("Cross-validation (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
   results = list()
   
   #Creates List of lists: 1 entry for each stratum; within this, there are CV datasets for each year left out, and within this, there are 2 lists, one with full dataset, and one with the CV dataset
@@ -609,7 +610,7 @@ evaluatr.crossval = function(analysis) {
   })
   clusterExport(cluster(analysis), c('doCausalImpact'), environment())
   for (variant in names(analysis$.private$variants)) {
-    incrementProgressPart(analysis)
+    progressStartPart(analysis)
     results[[variant]]$groups <- setNames(
       pblapply(
         cl = cluster(analysis),
@@ -629,6 +630,7 @@ evaluatr.crossval = function(analysis) {
       ),
       analysis$groups
     )
+    progressEndPart(analysis)
   }
   stopCluster(analysis)
   
@@ -791,8 +793,6 @@ evaluatr.crossval = function(analysis) {
 #' @export
 
 evaluatr.sensitivity = function(analysis) {
-  analysis$.private$progress_idx = 1
-  analysis$.private$progress_count = 1
   results = list()
   bad_sensitivity_groups <-
     sapply(analysis$covars$full, function (covar) {
@@ -805,7 +805,9 @@ evaluatr.sensitivity = function(analysis) {
     analysis$results$impact$full$groups[!bad_sensitivity_groups]
   sensitivity_groups <- analysis$groups[!bad_sensitivity_groups]
   
+  addProgress(analysis, sprintf("Sensitivity analysis (group %s)", names(sensitivity_groups)))
   if (length(sensitivity_groups) != 0) {
+    progressStartPart(analysis)
     #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
     clusterEvalQ(cluster(analysis), {
       library(pogit, quietly = TRUE)
@@ -821,7 +823,6 @@ evaluatr.sensitivity = function(analysis) {
       ),
       environment()
     )
-    incrementProgressPart(analysis)
     sensitivity_analysis_full <-
       setNames(
         pblapply(
@@ -842,6 +843,7 @@ evaluatr.sensitivity = function(analysis) {
         sensitivity_groups
       )
     stopCluster(analysis)
+    progressEndPart(analysis)
     
     results$sensitivity_pred_quantiles <-
       lapply(
@@ -1148,7 +1150,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         }
         
         ##SECTION 2: run first stage models for STL
-        analysis$.private$progress_count = analysis$.private$progress_count + length(stl.data.setup)
+        addProgress(analysis, sprintf("STL first stage (group %s)", analysis$groups))
         glm.results <-
           vector("list", length = length(stl.data.setup)) #combine models into a list
         clusterEvalQ(cluster(analysis), {
@@ -1158,7 +1160,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
                       c('stl.data.setup', 'glm.fun', 'post.start.index'),
                       environment())
         for (i in 1:length(stl.data.setup)) {
-          incrementProgressPart(analysis)
+          progressStartPart(analysis)
           glm.results[[i]] <-
             pblapply(
               cl = cluster(analysis),
@@ -1167,6 +1169,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
                 glm.fun(d, post.start.index)
               }
             )
+          progressEndPart(analysis)
         }
         stopCluster(analysis)
   }
@@ -1228,13 +1231,25 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   })
 }
 
-incrementProgressPart <- function(analysis) {
-  analysis$.private$progress(analysis, analysis$.private$progress_idx, analysis$.private$progress_count)
-  analysis$.private$progress_idx = analysis$.private$progress_idx + 1
+addProgress <- function(analysis, partNames) {
+  analysis$.private$progress_parts = c(analysis$.private$progress_parts, partNames)
 }
 
-showProgress = function(analysis, done, total) {
-  write(paste0("Analysis part ", done, " of ", total, ":"), stdout())
+progressStartPart <- function(analysis) {
+  analysis$.private$progress(analysis, analysis$.private$progress_done, analysis$.private$progress_parts)
+}
+
+progressEndPart <- function(analysis) {
+  analysis$.private$progress_done = analysis$.private$progress_done + 1
+  analysis$.private$progress(analysis, analysis$.private$progress_done, analysis$.private$progress_parts, before=FALSE)
+}
+
+showProgress = function(analysis, done, names, before=TRUE) {
+  if (before) {
+    write(sprintf("Starting analysis part %s of %s (%s)", done + 1, length(names), names[[done + 1]]), stdout())
+  } else {
+    write(sprintf("Finished analysis part %s of %s (%s)", done, length(names), names[[done]]), stdout())
+  }
 }
 
 
