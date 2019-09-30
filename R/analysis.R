@@ -1346,3 +1346,8 @@ clusterUpdateAnalysis = function(analysis, func) {
   newanalysis$.private$cluster = analysis$.private$cluster
   analysis[names(newanalysis)] = newanalysis
 }
+
+# This gets us compatibility with versions of R back to 3.0
+.onLoad <- function(libname, pkgname) {
+  backports::import(pkgname)
+}
