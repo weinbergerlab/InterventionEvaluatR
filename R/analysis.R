@@ -554,6 +554,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   
   
     analysis$results$impact <- results
+    analysis = evaluatr.prune(analysis, what="impact")
     return(analysis)
   })
   
