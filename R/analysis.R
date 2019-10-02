@@ -139,8 +139,7 @@ evaluatr.init <- function(country,
       data = list(),
       data.cv = list(),
       ds = NA,
-      cluster = NA,
-      stopCluster = FALSE
+      cluster = NULL
     )
   )
   
@@ -210,12 +209,17 @@ evaluatr.init <- function(country,
   analysis$.private$progress_parts = list()
   analysis$.private$progress_done = 0
   analysis$.private$progress = showProgress
+  
+  # Setup default cluster
+  analysis$.private$startCluster = defaultStartCluster
+  analysis$.private$stopCluster = defaultStopCluster
   return(analysis)
 }
 
 # This is used by the web UI to set up parallel computation 
-evaluatr.initParallel = function(analysis, analysisCluster, progress) {
-  cluster(analysis, analysisCluster)
+evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) {
+  analysis$.private$startCluster = startCluster
+  analysis$.private$stopCluster = stopCluster
   analysis$.private$progress = progress
 }
 
@@ -1303,41 +1307,41 @@ dataCheckWarning = function(message) {
   warning(warningCondition(message, class="evaluatr.dataCheck"))
 }
 
-cluster = function(analysis, cluster=NULL) {
-
-  if (is.null(cluster)) {
-    if (any(is.na(analysis$.private$cluster))) {
-      # We are setting up our own cluster and need to stop it later
-      if (Sys.getenv("CI") != "") {
-        # If running on GitLab, default to multi-session cluster using all cores
-        n_cores <- availableCores(methods=c("system"))
-      } else {
-        # If running on someone's personal computer, default to multi-session cluster leaving one core free (if possible)
-        n_cores <- max(availableCores(methods=c("system")) - 1, 1)
-      }
-      analysis$.private$cluster = makeCluster(n_cores)
-      analysis$.private$stopCluster = TRUE 
-    }
-  } else {
-    # We are using a cluster set up by someone else, and we'll leave it up to them to stop it
-    analysis$.private$cluster = cluster
-    analysis$.private$stopCluster = FALSE 
+# Set up cluster operations
+# If we are using an outside cluster (as we do in the Web UI) start and stop are functions used to start it or stop it
+# If we are using our own cluster (as we do by default), then start and stop are NULL and ww will set them up here
+cluster = function(analysis) {
+  if (is.null(analysis$.private$cluster)) {
+    analysis$.private$cluster = analysis$.private$startCluster()
   }
-  
   analysis$.private$cluster
 }
 
 stopCluster = function(analysis) {
-  # Stop cluster only if we set it up
-  if (analysis$.private$stopCluster) {
-    parallel::stopCluster(analysis$.private$cluster)
-    analysis$.private$cluster = NA
+  analysis$.private$stopCluster(analysis$.private$cluster)
+  analysis$.private$cluster = NULL
+}
+
+defaultStartCluster = function() {
+  if (Sys.getenv("CI") != "") {
+    # If running on GitLab, default to multi-session cluster using all cores
+    n_cores <- availableCores(methods=c("system"))
+  } else {
+    # If running on someone's personal computer, default to multi-session cluster leaving one core free (if possible)
+    n_cores <- max(availableCores(methods=c("system")) - 1, 1)
   }
+  parallel::makeCluster(n_cores)
+}
+
+defaultStopCluster = function(cluster) {
+  parallel::stopCluster(cluster)
 }
 
 # This evaluates ... on a single node in a cluster. This doesn't help with performance (in fact, it will slightly decrease it), but it allows WebUI to push computation off the CPU that's doing web stuff
 clusterEval1 = function(analysis, func) {
-  future::value(future::remote(func(analysis), workers=cluster(analysis)))
+  result = future::value(future::remote(func(analysis), workers=cluster(analysis)))
+  stopCluster(analysis)
+  result
 }
 
 # This evaluates ... on a single node in a cluster, then updates the analysis object with the result of ... evaluation. It allows WebUI to push updates to the analysis object off to another CPU
