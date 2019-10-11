@@ -250,7 +250,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   analysis$.private$progress_idx = 1
   analysis$.private$progress_count = length(analysis$.private$variants)
   evaluatr.impact.pre(analysis)
-  results = list()
+  results1 = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
   cl <- makeCluster(analysis$.private$n_cores)
@@ -264,48 +264,41 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   
   for (variant in variants) {
     incrementProgressPart(analysis)
-    results[[variant]]$groups <- setNames(
+    results1[[variant]]$groups <- setNames(
       pblapply(
         cl = cl,
         analysis$.private$data[[variant]],
         FUN = doCausalImpact,
-        analysis$intervention_date,
-        analysis$n_seasons,
+        intervention_date=analysis$intervention_date,
+        n_seasons=analysis$n_seasons,
         var.select.on = analysis$.private$variants[[variant]]$var.select.on,
         time_points = analysis$time_points,
         trend = analysis$.private$variants[[variant]]$trend,
         burnN=analysis$set.burnN,
         sampleN=analysis$set.sampleN,
-        crossval.stage = FALSE
+        crossval.stage = FALSE,
+        analysis=analysis
       ),
       analysis$groups
     )
   }
   stopCluster(cl)
   
+    results<-sapply(results1,function(x) x[['results']]) 
+    quantiles<-sapply(results1,function(x) x[['quantiles']]) 
+    return(results1)
+}
+    
+part2<-function(ds){
+  for (variant in variants) {
+    setNames(results[[variant]],analysis$groups )
+    setNames(quantiles[[variant]],analysis$groups )
+  }
+  
   for (variant in intersect(c('full', 'time'), variants)) {
     #Save the inclusion probabilities from each of the models
     results[[variant]]$inclusion_prob <-
       setNames(lapply(results[[variant]]$groups, inclusionProb), analysis$groups)
-  }
-  
-  for (variant in variants) {
-    #All model results combined
-    results[[variant]]$quantiles <-
-      setNames(lapply(
-        analysis$groups,
-        FUN = function(group) {
-          rrPredQuantiles(
-            impact = results[[variant]]$groups[[group]],
-            denom_data = analysis$.private$ds[[group]][, analysis$denom_name],
-            eval_period = analysis$eval_period,
-            post_period = analysis$post_period,
-            year_def = analysis$year_def,
-            time_points = analysis$time_points,
-            n_seasons = analysis$n_seasons
-          )
-        }
-      ), analysis$groups)
   }
   
   # Calculate best model
@@ -540,7 +533,6 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       )
     )
   #print(levels(rr_mean_combo$Model))
-  
   
   analysis$results$impact <- results
   return(results)
