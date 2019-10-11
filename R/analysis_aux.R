@@ -334,7 +334,7 @@ doCausalImpact <-
     }
     
     ds<-impact ##impact$groups?
-    denom.ds<- zoo_data[,denom_name] #3full only
+    denom.ds<- zoo_data[,analysis$denom_name] #3full only
     quantiles<-rrPredQuantiles(impact=ds,denom_data=denom.ds, 
                       eval_period = analysis$eval_period,
                                     post_period = analysis$post_period,
