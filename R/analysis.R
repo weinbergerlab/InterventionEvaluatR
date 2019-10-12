@@ -809,9 +809,7 @@ evaluatr.sensitivity = function(analysis) {
     analysis$results$impact$full$groups[!bad_sensitivity_groups]
   sensitivity_groups <- analysis$groups[!bad_sensitivity_groups]
   
-  addProgress(analysis, sprintf("Sensitivity analysis (group %s)", names(sensitivity_groups)))
   if (length(sensitivity_groups) != 0) {
-    progressStartPart(analysis)
     #Weight Sensitivity Analysis - top weighted variables are excluded and analysis is re-run.
     clusterEvalQ(cluster(analysis), {
       library(pogit, quietly = TRUE)
@@ -847,8 +845,7 @@ evaluatr.sensitivity = function(analysis) {
         sensitivity_groups
       )
     stopCluster(analysis)
-    progressEndPart(analysis)
-    
+
     results$sensitivity_pred_quantiles <-
       lapply(
         sensitivity_analysis_full,
