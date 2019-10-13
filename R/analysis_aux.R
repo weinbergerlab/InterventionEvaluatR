@@ -1530,6 +1530,7 @@ single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, ev
 #' @return Univariate analysis plot, `results`, as described below
 #' @export
 #' @importFrom ggplot2 ggplot geom_segment geom_point coord_cartesian theme_minimal scale_y_discrete
+#' @importFrom utils head tail
 
 evaluatr.univariate.plot<-function(ds, plot.labs='Univariate'){
   ylevels = rev(ds$covar)

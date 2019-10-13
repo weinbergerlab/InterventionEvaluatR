@@ -259,6 +259,7 @@ evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) 
 #' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster parLapply
 #' @importFrom future availableCores
 #' @importFrom coda geweke.diag mcmc
+#' @importFrom stats pnorm
 #' @export
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
