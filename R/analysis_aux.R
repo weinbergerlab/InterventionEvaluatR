@@ -334,7 +334,11 @@ doCausalImpact <-
     }
     
     ds<-impact ##impact$groups?
+    if(trend==F){
     denom.ds<- zoo_data[,analysis$denom_name] #3full only
+    }else{
+      denom.ds<- zoo_data[,'log.offset'] #3full only
+    }
     quantiles<-rrPredQuantiles(impact=ds,denom_data=denom.ds, 
                       eval_period = analysis$eval_period,
                                     post_period = analysis$post_period,
@@ -508,7 +512,7 @@ rrPredQuantiles <-
            n_seasons,
            year_def,
            time_points) {
-    pred_samples <- impact$impact$predict.bsts
+    pred_samples <- impact$predict.bsts
     
     pred <-
       t(apply(
@@ -521,12 +525,12 @@ rrPredQuantiles <-
     pred.hdi <- cbind( pred[,'50%'],t(hdi(t(pred_samples), credMass = 0.95)) )
       
     eval_indices <-
-      match(which(time_points == eval_period[1]), (1:length(impact$impact$observed.y))):match(which(time_points ==
-                                                                                               eval_period[2]), (1:length(impact$impact$observed.y)))
+      match(which(time_points == eval_period[1]), (1:length( impact$observed.y))):match(which(time_points ==
+                                                                                               eval_period[2]), (1:length( impact$observed.y)))
     
     pred_eval_sum <- colSums(pred_samples[eval_indices,])
     
-    eval_obs <- sum(impact$impact$observed.y[eval_indices])
+    eval_obs <- sum( impact$observed.y[eval_indices])
     
     # Time values
     # * If year_def is cal_year, then times are (numeric) years.
@@ -545,7 +549,7 @@ rrPredQuantiles <-
     }
 
         #aggregate observed and predicted
-    obs.y.year <- tapply(impact$impact$observed.y, year, sum)
+    obs.y.year <- tapply( impact$observed.y, year, sum)
     pred.yr.spl <- split(as.data.frame(pred_samples), year)
     pred.yr.spl.sum <-
       lapply(pred.yr.spl, function(x)
@@ -595,7 +599,7 @@ rrPredQuantiles <-
       which(time_points == (eval_period[1] %m+% months(12))):which(time_points ==
                                                                      (eval_period[1] %m+% months(1)))
     pred_pre_sum <- colSums(pred_samples[pre_indices,])
-    pre_obs <- sum(impact$impact$observed.y[pre_indices])
+    pre_obs <- sum( impact$observed.y[pre_indices])
     rr_sum_pre <- pre_obs / pred_pre_sum  #Should be 0!
     
     #unbias_rr <- eval_rr_sum / rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
@@ -603,10 +607,10 @@ rrPredQuantiles <-
     
     plot_rr_start <- which(time_points == post_period[1]) - n_seasons
     roll_rr_indices <-
-      match(plot_rr_start, (1:length(impact$impact$observed.y))):match(which(time_points ==
-                                                                        eval_period[2]), (1:length(impact$impact$observed.y)))
+      match(plot_rr_start, (1:length( impact$observed.y))):match(which(time_points ==
+                                                                        eval_period[2]), (1:length( impact$observed.y)))
     
-    obs_full <- impact$impact$observed.y
+    obs_full <- impact$observed.y
     
     roll_sum_pred <-
       roll_sum(pred_samples[roll_rr_indices,], n_seasons)
