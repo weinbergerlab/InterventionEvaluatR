@@ -335,7 +335,7 @@ doCausalImpact <-
     
     ds<-impact ##impact$groups?
     if(trend==F){
-    denom.ds<- zoo_data[,analysis$denom_name] #3full only
+    denom.ds<- rep(1,nrow(zoo_data))
     }else{
       denom.ds<- zoo_data[,'log.offset'] #3full only
     }
