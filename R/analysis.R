@@ -239,6 +239,7 @@ evaluatr.init <- function(country,
 #' @importFrom MASS mvrnorm
 #' @importFrom HDInterval hdi
 #' @importFrom RcppRoll roll_sum
+#' @importFrom plyr rbind.fill
 #' @importFrom pogit poissonBvs
 #' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster
 #' @importFrom future availableCores
@@ -257,8 +258,12 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   clusterEvalQ(cl, {
     library(pogit, quietly = TRUE)
     library(lubridate, quietly = TRUE)
+    library(RcppRoll, quietly = TRUE)
+    library(HDInterval, quietly = TRUE)
+    library(plyr, quietly = TRUE)
+    
   })
-  clusterExport(cl, c('doCausalImpact'), environment())
+  clusterExport(cl, c('doCausalImpact','rrPredQuantiles'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
   
@@ -283,17 +288,20 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     )
   }
   stopCluster(cl)
+
+#    return(results1)
+#}
+#part2<-function(ds){
+  results <- vector("list", length(variants))
+  names(results)<-variants
+  quantiles<-vector("list", length(variants))
+  names(quantiles)<-variants
   
-    results<-sapply(results1,function(x) x[['results']]) 
-    quantiles<-sapply(results1,function(x) x[['quantiles']]) 
-    return(results1)
-}
-    
-part2<-function(ds){
   for (variant in variants) {
-    setNames(results[[variant]],analysis$groups )
-    setNames(quantiles[[variant]],analysis$groups )
-  }
+    results[[variant]]$groups<-sapply(results1[[variant]]$groups,function(x) x[['impact']], simplify=F)  
+    quantiles[[variant]]<-sapply(results1[[variant]]$groups,function(x) x$quantiles, simplify=F)  
+    results[[variant]]$quantiles <- quantiles[[variant]]
+     }
   
   for (variant in intersect(c('full', 'time'), variants)) {
     #Save the inclusion probabilities from each of the models
@@ -339,6 +347,7 @@ part2<-function(ds){
       sapply(results[[variant]]$quantiles, getAnnPredHDI, simplify = FALSE)
   }
 
+  
   for (variant in intersect(c('full', 'best'), variants)) {
     # Pointwise RR and uncertainty for second stage meta variant
     results[[variant]]$log_rr_quantiles <-
@@ -412,8 +421,8 @@ part2<-function(ds){
         con.stat[i,2]<-'Not converged'
       } 
     }
-      results[[variant]]$converge<-con.stat 
-    }
+    results[[variant]]$converge<-con.stat 
+  }
   
   if ('best' %in% variants) {
     results$best$log_rr <- t(sapply(results$best$quantiles, getsdRR))
@@ -432,7 +441,7 @@ part2<-function(ds){
         )
       )
   }
-
+  
   if ('time' %in% variants) {
     colnames(results$time$rr_mean) <-
       paste('Time_trend', colnames(results$time$rr_mean))
