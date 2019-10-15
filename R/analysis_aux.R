@@ -345,9 +345,12 @@ doCausalImpact <-
                                     year_def = analysis$year_def,
                                     time_points = analysis$time_points,
                                     n_seasons = analysis$n_seasons )
-    
-          results<-list('impact'=impact, 'quantiles'=quantiles)  
-    
+
+    impact$reg.mean <- NULL
+    impact$predict.bsts<-NULL
+    impact$beta.mat<-NULL
+     results<-list('impact'=impact, 'quantiles'=quantiles)  
+
     return(results)
   }
 
