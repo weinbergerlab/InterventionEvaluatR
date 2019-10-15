@@ -348,7 +348,7 @@ doCausalImpact <-
 
     impact$reg.mean <- NULL
     impact$predict.bsts<-NULL
-    impact$beta.mat<-NULL
+    #impact$beta.mat<-NULL
      results<-list('impact'=impact, 'quantiles'=quantiles)  
 
     return(results)
