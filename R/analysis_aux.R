@@ -345,11 +345,18 @@ doCausalImpact <-
                                     year_def = analysis$year_def,
                                     time_points = analysis$time_points,
                                     n_seasons = analysis$n_seasons )
-
+       cumsum_prevented <-cumsum_func(quantiles=quantiles,outcome = y.full,
+                                      time_points=analysis$time_points,
+                                      post_period=analysis$post_period)
+       cumsum_prevented_hdi <-cumsum_func(quantiles=quantiles,outcome = y.full,
+                                          time_points=analysis$time_points,
+                                          post_period=analysis$post_period, hdi=T)
+       
     impact$reg.mean <- NULL
     impact$predict.bsts<-NULL
+    quantiles$pred_samples_post_full<-NULL
     #impact$beta.mat<-NULL
-     results<-list('impact'=impact, 'quantiles'=quantiles)  
+     results<-list('impact'=impact, 'quantiles'=quantiles,'cumsum_prevented_hdi'=cumsum_prevented_hdi,'cumsum_prevented'=cumsum_prevented)  
 
     return(results)
   }
@@ -1296,8 +1303,7 @@ pca_top_var <-
   }
 
 cumsum_func <-
-  function(group,
-           quantiles,
+  function(quantiles,
            outcome,
            time_points,
            post_period, 
@@ -1307,7 +1313,7 @@ cumsum_func <-
     
     #Cumulative sum of prevented cases
     cases_prevented <-
-      quantiles[[group]]$pred_samples - outcome[, group]
+      quantiles$pred_samples - outcome
     cumsum_cases_prevented_post <-
       apply(cases_prevented[is_post_period,], 2, cumsum)
     cumsum_cases_prevented_pre <-

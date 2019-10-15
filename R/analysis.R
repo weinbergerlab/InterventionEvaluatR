@@ -263,7 +263,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     library(plyr, quietly = TRUE)
     
   })
-  clusterExport(cl, c('doCausalImpact','rrPredQuantiles'), environment())
+  clusterExport(cl, c('doCausalImpact','rrPredQuantiles','cumsum_func'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
   
@@ -296,12 +296,18 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   names(results)<-variants
   quantiles<-vector("list", length(variants))
   names(quantiles)<-variants
+  cumsum1<-vector("list", length(variants))
+  names(cumsum1)<-variants  
+ # cumsum1.hdi<-vector("list", length(variants))
+  #names(cumsum1.hdi)<-variants
   
   for (variant in variants) {
     results[[variant]]$groups<-sapply(results1[[variant]]$groups,function(x) x[['impact']], simplify=F)  
     quantiles[[variant]]<-sapply(results1[[variant]]$groups,function(x) x$quantiles, simplify=F)  
+    results[[variant]]$cumsum_prevented <-sapply(results1[[variant]]$groups,function(x) x$cumsum_prevented, simplify='array') 
+    results[[variant]]$cumsum_prevented_hdi<-sapply(results1[[variant]]$groups,function(x) x$cumsum_prevented_hdi, simplify='array') 
     results[[variant]]$quantiles <- quantiles[[variant]]
-     }
+   }
   
   for (variant in intersect(c('full', 'time'), variants)) {
     #Save the inclusion probabilities from each of the models
@@ -447,29 +453,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       paste('Time_trend', colnames(results$time$rr_mean))
   }
   
-  for (variant in variants) {
-    results[[variant]]$cumsum_prevented <-
-      sapply(
-        analysis$groups,
-        FUN = cumsum_func,
-        quantiles = results[[variant]]$quantiles,
-        outcome = analysis$outcome,
-        analysis$time_points,
-        analysis$post_period,
-        simplify = 'array'
-      )
-    results[[variant]]$cumsum_prevented_hdi <-
-      sapply(
-        analysis$groups,
-        FUN = cumsum_func,
-        quantiles = results[[variant]]$quantiles,
-        outcome = analysis$outcome,
-        analysis$time_points,
-        analysis$post_period,
-        hdi=T,
-        simplify = 'array'
-      )
-  }
+   
   
   #Run a classic ITS analysis
   rr.its1 <-
