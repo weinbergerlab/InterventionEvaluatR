@@ -1052,6 +1052,13 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         covars[,!(colnames(covars) %in% analysis$.private$exclude_covar), drop = FALSE]
       }
     )
+  analysis$covars$full <-
+    lapply(
+      analysis$covars$full, function(x){ 
+        x[,analysis$outcome_name]<-NULL
+        return(x)
+      }
+    )
   analysis$covars$time <-
     setNames(lapply(
       analysis$covars$full,
