@@ -351,7 +351,7 @@ doCausalImpact <-
        cumsum_prevented_hdi <-cumsum_func(quantiles=quantiles,outcome = y.full,
                                           time_points=analysis$time_points,
                                           post_period=analysis$post_period, hdi=T)
-       
+    quantiles$pred_samples<-NULL   
     impact$reg.mean <- NULL
     impact$predict.bsts<-NULL
     quantiles$pred_samples_post_full<-NULL
