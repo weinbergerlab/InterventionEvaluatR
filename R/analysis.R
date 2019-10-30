@@ -239,6 +239,7 @@ evaluatr.init <- function(country,
 #' @importFrom MASS mvrnorm
 #' @importFrom HDInterval hdi
 #' @importFrom RcppRoll roll_sum
+#' @importFrom plyr rbind.fill
 #' @importFrom pogit poissonBvs
 #' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster
 #' @importFrom future availableCores
@@ -250,62 +251,68 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   analysis$.private$progress_idx = 1
   analysis$.private$progress_count = length(analysis$.private$variants)
   evaluatr.impact.pre(analysis)
-  results = list()
+  results1 = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
   cl <- makeCluster(analysis$.private$n_cores)
   clusterEvalQ(cl, {
     library(pogit, quietly = TRUE)
     library(lubridate, quietly = TRUE)
+    library(RcppRoll, quietly = TRUE)
+    library(HDInterval, quietly = TRUE)
+    library(plyr, quietly = TRUE)
+    
   })
-  clusterExport(cl, c('doCausalImpact'), environment())
+  clusterExport(cl, c('doCausalImpact','rrPredQuantiles','cumsum_func'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
   
   for (variant in variants) {
     incrementProgressPart(analysis)
-    results[[variant]]$groups <- setNames(
+    results1[[variant]]$groups <- setNames(
       pblapply(
         cl = cl,
         analysis$.private$data[[variant]],
         FUN = doCausalImpact,
-        analysis$intervention_date,
-        analysis$n_seasons,
+        intervention_date=analysis$intervention_date,
+        n_seasons=analysis$n_seasons,
         var.select.on = analysis$.private$variants[[variant]]$var.select.on,
         time_points = analysis$time_points,
         trend = analysis$.private$variants[[variant]]$trend,
         burnN=analysis$set.burnN,
         sampleN=analysis$set.sampleN,
-        crossval.stage = FALSE
+        crossval.stage = FALSE,
+        analysis=analysis
       ),
       analysis$groups
     )
   }
   stopCluster(cl)
+
+#    return(results1)
+#}
+#part2<-function(ds){
+  results <- vector("list", length(variants))
+  names(results)<-variants
+  quantiles<-vector("list", length(variants))
+  names(quantiles)<-variants
+  cumsum1<-vector("list", length(variants))
+  names(cumsum1)<-variants  
+ # cumsum1.hdi<-vector("list", length(variants))
+  #names(cumsum1.hdi)<-variants
+  
+  for (variant in variants) {
+    results[[variant]]$groups<-sapply(results1[[variant]]$groups,function(x) x[['impact']], simplify=F)  
+    quantiles[[variant]]<-sapply(results1[[variant]]$groups,function(x) x$quantiles, simplify=F)  
+    results[[variant]]$cumsum_prevented <-sapply(results1[[variant]]$groups,function(x) x$cumsum_prevented, simplify='array') 
+    results[[variant]]$cumsum_prevented_hdi<-sapply(results1[[variant]]$groups,function(x) x$cumsum_prevented_hdi, simplify='array') 
+    results[[variant]]$quantiles <- quantiles[[variant]]
+   }
   
   for (variant in intersect(c('full', 'time'), variants)) {
     #Save the inclusion probabilities from each of the models
     results[[variant]]$inclusion_prob <-
       setNames(lapply(results[[variant]]$groups, inclusionProb), analysis$groups)
-  }
-  
-  for (variant in variants) {
-    #All model results combined
-    results[[variant]]$quantiles <-
-      setNames(lapply(
-        analysis$groups,
-        FUN = function(group) {
-          rrPredQuantiles(
-            impact = results[[variant]]$groups[[group]],
-            denom_data = analysis$.private$ds[[group]][, analysis$denom_name],
-            eval_period = analysis$eval_period,
-            post_period = analysis$post_period,
-            year_def = analysis$year_def,
-            time_points = analysis$time_points,
-            n_seasons = analysis$n_seasons
-          )
-        }
-      ), analysis$groups)
   }
   
   # Calculate best model
@@ -334,6 +341,12 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     variants = c("best", variants)
   }
   
+  if(analysis$model_size >= 1){
+  results$best$cumsum_prevented<- results$full$cumsum_prevented
+  }else{
+    results$best$cumsum_prevented<- results$pca$cumsum_prevented
+  }
+  
   for (variant in variants) {
     # Predictions, aggregated by year
     results[[variant]]$pred_quantiles <-
@@ -346,6 +359,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       sapply(results[[variant]]$quantiles, getAnnPredHDI, simplify = FALSE)
   }
 
+  
   for (variant in intersect(c('full', 'best'), variants)) {
     # Pointwise RR and uncertainty for second stage meta variant
     results[[variant]]$log_rr_quantiles <-
@@ -419,8 +433,8 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         con.stat[i,2]<-'Not converged'
       } 
     }
-      results[[variant]]$converge<-con.stat 
-    }
+    results[[variant]]$converge<-con.stat 
+  }
   
   if ('best' %in% variants) {
     results$best$log_rr <- t(sapply(results$best$quantiles, getsdRR))
@@ -439,35 +453,13 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         )
       )
   }
-
+  
   if ('time' %in% variants) {
     colnames(results$time$rr_mean) <-
       paste('Time_trend', colnames(results$time$rr_mean))
   }
   
-  for (variant in variants) {
-    results[[variant]]$cumsum_prevented <-
-      sapply(
-        analysis$groups,
-        FUN = cumsum_func,
-        quantiles = results[[variant]]$quantiles,
-        outcome = analysis$outcome,
-        analysis$time_points,
-        analysis$post_period,
-        simplify = 'array'
-      )
-    results[[variant]]$cumsum_prevented_hdi <-
-      sapply(
-        analysis$groups,
-        FUN = cumsum_func,
-        quantiles = results[[variant]]$quantiles,
-        outcome = analysis$outcome,
-        analysis$time_points,
-        analysis$post_period,
-        hdi=T,
-        simplify = 'array'
-      )
-  }
+   
   
   #Run a classic ITS analysis
   rr.its1 <-
@@ -540,7 +532,6 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       )
     )
   #print(levels(rr_mean_combo$Model))
-  
   
   analysis$results$impact <- results
   return(results)

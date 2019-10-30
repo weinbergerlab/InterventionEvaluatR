@@ -106,7 +106,6 @@ makeTimeSeries <-
     }
   }
 
-
 #Main analysis function.
 doCausalImpact <-
   function(zoo_data,
@@ -119,7 +118,8 @@ doCausalImpact <-
            n_iter = 10000,
            burnN,
            sampleN,
-           trend = FALSE) {
+           trend = FALSE, 
+           analysis=analysis) {
     #Format outcome and covariates for regular and cross-validations
     if (crossval.stage) {
       #Data for cross-validation
@@ -298,68 +298,67 @@ doCausalImpact <-
       rand.eff = 0
     }
     inclusion_probs <- cbind.data.frame(covar.names, inclusion_probs)
+    
     if (trend) {
       impact <-
         list(
-          reg.mean,
-          exclude.indices,
-          rand.eff,
-          offset.t,
-          covars,
-          beta.mat,
-          predict.bsts,
-          inclusion_probs,
-          post.period.response = post_period_response,
-          observed.y = y.full,
-          DIC,
-          p_D
+          'reg.mean'= reg.mean,
+          'exclude.indices'=exclude.indices,
+          'rand.eff'=rand.eff,
+          'offset.t.pre'= offset.t,
+          'covars'=covars,
+          'beta.mat'= beta.mat,
+          'predict.bsts'=predict.bsts,
+          'inclusion_probs'=inclusion_probs,
+          'post_period_response' = post_period_response,
+          'observed.y' = y.full,
+          'DIC'= DIC,
+          'p_D'=p_D
         )
-      names(impact) <-
-        c(
-          'reg.mean',
-          'exclude.indices',
-          'rand.eff',
-          'offset.t.pre',
-          'covars',
-          'beta.mat',
-          'predict.bsts',
-          'inclusion_probs',
-          'post_period_response',
-          'observed.y',
-          'DIC',
-          'p_D'
-        )
+      
     } else{
       impact <-
         list(
-          reg.mean,
-          exclude.indices,
-          rand.eff,
-          covars,
-          beta.mat,
-          predict.bsts,
-          inclusion_probs,
-          post.period.response = post_period_response,
-          observed.y = y.full,
-          DIC,
-          p_D
-        )
-      names(impact) <-
-        c(
-          'reg.mean',
-          'exclude.indices' ,
-          'rand.eff',
-          'covars',
-          'beta.mat',
-          'predict.bsts',
-          'inclusion_probs',
-          'post_period_response',
-          'observed.y',
-          'DIC',
-          'p_D'
+          'reg.mean'= reg.mean,
+          'exclude.indices'=exclude.indices,
+          'rand.eff'=rand.eff,
+          'covars'=covars,
+          'beta.mat'= beta.mat,
+          'predict.bsts'=predict.bsts,
+          'inclusion_probs'=inclusion_probs,
+          'post_period_response' = post_period_response,
+          'observed.y' = y.full,
+          'DIC'= DIC,
+          'p_D'=p_D
         )
     }
-    return(impact)
+    
+    ds<-impact ##impact$groups?
+    if(trend==F){
+    denom.ds<- rep(1,nrow(zoo_data))
+    }else{
+      denom.ds<- zoo_data[,'log.offset'] #3full only
+    }
+    quantiles<-rrPredQuantiles(impact=ds,denom_data=denom.ds, 
+                      eval_period = analysis$eval_period,
+                                    post_period = analysis$post_period,
+                                    year_def = analysis$year_def,
+                                    time_points = analysis$time_points,
+                                    n_seasons = analysis$n_seasons )
+       cumsum_prevented <-cumsum_func(quantiles=quantiles,outcome = y.full,
+                                      time_points=analysis$time_points,
+                                      post_period=analysis$post_period)
+       cumsum_prevented_hdi <-cumsum_func(quantiles=quantiles,outcome = y.full,
+                                          time_points=analysis$time_points,
+                                          post_period=analysis$post_period, hdi=T)
+    quantiles$pred_samples<-NULL   
+    impact$reg.mean <- NULL
+    impact$predict.bsts<-NULL
+    quantiles$pred_samples_post_full<-NULL
+    #impact$beta.mat<-NULL
+     results<-list('impact'=impact, 'quantiles'=quantiles,'cumsum_prevented_hdi'=cumsum_prevented_hdi,'cumsum_prevented'=cumsum_prevented)  
+
+    return(results)
   }
 
 crossval.log.lik <- function(cv.impact) {
@@ -536,12 +535,12 @@ rrPredQuantiles <-
     pred.hdi <- cbind( pred[,'50%'],t(hdi(t(pred_samples), credMass = 0.95)) )
       
     eval_indices <-
-      match(which(time_points == eval_period[1]), (1:length(impact$observed.y))):match(which(time_points ==
-                                                                                               eval_period[2]), (1:length(impact$observed.y)))
+      match(which(time_points == eval_period[1]), (1:length( impact$observed.y))):match(which(time_points ==
+                                                                                               eval_period[2]), (1:length( impact$observed.y)))
     
     pred_eval_sum <- colSums(pred_samples[eval_indices,])
     
-    eval_obs <- sum(impact$observed.y[eval_indices])
+    eval_obs <- sum( impact$observed.y[eval_indices])
     
     # Time values
     # * If year_def is cal_year, then times are (numeric) years.
@@ -560,7 +559,7 @@ rrPredQuantiles <-
     }
 
         #aggregate observed and predicted
-    obs.y.year <- tapply(impact$observed.y, year, sum)
+    obs.y.year <- tapply( impact$observed.y, year, sum)
     pred.yr.spl <- split(as.data.frame(pred_samples), year)
     pred.yr.spl.sum <-
       lapply(pred.yr.spl, function(x)
@@ -610,7 +609,7 @@ rrPredQuantiles <-
       which(time_points == (eval_period[1] %m+% months(12))):which(time_points ==
                                                                      (eval_period[1] %m+% months(1)))
     pred_pre_sum <- colSums(pred_samples[pre_indices,])
-    pre_obs <- sum(impact$observed.y[pre_indices])
+    pre_obs <- sum( impact$observed.y[pre_indices])
     rr_sum_pre <- pre_obs / pred_pre_sum  #Should be 0!
     
     #unbias_rr <- eval_rr_sum / rr_sum_pre # same as log_rr - log_rr_pre=log(A/B)
@@ -618,8 +617,8 @@ rrPredQuantiles <-
     
     plot_rr_start <- which(time_points == post_period[1]) - n_seasons
     roll_rr_indices <-
-      match(plot_rr_start, (1:length(impact$observed.y))):match(which(time_points ==
-                                                                        eval_period[2]), (1:length(impact$observed.y)))
+      match(plot_rr_start, (1:length( impact$observed.y))):match(which(time_points ==
+                                                                        eval_period[2]), (1:length( impact$observed.y)))
     
     obs_full <- impact$observed.y
     
@@ -1304,8 +1303,7 @@ pca_top_var <-
   }
 
 cumsum_func <-
-  function(group,
-           quantiles,
+  function(quantiles,
            outcome,
            time_points,
            post_period, 
@@ -1315,7 +1313,7 @@ cumsum_func <-
     
     #Cumulative sum of prevented cases
     cases_prevented <-
-      quantiles[[group]]$pred_samples - outcome[, group]
+      quantiles$pred_samples - outcome
     cumsum_cases_prevented_post <-
       apply(cases_prevented[is_post_period,], 2, cumsum)
     cumsum_cases_prevented_pre <-
