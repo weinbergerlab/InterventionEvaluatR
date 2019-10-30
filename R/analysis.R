@@ -341,6 +341,12 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     variants = c("best", variants)
   }
   
+  if(analysis$model_size >= 1){
+  results$best$cumsum_prevented<- results$full$cumsum_prevented
+  }else{
+    results$best$cumsum_prevented<- results$pca$cumsum_prevented
+  }
+  
   for (variant in variants) {
     # Predictions, aggregated by year
     results[[variant]]$pred_quantiles <-
