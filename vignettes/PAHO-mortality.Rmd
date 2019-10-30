@@ -10,7 +10,8 @@ params:
   sensitivity: TRUE
   crossval: FALSE
 ---
-
+need to delete: impact_results$[[VARIANT]]$groups$`ec 2-23m A`$
+predict.bsts reg.mean  beta.mat
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -305,7 +306,7 @@ for (group in names(plots$groups)) {
 
 ## Save results
 ```{r save_results, echo=FALSE}
-output_file <- "Results" # Directory where results will be saved.
-output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
-evaluatr.save(analysis, output_file)
+#output_file <- "Results" # Directory where results will be saved.
+#output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
+#evaluatr.save(analysis, output_file)
 ```
