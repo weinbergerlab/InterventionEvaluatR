@@ -22,6 +22,7 @@ knitr::opts_chunk$set(
   dpi=300, 
 	out.width="600px"
 )
+
 ```
 
 ---
@@ -40,6 +41,8 @@ library(knitr)
 library(htmlTable)
 library(InterventionEvaluatR)
 library(coda)
+library(HDInterval)
+
 ```
 
 
@@ -123,6 +126,82 @@ Before getting into more complicated analyses, we will first try to fit a simple
 ```{r univariate, echo = T, results = 'hide',warning=FALSE}
  glmer_results= evaluatr.univariate(analysis)
 ```
+
+##Horseshoe prior
+```{r}
+call.jags.mod<-function(ds.in){
+  exclude.cols<-c(analysis$group_name, analysis$outcome_name, analysis$date_name)
+  x<-ds.in[,-which(names(ds.in) %in% exclude.cols)]
+  x.scale<-apply(x,2, function(z) scale(log(z+0.5)))
+  y<-ds.in[,analysis$outcome_name]
+  ds2<-cbind.data.frame(y, x.scale)
+  names(ds2)<-c(analysis$outcome_name,names(x))
+  ds2.pre<-ds2[ds1$date<analysis$post_period[1] ,]
+  ds3<-ds2
+  ds3[,analysis$outcome_name][ds1$date>=analysis$post_period[1]]<-NA
+  months<-month(ds.in[,analysis$date_name])
+  month.mat<-dummies::dummy(months)
+  month.mat<-month.mat[,-1]
+  month.mat<-cbind(rep(1,nrow(month.mat)), month.mat) #add intercept
+  month.mat.pre<- month.mat[ds1$date<analysis$post_period[1] ,]
+  
+  mod.txt<- source('../jags/Non_spatial-Non_lagged-independent.txt')
+  mod1<-nonspace_nonlag(burnin=20000, 
+                        samples=20000,
+                        thin=1,
+                        chains=1,
+                        regularize=TRUE, 
+                        dic=FALSE,
+                        n_full=length(ds3[,analysis$outcome_name]),
+                        n_modeling=nrow(ds2.pre),
+                        y_modeling=ds3[,analysis$outcome_name],
+                        offset=rep(0, length(y)) ,
+                        z=month.mat,  #parameters not being shrunk
+                        x=ds3[,-1]
+                        )
+  
+  posterior_samples.all<-do.call(rbind,mod1[[1]])
+  post_means<-apply(posterior_samples.all, 2, median)
+  sample.labs<-names(post_means)
+  ci<-t(hdi(posterior_samples.all, credMass = 0.95))
+  row.names(ci)<-sample.labs
+  names(post_means)<-sample.labs
+  post.combo<-cbind(post_means,ci)
+  
+  post.combo.y<-post.combo[grep('Y_pred', dimnames(post.combo)[[1]]),]
+  post.combo.beta<-cbind.data.frame(post.combo[grep('beta', dimnames(post.combo)[[1]]),],dimnames(x)[[2]])
+  # plot(y=1:nrow(post.combo.beta), x=post.combo.beta[,'post_means'], xlim=range(post.combo.beta[,1:3]), bty='l')
+  # arrows(y0=1:nrow(post.combo.beta) ,x0=post.combo.beta[,2], x1=post.combo.beta[,3], length=0)
+  # abline(v=0, col='gray', lty=2)
+  # text(y=1:nrow(post.combo.beta), x=post.combo.beta[,'post_means']+0.1,dimnames(x)[[2]] , col='gray')
+  
+  #plot for post-vax period
+  # matplot(post.combo.y, type='l')
+  #  points(ds1$sALRI[(nrow(ds2.pre)+1):nrow(ds1)])
+  # 
+    log.rr.pointwise<- log((ds1[(nrow(ds2.pre)+1):nrow(ds1),analysis$outcome_name]+0.5)/(post.combo.y+0.5))
+   # matplot(log.rr, type='l', col='gray', lty=c(2,1,2))
+   # abline(h=0, col='red')
+   
+   length.rollout<-round(as.numeric((analysis$eval_period[1]-analysis$post_period[1]  )/30.3))
+   post.samples<-posterior_samples.all[,-c(1:length.rollout)]
+   post.samples.y<- post.samples[,grep('Y_pred', dimnames(post.samples)[[2]])]
+   post.samples.sum<-apply(post.samples,1,sum)
+   obs.post.sum<- sum(ds2$sALRI[ds1$date>=analysis$post_period[1]][-c(1:length.rollout)])
+   rr.agg<-obs.post.sum/post.samples.sum
+   rr.q<-quantile(rr, probs=c(0.025, 0.5, 0.975))
+   output.list<-list('rr.samples'=rr.agg,'rr.q'=rr.q,'log.rr.pointwise.q'=log.rr.pointwise,'betas'=post.combo.beta)
+   
+}
+
+```
+
+```{r}
+ds.age.spl<-split(ds, ds$age_group)
+mod1<-lapply(ds.age.spl,call.jags.mod)
+```
+
+
 
 Then plot the results. The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top. Each plot represents a different age group. Overall, we see a generally consistent pattern. The use of the subchapter R00-09 as a control variable leads to estimates that are closer to 1 (no effect). This subchapter is "Symptoms and signs involving the circulatory and respiratory systems". These are often considered non-specific 'junk' codes. There could be arguments for or against using this subchapter as a control. On the downside, it is possible that actual pneumonia deaths incorrectly were assigned a code of R00-99, and the vaccine could therefore reduce the incidence of R00-09 codes and bias the estimates towards no effect. On the upside, the use of these junk codes as a control could help to adjust for underlying improvements or changes in coding quality.   
 

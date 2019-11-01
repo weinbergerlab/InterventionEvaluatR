@@ -1,0 +1,175 @@
+nonspace_nonlag<-function(burnin,
+                          samples,
+                          thin,
+                          chains,
+                          regularize,
+                          dic,
+                          n_full,
+                          n_modeling,
+                          y_modeling,
+                          offset,
+                          z,
+                          x){
+
+##############
+#Packages
+##############
+require(rjags)
+
+#########################################################
+#DIC/chain Check
+#########################################################
+if((dic == 1) & (chains == 1)){
+  print("Must have more than one chain to calculate DIC")
+  return(NA)
+  }
+
+#####################################################
+#Statistical Model (No Regularization) 
+#####################################################
+if(regularize == 0){
+
+  model_string<-"
+
+  model{
+
+  for(t in 1:n_full){
+
+     #Likelihood
+     Y[t] ~ dpois(lambda[t])
+
+     log(lambda[t]) <- offset[t] + 
+                       z[t, 1:p_z]%*%gamma[1:p_z] +
+                       sum(lambda_piece[t, 1:p]) +
+                       phi[t]
+                     
+     for(j in 1:p){
+        lambda_piece[t,j]<-beta[j]*x[t,j]
+        }
+   
+     }
+
+  #Time Series Random Effect
+  for(t in 1:n_full){
+     phi[t] ~ dnorm(0, sigma2_phi_inv)
+     }
+
+  #Hyper-Prior Distributions
+  sigma2_phi_inv <- 1/(sigma_phi*sigma_phi)
+  sigma_phi ~ dunif(0, 1000)
+
+  alpha ~ dunif(0,1)
+
+  for(j in 1:p_z){
+     gamma[j] ~ dnorm(0, 0.0001)
+     }
+
+  #beta Prior Distributions
+  for(j in 1:p){
+     beta[j] ~ dnorm(0, 0.0001)
+     }
+
+  #Posterior Predictive Samples
+  for(t in (n_modeling + 1):n_full){
+     Y_pred[t - n_modeling] <- Y[t]
+     }
+
+  }
+  "
+
+  }
+
+#####################################################
+#Statistical Model (With Regularization) 
+#####################################################
+if(regularize == 1){
+
+  model_string<-"
+
+  model{
+
+  for(t in 1:n_full){
+
+     #Likelihood
+     Y[t] ~ dpois(lambda[t])
+
+     log(lambda[t]) <- offset[t] + 
+                       z[t, 1:p_z]%*%gamma[1:p_z] +
+                       sum(lambda_piece[t, 1:p]) +
+                       phi[t]
+                     
+     for(j in 1:p){
+        lambda_piece[t,j]<-beta[j]*x[t,j]
+        }
+   
+     }
+
+  #Time Series Random Effect
+ for(t in 1:n_full){
+     phi[t] ~ dnorm(0, sigma2_phi_inv)
+     }
+
+  #Hyper-Prior Distributions
+  sigma2_phi_inv <- 1/(sigma_phi*sigma_phi)
+  sigma_phi ~ dunif(0, 1000)
+
+  alpha ~ dunif(0,1)
+
+  for(j in 1:p_z){
+     gamma[j] ~ dnorm(0, 0.0001)
+     }
+
+  #beta Priors: Horseshoe (Carvalho et al. (2009))
+  for(j in 1:p){
+
+     beta[j] ~ dnorm(0, beta_var_inv[j])
+     beta_var_inv[j] <- 1/beta_var[j]
+     beta_var[j] <- delta[j]*delta[j]*tau*tau
+     delta[j] ~ dt(0,1,1)T(0,)
+
+     }
+  tau ~ dt(0,1,1)T(0,)
+  
+  #Posterior Predictive Samples
+  for(t in (n_modeling + 1):n_full){
+     Y_pred[t - n_modeling] <- Y[t]
+     }
+
+  }
+  "
+
+  }
+
+#############################################################
+#Model Fitting
+#############################################################
+model_jags<-jags.model(textConnection(model_string),
+                       data=list('n_full' = n_full,
+                                 'n_modeling' = n_modeling,
+                                 'Y' = y_modeling, 
+                                 'offset' = offset,
+                                 'z' = z,
+                                 'x' = x,
+                                 'p_z' = ncol(z),                              
+                                 'p' = ncol(x)),
+                       n.chains = chains,
+                       n.adapt = burnin)  
+
+posterior_samples<-coda.samples(model_jags, 
+                                variable.names = c("Y_pred"),
+                                thin = thin,
+                                n.iter = samples)
+
+dic_info<-NA
+if(dic == 1){
+  dic_info<-dic.samples(model_jags, 
+                        type = "pD",
+                        n.iter = samples,
+                        thin = thin)
+  
+  }
+
+return(list(posterior_samples,
+            dic_info))
+
+}
