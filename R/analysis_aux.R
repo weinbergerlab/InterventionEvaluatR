@@ -180,8 +180,12 @@ doCausalImpact <-
           model = list(
             deltafix = deltafix.mod,
             ri = ri.select,
+            gammafix=1,
             clusterID = cID
           ),
+        prior=list(
+          slab='Normal'
+        ),
           mcmc=list(
             burnin=burnN,
             M=sampleN
@@ -199,7 +203,11 @@ doCausalImpact <-
             model = list(
               deltafix = deltafix.mod,
               ri = TRUE,
+              gammafix=1,
               clusterID = cID
+            ),
+            prior=list(
+              slab='Normal'
             ),
             mcmc=list(
               burnin=burnN,
@@ -214,7 +222,10 @@ doCausalImpact <-
               y = y.pre ,
               X = x.pre,
               BVS = FALSE,
-              model = list(ri = TRUE, clusterID = cID),
+              model = list(ri = TRUE, gammafix=1,clusterID = cID),
+              prior=list(
+                slab='Normal'
+              ),
               mcmc=list(
                 burnin=burnN,
                 M=sampleN
@@ -227,6 +238,8 @@ doCausalImpact <-
                                            burnin=burnN,
                                            M=sampleN
                                            
+                                         ), prior=list(
+                                           slab='Normal'
                                          ))
         }
       }
@@ -1021,7 +1034,10 @@ weightSensitivityAnalysis <-
           model = list(
             deltafix = deltafix.mod,
             ri = TRUE,
-            clusterID = cID
+            clusterID = cID,gammafix=1
+          ),
+          prior=list(
+            slab='Normal'
           ),
           mcmc=list(
             burnin=burnN,
