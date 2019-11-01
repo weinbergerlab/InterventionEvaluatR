@@ -42,7 +42,9 @@ library(htmlTable)
 library(InterventionEvaluatR)
 library(coda)
 library(HDInterval)
-
+library(lubridate)
+library(pbapply)
+library(parallel)
 ```
 
 
@@ -129,25 +131,31 @@ Before getting into more complicated analyses, we will first try to fit a simple
 
 ##Horseshoe prior
 ```{r}
-call.jags.mod<-function(ds.in){
+
+call.jags.mod<-function(ds.in){  
   exclude.cols<-c(analysis$group_name, analysis$outcome_name, analysis$date_name)
   x<-ds.in[,-which(names(ds.in) %in% exclude.cols)]
-  x.scale<-apply(x,2, function(z) scale(log(z+0.5)))
-  y<-ds.in[,analysis$outcome_name]
-  ds2<-cbind.data.frame(y, x.scale)
-  names(ds2)<-c(analysis$outcome_name,names(x))
-  ds2.pre<-ds2[ds1$date<analysis$post_period[1] ,]
-  ds3<-ds2
-  ds3[,analysis$outcome_name][ds1$date>=analysis$post_period[1]]<-NA
-  months<-month(ds.in[,analysis$date_name])
-  month.mat<-dummies::dummy(months)
+    
+  #Filter columsn with 0 variations in the covariate in the pre-vax period
+  x.var<-apply(x,2, function(xx) var(xx[ds.in[,analysis$date_name]<analysis$post_period[1]] ))  
+  x<-x[,x.var>0] 
+  
+  x.scale<-apply(x,2, function(z) scale(log(z+0.5))) 
+  y<-ds.in[,analysis$outcome_name] 
+  ds2<-cbind.data.frame(y, x.scale) 
+  names(ds2)<-c(analysis$outcome_name,names(x)) 
+  ds2.pre<-ds2[ds.in[,analysis$date_name]<analysis$post_period[1] ,] 
+  ds3<-ds2 
+  ds3[,analysis$outcome_name][ds.in[,analysis$date_name]>=analysis$post_period[1]]<-NA 
+  months<-month(ds.in[,analysis$date_name]) 
+  month.mat<-dummies::dummy(months) 
   month.mat<-month.mat[,-1]
   month.mat<-cbind(rep(1,nrow(month.mat)), month.mat) #add intercept
-  month.mat.pre<- month.mat[ds1$date<analysis$post_period[1] ,]
+  month.mat.pre<- month.mat[ds.in[,analysis$date_name]<analysis$post_period[1] ,]
   
   mod.txt<- source('../jags/Non_spatial-Non_lagged-independent.txt')
-  mod1<-nonspace_nonlag(burnin=20000, 
-                        samples=20000,
+  mod1<-nonspace_nonlag(burnin=15000, 
+                        samples=10000,
                         thin=1,
                         chains=1,
                         regularize=TRUE, 
@@ -179,7 +187,7 @@ call.jags.mod<-function(ds.in){
   # matplot(post.combo.y, type='l')
   #  points(ds1$sALRI[(nrow(ds2.pre)+1):nrow(ds1)])
   # 
-    log.rr.pointwise<- log((ds1[(nrow(ds2.pre)+1):nrow(ds1),analysis$outcome_name]+0.5)/(post.combo.y+0.5))
+    log.rr.pointwise<- log((ds.in[(nrow(ds2.pre)+1):nrow(ds.in),analysis$outcome_name]+0.5)/(post.combo.y+0.5))
    # matplot(log.rr, type='l', col='gray', lty=c(2,1,2))
    # abline(h=0, col='red')
    
@@ -187,18 +195,30 @@ call.jags.mod<-function(ds.in){
    post.samples<-posterior_samples.all[,-c(1:length.rollout)]
    post.samples.y<- post.samples[,grep('Y_pred', dimnames(post.samples)[[2]])]
    post.samples.sum<-apply(post.samples,1,sum)
-   obs.post.sum<- sum(ds2$sALRI[ds1$date>=analysis$post_period[1]][-c(1:length.rollout)])
+   obs.post.sum<- sum(ds2[,analysis$outcome_name][ds.in[,analysis$date_name]>=analysis$post_period[1]][-c(1:length.rollout)])
    rr.agg<-obs.post.sum/post.samples.sum
-   rr.q<-quantile(rr, probs=c(0.025, 0.5, 0.975))
+   rr.q<-quantile(rr.agg, probs=c(0.025, 0.5, 0.975))
    output.list<-list('rr.samples'=rr.agg,'rr.q'=rr.q,'log.rr.pointwise.q'=log.rr.pointwise,'betas'=post.combo.beta)
-   
 }
 
 ```
 
 ```{r}
+n_cores<-detectCores() - 1
 ds.age.spl<-split(ds, ds$age_group)
-mod1<-lapply(ds.age.spl,call.jags.mod)
+  cl <- makeCluster(n_cores)
+  clusterEvalQ(cl, {
+    library(lubridate, quietly = TRUE)
+    library(HDInterval, quietly = TRUE)
+  })
+  clusterExport(cl, c('call.jags.mod','analysis'), environment())
+  
+  mod1<-pblapply(cl = cl,X=ds.age.spl,FUN=call.jags.mod)
+stopCluster(cl)
+
+rr.summary<-t(sapply(mod1, '[[', 'rr.q'))
+rr.pointwisesummary<-sapply(mod1, '[[', 'log.rr.pointwise.q',simplify='array')
+
 ```
 
 

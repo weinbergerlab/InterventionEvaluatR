@@ -156,7 +156,7 @@ model_jags<-jags.model(textConnection(model_string),
                        n.adapt = burnin)  
 
 posterior_samples<-coda.samples(model_jags, 
-                                variable.names = c("Y_pred"),
+                                variable.names = c("Y_pred",'beta'),
                                 thin = thin,
                                 n.iter = samples)
 
