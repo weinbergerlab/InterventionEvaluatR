@@ -219,6 +219,9 @@ stopCluster(cl)
 rr.summary<-t(sapply(mod1, '[[', 'rr.q'))
 rr.pointwisesummary<-sapply(mod1, '[[', 'log.rr.pointwise.q',simplify='array')
 
+betas<-sapply(mod1, '[[', 'betas',simplify=F)
+
+betas<-lapply(betas, function(x) x[order(x$post_means),])
 ```
 
 
