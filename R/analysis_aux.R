@@ -1232,7 +1232,7 @@ glm.fun <- function(ds.fit, post.start.index) {
       family = 'poisson',
       control = glmerControl(optimizer = "bobyqa",
                              optCtrl =
-                               list(maxfun = 2e5))
+                               list(maxfun = 2e6))
     )
   pred.mean <- predict(mod1, newdata = ds.fit, re.form = NA)
   aic.test <- AIC(mod1)
@@ -1366,7 +1366,7 @@ its_func <- function(ds1,
       family = poisson(link = log),
       control = glmerControl(optimizer = "bobyqa",
                              optCtrl =
-                               list(maxfun = 2e5))
+                               list(maxfun = 2e6))
     )
   #GENERATE PREDICTIONS
   covars3 <-
@@ -1472,7 +1472,10 @@ single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, ev
   names(ds2)[ncol(ds2)]<-covars[i]
   ds2$obs<-as.factor(1:nrow(ds2))
   form1<-as.formula(paste0('outcome.pre~s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+' ,covars[i], '+(1|obs)')) 
-                    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2)
+                    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2,
+                                control = glmerControl(optimizer = "bobyqa",
+                                                       optCtrl =
+                                                         list(maxfun = 2e6)))
                     #Manually calculate CIs
                     aic.summary[[i]]<-AIC(mod1) #only for reference--tough to use for mixed model
                      covars3<-as.matrix(ds2[c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11',covars[i])])
