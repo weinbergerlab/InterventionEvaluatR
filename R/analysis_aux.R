@@ -129,8 +129,8 @@ doCausalImpact <-
       if (trend) {
         x <-
           as.matrix(zoo_data$full.data[,-c(1, 2)]) #Removes outcome column and offset from dataset
-        offset.t <- as.vector(exp(as.matrix(zoo_data$full.data[, 2])))
-        offset.t.pre <- as.vector(exp(as.matrix(zoo_data$cv.data[, 2])))
+        offset.t <- as.vector(exp(as.matrix(zoo_data$full.data[, 2])))-0.5
+        offset.t.pre <- as.vector(exp(as.matrix(zoo_data$cv.data[, 2])))-0.5
         x.pre <- as.matrix(zoo_data$cv.data[, -c(1, 2)])
       } else{
         x <-
@@ -149,7 +149,7 @@ doCausalImpact <-
       if (trend) {
         x <-
           as.matrix(zoo_data[,-c(1, 2)]) #Removes outcome column and offset from dataset
-        offset.t <- as.vector(exp(as.matrix(zoo_data[, 2])))
+        offset.t <- as.vector(exp(as.matrix(zoo_data[, 2])))-0.5
         offset.t.pre <-
           offset.t[time_points < as.Date(intervention_date)]
       } else{
@@ -169,9 +169,9 @@ doCausalImpact <-
     
     #Which variables are fixed in the analysis (not estimated)
     if (trend) {
-      deltafix.mod <-
-        c(rep(1, times = (ncol(x.pre) - 1)), 0) #monthly dummies, offset, fixed
-      bsts_model.pois  <-
+      deltafix.mod <- rep(0, times = (ncol(x.pre)))
+      deltafix.mod[1:(n_seasons - 1)] <- 1 #fix  monthly dummies
+       bsts_model.pois  <-
         poissonBvs(
           y = y.pre ,
           X = x.pre,
@@ -198,7 +198,7 @@ doCausalImpact <-
             BVS = TRUE,
             model = list(
               deltafix = deltafix.mod,
-              ri = TRUE,
+              ri = ri.select,
               clusterID = cID
             ),
             mcmc=list(
@@ -337,7 +337,7 @@ doCausalImpact <-
     if(trend==F){
     denom.ds<- rep(1,nrow(zoo_data))
     }else{
-      denom.ds<- zoo_data[,'log.offset'] #3full only
+      denom.ds<- exp(zoo_data[,'log.offset']) #3full only
     }
     quantiles<-rrPredQuantiles(impact=ds,denom_data=denom.ds, 
                       eval_period = analysis$eval_period,
