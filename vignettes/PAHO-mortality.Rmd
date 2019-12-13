@@ -45,6 +45,7 @@ library(HDInterval)
 library(lubridate)
 library(pbapply)
 library(parallel)
+library(rstanarm)
 ```
 
 
@@ -77,6 +78,21 @@ Let's load the data, which are included with the package
     head(ecuador_mortality[,1:5]) #View first few rows and columns
     ds<-ecuador_mortality
 ```
+
+#Get rid of vars with no variation
+```{r}
+covars<-ds[,-c(1:4)]
+ds.spl<-split(covars, ds$age_group)
+ds.spl<-lapply( ds.spl,  function(x) {
+  var1<-apply(x[1:67,],2,var)  
+  x[,var1==0]<-NA
+  return(x)
+}
+  )
+ds.comb<-do.call('rbind.data.frame',ds.spl)
+ds<-cbind.data.frame(ds[,c(1:4)], ds.comb)
+```
+
 
 Ensure your date variable is in an R date format. If your variable is in a character or factor format, you need to tell R the format. 
 -- %m is a 2 digit month; %b is a month abbreviation (ie Jan, Feb)
@@ -121,13 +137,6 @@ set.seed(1)
     ds<-ds[order(ds[, analysis$group_name], ds[,analysis$date_name]),] #Sort data by age group and month
 ```
 
-## Run a simple analysis controlling for 1 control variable at a time
-
-Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. this allows us to see how the use of different controls influences the results
-
-```{r univariate, echo = T, results = 'hide',warning=FALSE}
- glmer_results= evaluatr.univariate(analysis)
-```
 
 ##Horseshoe prior
 ```{r}
@@ -153,7 +162,7 @@ call.jags.mod<-function(ds.in){
   month.mat<-cbind(rep(1,nrow(month.mat)), month.mat) #add intercept
   month.mat.pre<- month.mat[ds.in[,analysis$date_name]<analysis$post_period[1] ,]
   
-  mod.txt<- source('../jags/Non_spatial-Non_lagged-independent.txt')
+  mod.txt<- source('../jags/Non_spatial-Non_lagged-AR1.txt')
   mod1<-nonspace_nonlag(burnin=15000, 
                         samples=10000,
                         thin=1,
@@ -198,13 +207,13 @@ call.jags.mod<-function(ds.in){
    obs.post.sum<- sum(ds2[,analysis$outcome_name][ds.in[,analysis$date_name]>=analysis$post_period[1]][-c(1:length.rollout)])
    rr.agg<-obs.post.sum/post.samples.sum
    rr.q<-quantile(rr.agg, probs=c(0.025, 0.5, 0.975))
-   output.list<-list('rr.samples'=rr.agg,'rr.q'=rr.q,'log.rr.pointwise.q'=log.rr.pointwise,'betas'=post.combo.beta)
+   output.list<-list('rr.samples'=rr.agg,'rr.q'=rr.q,'log.rr.pointwise.q'=log.rr.pointwise,'betas'=post.combo.beta,'rr.agg.iter'=rr.agg)
 }
 
 ```
 
 ```{r}
-n_cores<-detectCores() - 1
+n_cores<-3
 ds.age.spl<-split(ds, ds$age_group)
   cl <- makeCluster(n_cores)
   clusterEvalQ(cl, {
@@ -222,193 +231,92 @@ rr.pointwisesummary<-sapply(mod1, '[[', 'log.rr.pointwise.q',simplify='array')
 betas<-sapply(mod1, '[[', 'betas',simplify=F)
 
 betas<-lapply(betas, function(x) x[order(x$post_means),])
-```
 
-
-
-Then plot the results. The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top. Each plot represents a different age group. Overall, we see a generally consistent pattern. The use of the subchapter R00-09 as a control variable leads to estimates that are closer to 1 (no effect). This subchapter is "Symptoms and signs involving the circulatory and respiratory systems". These are often considered non-specific 'junk' codes. There could be arguments for or against using this subchapter as a control. On the downside, it is possible that actual pneumonia deaths incorrectly were assigned a code of R00-99, and the vaccine could therefore reduce the incidence of R00-09 codes and bias the estimates towards no effect. On the upside, the use of these junk codes as a control could help to adjust for underlying improvements or changes in coding quality.   
-
-```{r univariate_plot,fig.width=4, fig.height=5}
-par(mar=c(4,5,1,1)) #fix margins
-group.labels<-as.character(unique(analysis$input_data[,analysis$group_name]))
-lapply(glmer_results,evaluatr.univariate.plot)
-```
-
-## Run the main analysis
-Save the results in object 'impact_results'
-```{r main analysis, include = FALSE}
-impact_results = evaluatr.impact(analysis)
-```
-
-## Check model convergence
-These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). We use Geweke's diagnostic, which tests whether the mean estimate for the rate ratio in the first 10% of the iterations is equal to the mean estimate for the rate ration in the last 50% of the iterations. If the model has not converged, you might need to add more iterations or a longer burn in period
-```{r}
-all.traces<-sapply(impact_results,'[[', 'rr_iter')
-cats<-dimnames(all.traces[[1]])[[1]]
-all.converge.status<-sapply(impact_results,'[[', 'converge')
-for(j in c('full','time','pca')){
-for(i in 1: nrow(all.traces[[1]])){
-   plot(all.traces[[j]][i,], type='l', main=paste0(j,' ',cats[i],' ' ,all.converge.status[[j]][i,2] ), bty='l', ylim=c(0.2,2))
-}
-}
+rr.samples<-sapply(mod1, '[[', 'rr.samples',simplify='array')
 
 ```
 
-#`r params$country` Results
 
 
-```{r sparse, results="asis", echo=F}
-if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(names(analysis$sparse_groups[analysis$sparse_groups])) != 0) {
-  print(xtable(data.frame("Sparse Groups" = names(analysis$sparse_groups[analysis$sparse_groups]), check.names = FALSE), align = "cc"), type="html")
-}
-```
 
-## Compare estimates from different models
-This shows the estimated rate ratio and 95% credible intervals from a synthetic controls analysis; a time-trend analysis where we used the specified denominator (all non-respiratory deaths) to adjust the number of pneumonia deaths in each month and a linear trend for time; a classic interrupted time series analysis (segmented regression); and the STL+PCA approach, which smooths and combines the control variables prior to including them in the model. 
-```{r Comparison of estimates from different models, results="asis"}
-results.table<- cbind.data.frame(
-  #impact_results$best$rr_mean_intervals, 
-  impact_results$full$rr_mean_intervals, 
-  impact_results$time$rr_mean_intervals, 
-  #impact_results$time_no_offset$rr_mean_intervals, 
-  impact_results$its$rr_mean_intervals, 
-  impact_results$pca$rr_mean_intervals)
-
-  table<-xtable(results.table)
-  htmlTable(table)
-```
-
-
-## Cases averted
-How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series. In this case we are printing results fromthe SC model
-```{r}
-last.point<-dim(impact_results$full$cumsum_prevented)[1]
-cum.prevented<-impact_results$full$cumsum_prevented[last.point,,]
-```
-
-Format and print table 
-```{r}
-cum1<- round(t(cum.prevented))
-cum2<- paste0(cum1[,'50%'], ' (', cum1[,'2.5%'],', ',cum1[,'97.5%'],')')
-cum3<-cbind.data.frame(row.names(cum1), cum2)
-names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
-  htmlTable(cum3, align='l')
-```
-
-## Number of variables selected in SC analysis
-The Synthetic controls analysis uses a Bayesian variable selection algorithm to weight the candidate covariates. In each MCMC iteration, it tests a different combination of variables. The model size indicates how many variables are selected in any given model. If <1 variable is selected on average, this indicates that no suitable control variables were identified. 
-In this example 1-2 variables were selected on average in the 2-23m and 2-59 m age categories, while no controls were identified in the 24-59m age group (the average model size is <1 (0.44)).
-```{r modelsize, results="asis"}
-model_size = data.frame(t(analysis$model_size))
-htmlTable(model_size, align='c')
-```
-
-## Inclusion Probabilities
-```{r incl, include = FALSE}
-incl_probs <- NULL
-for (group in analysis$groups) {
-  incl_prob <- impact_results$full$groups[[group]]$inclusion_probs[-c(1:(analysis$n_seasons - 1)), ]
-  incl_prob <- incl_prob[order(-incl_prob$inclusion_probs), ]
-  incl_prob <- incl_prob[c(1:3), ]
-  incl_prob2 <- round(incl_prob[, 2],2)
-  incl_prob_names <- incl_prob[, 1]
-  incl_prob3 <- data.frame("Group" = group, "Greatest Inclusion Variable" = incl_prob_names[1], "Greatest Inclusion Probability" = incl_prob2[1], "Second Greatest Inclusion Variable" = incl_prob_names[2], "Second Greatest Inclusion Probability" = incl_prob2[2], "Third Greatest Inclusion Variable" = incl_prob_names[3], "Third Greatest Inclusion Probability" = incl_prob2[3], check.names = FALSE)
-  incl_probs <- rbind(incl_probs, incl_prob3)
-}
-rownames(incl_probs) <- NULL
-```
-
-Here we can see which variables received the most weight in the models for each strata. Values range from 0-1, with values closer to 1 indicating that the variable was included in a larger proportion of the variable combinations that were tested A value of 1 would indicate that the variable was always included in the model, a value of 0.48 would indicate the variable was included in 48% of the models that were tested.
-```{r incl_table, results="asis"}
-htmlTable(incl_probs)
-```
-
-
-## Run sensitivity analyses
-In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of the apsecific variable
-```{r sensitivity_analyses, include = FALSE}
-if (params$sensitivity) {
-  sensitivity_results <- evaluatr.sensitivity(analysis)
-}
-```
-
-## Weight Sensitivity Analysis
-The purpose of this analysis is to evaluate the sensitivity of the synthetic controls results to the inclusion of specific control variables. The model is first fit with all variables, then the top-weighted variable is excluded, and the model is re-run. If the results change drastically after dropping 1 variable, this indicates that that variable is highly influential on the results. If the results don't change, this indicates that the results are robust to the exclusion of that variable (this assumes that the variable that is excluded received a decent amount of weight prior to exclusion)
-
-```{r sensitivity, results="asis"}
-if (exists("sensitivity_results")) {
-  htmlTable(sensitivity_results$sensitivity_table_intervals)
-}
-```
-
-## Generate and save the plots
-```{r mainplot1, echo=FALSE}
-plots <- evaluatr.plots(analysis)
-```
-
-## Plot the results for 1 age group
-### First look at the results from the synthetic controls model for 1 age group.
-
-This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
-```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-59m A"]]$pred_full 
-```
-
-It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
-
-```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-59m A"]]$pred_full_agg 
-```
-Finally, we can look at the cumulative cases prevented. In this example, there have been 445 cases prevented (95%CrI: 58, 931) from the time of vaccine introduction to the last day month of the study period. This is calculated by takin the difference between the observed and fitted number of cases in each month, and summing them. If atleast 1 control disease is identified from the synthetic controls model, then the result here is drawn from that model, otherwise, it is drawn from the STL+PCA model.
-
-```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-59m A"]]$cumsum_prevented 
-```
-
-
-## Use HDI intervals instead
-The package calcuates both an equal-tail 95% credible interval and a 95% highest posterior density interval (HPD or HDI interval). The latter might be more appropriate when the posterior distribution is skewed. The objects with HDI intervals are saved with an appendix of 'HDI' so --impact_results$best$pred_quantiles gives the estimate for equal tail intervals while --impact_results$best$pred_quantiles_HDI gives the estimate for the HDI interval
---impact_results$best$cumsum_prevented_hdi gives the estimate of cumulative cases prevented using HPI
---impact_results$best$ann_pred_HDI gives the annual predicted cases with HDI intervals
---impact_results$best$rr_mean_HDI gives the overall rate ratio caclulated with HDI intervals
--- impact_results$best$log_rr_hdi gives the pointswise log-RR with HDI intervals
-Here we compare the version calculated with equal-tailed intervals with HPD intervals. In this example they give very similar coverage
 
 ```{r}
-print("Equal tailed intervals")
-round(impact_results$best$rr_mean[,c(2,1,3)],2)
-
-print("HPD intervals")
-round(impact_results$best$rr_mean_hdi,2)
-
+rr.summary
 ```
 
-Compare pointwise coverage of the 95% CrI calculated as HDI or equal-tailed. In this example they are nearly identical. The red line denote the HPD intervals, the gray line denotes the equal-tailed
+
 ```{r}
-matplot(impact_results$best$pred_quantiles_HDI[,c(2,3),1], type='l', col='gray', lty=c(2,1,2), bty='l', ylim=c(0, max(impact_results$best$pred_quantiles_HDI[,,1])), ylab='Count')
-
-matplot(impact_results$best$pred_quantiles[,c(1,3),1], type='l', col='red', lty=c(2,1,2), bty='l', ylim=c(0, max(impact_results$best$pred_quantiles_HDI[,,1])), ylab='Count', add=T)
-points(analysis$input_data[, analysis$outcome_name])
+matplot(exp(rr.pointwisesummary[,,'ec 2-59m A']), type='l', col='gray', lty=c(1,3,3))
+abline(h=1, lty=3)
 ```
 
 
-## Printing plots for all models and age groups
-We instead might want to just print everything for all age groups and models. We can use the following code to do that
-
-## Plot Observed vs expected yearly time series
-```{r plots2, results = 'asis', fig.width=5, fig.height=4}
-for (group in names(plots$groups)) {
-      par(mfrow=c(4,1))
-      print(plots$groups[[group]]$pred_full_agg )
-      print(plots$groups[[group]]$pred_best_agg )
-      print(plots$groups[[group]]$pred_time_agg )
-      print(plots$groups[[group]]$pred_pca_agg )
-}
+```{r}
+beta1<-betas[["ec 2-59m A"]]
+beta1<-beta1[order(-beta1$post_means),]
+beta1
 ```
 
-## Save results
-```{r save_results, echo=FALSE}
-#output_file <- "Results" # Directory where results will be saved.
-#output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
-#evaluatr.save(analysis, output_file)
+```{r}
+plot(rr.samples[,1], type='l')
 ```
+
+TRY IN STAN,
+```{r}
+ds.spl<-split(ds, ds$age_group)
+
+ds.select<-ds.spl[["ec 2-59m A" ]]
+covars<-ds.select[,-c(1:3)]
+complete.covars<- apply(covars,2,function(x) sum(is.na(x))) ==0 
+covars<-covars[,complete.covars]
+covars.scale<-apply(covars,2, function(z) scale(log(z+0.5))) 
+outcome.pre<- ds.select$J12_J18_prim
+outcome.pre[ds.select$monthdate>=analysis$intervention_date] <-NA
+
+ds.stan<-cbind.data.frame(outcome.pre, covars.scale)
+ds.stan.pre<-ds.stan[!is.na(ds.stan$outcome.pre),]
+
+D<-ncol(covars)
+n.covars<-ncol(covars)
+p0=10  #prior expectation of model size
+n=length(outcome.pre[!is.na(outcome.pre)])
+sigma <-  sqrt(mean (outcome.pre, na.rm=TRUE )) # pseudo sigma mean=variance for poisson
+tau0 <- p0 /( D - p0 ) * sigma / sqrt (n)
+CHAINS=4
+CORES=7
+SEED=123
+```
+
+```{r}
+stan_glm.mod<- stan_glm(outcome.pre~.,
+                              data = ds.stan.pre, family = poisson()   ,
+                              prior = hs(global_scale=tau0, df =1 , global_df =1) ,  
+                          # prior = hs() ,  
+                              chains = CHAINS, cores = CORES, seed = SEED ,iter=2000, adapt_delta=0.999)
+```
+
+
+#launch_shinystan(stan_glm.mod)
+```{r}
+preds  <-  t(posterior_predict(stan_glm.mod, newdata=ds.stan[,-1]))
+preds.q<-t(apply(preds,1,quantile, probs=c(0.025,0.5,0.975)))
+matplot(preds.q, type='l', col='gray', lty=c(2,1,2), ylim=c(0,max(preds.q)*1.05))
+points(ds.stan$outcome.pre)
+
+```
+
+```{r}
+summary(stan_glm.mod)
+```
+
+rr STAN
+```{r}
+ 
+post.indices<-which( ds.select$monthdate>= analysis$eval_period[[1]] & ds.select$monthdate<=analysis$eval_period[2] )
+   
+preds.post<-apply(preds[post.indices,],2,sum)
+obs.post<-sum(ds.select$J12_J18_prim[post.indices])
+rr.post<-obs.post/preds.post
+plot(rr.post, type='l')
+```
+
