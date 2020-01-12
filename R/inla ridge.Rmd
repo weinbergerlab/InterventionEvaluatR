@@ -56,7 +56,7 @@ https://www.sciencedirect.com/science/article/pii/S0167947311003999?via%3Dihub
 
 ## Prepare the dataset
 ```{r viewdata}
-   sa1<-read.csv('../Data/RSA.csv')
+   sa1<-read.csv('../data-raw/RSA.csv')
 
    #Filter covariates that have no variance
    sa.covars<-sa1[, -which(names(sa1) %in% c('Pneum','date','age')  )]
@@ -122,10 +122,10 @@ source('inla_functions.R')
 model.variants<-c('full','time','time_no_offset')
 #model.variants<-c('time')
 
-ptm <- proc.time()
-mods<-lapply(model.variants, run_inla_mod)
-names(mods)<-model.variants
-proc.time() - ptm
+#ptm <- proc.time()
+#mods<-lapply(model.variants, run_inla_mod)
+#names(mods)<-model.variants
+#proc.time() - ptm
 #RUns in 2.2 minutes/ 134 seconds
 ```
 
