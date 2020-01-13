@@ -551,7 +551,7 @@ inla_mods<-function(zoo_data,
   log_rr_full_t_hdi<-cbind(log.rr.pointwise.median,log.rr.pointwise.ci)
   # matplot(log.rr, type='l', col='gray', lty=c(2,1,2))
   # abline(h=0, col='red')
-  log_rr_full_t_quantiles<- apply(log.rr.pointwise,1,quantile, probs=c(0.025,0.5,0.975))
+  log_rr_full_t_quantiles<- t(apply(log.rr.pointwise,1,quantile, probs=c(0.025,0.5,0.975)))
   log_rr_full_t_sd<- apply(log.rr.pointwise,1,sd)
   #log_rr_full_t_samples.prec.post<-1/log_rr_full_t_sd^2
     
@@ -632,10 +632,10 @@ inla_mods<-function(zoo_data,
       mean_rr = mean_rr,
       pred_samples_post_full = pred_samples_post_full,
       #     roll_rr = roll_rr,
-           log_rr_full_t_quantiles = log_rr_full_t_quantiles,
-           log_rr_full_t_sd = log_rr_full_t_sd,
-           rr = rr.hdi,
-           rr.iter=rr.agg
+      log_rr_full_t_quantiles = log_rr_full_t_quantiles,
+      log_rr_full_t_sd = log_rr_full_t_sd,
+       rr = rr.hdi,
+       rr.iter=rr.agg
     )
   results<-list('impact'=impact, 'quantiles'=quantiles,'cumsum_prevented_hdi'=cumsum_prevented_hdi,'cumsum_prevented'=cumsum_prevented)  
   return(results)
