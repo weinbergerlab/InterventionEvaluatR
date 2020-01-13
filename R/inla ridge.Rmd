@@ -52,7 +52,6 @@ title: "Estimated change associated with the introduction of vaccine in South Af
 This Rmd file contains analyses of the data from S Africa. It uses a slightly different model (Poisson) than the one described in Kleynhans et al. To see those results, see the synthetic_control_run.R file
 
 Local linear trend:
-https://www.sciencedirect.com/science/article/pii/S0167947311003999?via%3Dihub
 
 ## Prepare the dataset
 ```{r viewdata}
@@ -76,7 +75,7 @@ https://www.sciencedirect.com/science/article/pii/S0167947311003999?via%3Dihub
 
    sa2<-sa2[,-which(names(sa2) %in% exclude_covar)]
    
-   sa3<-sa2[sa2$age %in% unique(sa2$age)[1:2],]
+   sa3<-sa2[sa2$age %in% unique(sa2$age)[1:7],]
  
 ```
 
@@ -105,16 +104,23 @@ analysis <- evaluatr.init(
   outcome_name = "Pneum", #Outcome variable name
   denom_name = "denom", #Denominator variable name
   set.burnN=5000,
-  set.sampleN=10000
+  set.sampleN=10000,
+  ridge=T
+  
 )
 set.seed(1)
 ```
 
-
+With spike and slab without STL-PCA, completes in 6.4 minutes with 7 cores.
 ```{r}
 #source('inla_functions.R')
 #results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
-results1<-evaluatr.impact(analysis)
+
+ptm <- proc.time()
+#results1<-evaluatr.impact(analysis)
+results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
+
+proc.time() - ptm
 
 ```
 
@@ -124,8 +130,9 @@ results1<-evaluatr.impact(analysis)
 #age.select<-unique(sa2$age)[3]
 
 #model.variants<-c('full','time','time_no_offset')
+#evaluatr.impact()
+#proc.time() - ptm
 
-evaluatr.impact()
 ```
 
 ```{r}

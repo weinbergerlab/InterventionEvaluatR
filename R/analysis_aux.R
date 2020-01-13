@@ -371,8 +371,8 @@ inla_mods<-function(zoo_data,
                     intervention_date,
                     n_seasons,
                     time_points,
-                    trend = FALSE, 
-                    analysis=analysis){
+                    analysis=analysis,
+                    model.variant){
   
   y <- zoo_data[, 1] #all y
   y.pre <-y
@@ -551,7 +551,10 @@ inla_mods<-function(zoo_data,
   log_rr_full_t_hdi<-cbind(log.rr.pointwise.median,log.rr.pointwise.ci)
   # matplot(log.rr, type='l', col='gray', lty=c(2,1,2))
   # abline(h=0, col='red')
-  
+  log_rr_full_t_quantiles<- apply(log.rr.pointwise,1,quantile, probs=c(0.025,0.5,0.975))
+  log_rr_full_t_sd<- apply(log.rr.pointwise,1,sd)
+  #log_rr_full_t_samples.prec.post<-1/log_rr_full_t_sd^2
+    
   post.period<- which(time_points>= analysis$eval_period[1]  &time_points<= analysis$eval_period[2] )
   
   post.samples<-posterior.preds.counts[post.period,]
@@ -576,8 +579,8 @@ inla_mods<-function(zoo_data,
   pred<-apply(post.samples,1, quantile, probs=c(0.025, 0.5, 0.975))
   
   #Cases averted
-  is_post_period <- which(time_points >= post_period[1])
-  is_pre_period <- which(time_points < post_period[1])
+  is_post_period <- which(time_points >= analysis$post_period[1])
+  is_pre_period <- which(time_points < analysis$post_period[1])
   cases_prevented<- apply(posterior.preds.counts, 2, function(x1)  x1 -y )
   cumsum_cases_prevented_post <-
     apply(cases_prevented[is_post_period,], 2, cumsum)
@@ -609,7 +612,7 @@ inla_mods<-function(zoo_data,
       #   'predict.bsts'=predict.bsts,
       #   'inclusion_probs'=inclusion_probs,
       'post_period_response' = post_period_response,
-      'observed.y' = y.full,
+      'observed.y' = y,
       'waic'= ds$waic,
       'p_D'=ds$pd,
       'rho'=rho1
@@ -621,18 +624,18 @@ inla_mods<-function(zoo_data,
       pred.yr.sum.hdi=pred.yr.sum.hdi,
       pred.hdi=pred.hdi,
       pred.yr.sum.q = pred.yr.sum.q,
-      #     # log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
+      # log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
       #    pred_samples = pred_samples,
       pred = pred,
       #     rr = rr,
       #     roll_rr = roll_rr,
       mean_rr = mean_rr,
-      pred_samples_post_full = pred_samples_post,
+      pred_samples_post_full = pred_samples_post_full,
       #     roll_rr = roll_rr,
-      #     log_rr_full_t_quantiles = log_rr_full_t_quantiles,
-      #     log_rr_full_t_sd = log_rr_full_t_sd,
-      #     rr = rr,
-      #     rr.iter=rr.iter
+           log_rr_full_t_quantiles = log_rr_full_t_quantiles,
+           log_rr_full_t_sd = log_rr_full_t_sd,
+           rr = rr.hdi,
+           rr.iter=rr.agg
     )
   results<-list('impact'=impact, 'quantiles'=quantiles,'cumsum_prevented_hdi'=cumsum_prevented_hdi,'cumsum_prevented'=cumsum_prevented)  
   return(results)

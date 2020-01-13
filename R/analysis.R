@@ -268,7 +268,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     library(RcppRoll, quietly = TRUE)
     library(HDInterval, quietly = TRUE)
     library(plyr, quietly = TRUE)
-    
+    library(INLA, quietly = TRUE)
   })
   clusterExport(cl, c('doCausalImpact','inla_mods','rrPredQuantiles','cumsum_func'), environment())
   
@@ -306,7 +306,8 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           intervention_date=analysis$intervention_date,
           n_seasons=analysis$n_seasons,
           time_points = analysis$time_points,
-          analysis=analysis
+          analysis=analysis,
+          model.variant=variants
         ),
         analysis$groups
       )
@@ -341,9 +342,13 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
   }
   
   # Calculate best model
+  if(analysis$ridge==F){
   if ("full" %in% variants) {
     analysis$model_size <-
       sapply(results$full$groups, modelsize_func, n_seasons = analysis$n_seasons)
+  }
+  }else{
+    analysis$model_size <- NA
   }
   
   if (all(c("full", "pca") %in% variants)) {
@@ -366,11 +371,11 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     variants = c("best", variants)
   }
   
-  if(analysis$model_size >= 1){
+ # if(analysis$model_size >= 1){
   results$best$cumsum_prevented<- results$full$cumsum_prevented
-  }else{
-    results$best$cumsum_prevented<- results$pca$cumsum_prevented
-  }
+  #}else{
+  #  results$best$cumsum_prevented<- results$pca$cumsum_prevented
+  #}
   
   for (variant in variants) {
     # Predictions, aggregated by year
