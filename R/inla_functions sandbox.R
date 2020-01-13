@@ -1,18 +1,4 @@
 
-##Process results
-
-#Wrapper to call the model for each variant and loop through age groups
-run_inla_mod<- function(zoo_data,
-                                intervention_date,
-                                n_seasons,
-                                time_points,
-                                trend = FALSE, 
-                                analysis=analysis)){
-  mods<- lapply(unique(analysis$input_data[,analysis$group_name]),inla_mods, model.variant=model.variants.pass)
-  return(mods)
-}
-
-
 #Main function
 inla_mods<-function(zoo_data,
                     intervention_date,
@@ -274,7 +260,7 @@ inla_mods<-function(zoo_data,
   #     rr.iter=rr.iter
       )
   results<-list('impact'=impact, 'quantiles'=quantiles,'cumsum_prevented_hdi'=cumsum_prevented_hdi,'cumsum_prevented'=cumsum_prevented)  
-
+return(results)
 }
 
 

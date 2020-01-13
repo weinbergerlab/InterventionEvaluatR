@@ -76,6 +76,7 @@ https://www.sciencedirect.com/science/article/pii/S0167947311003999?via%3Dihub
 
    sa2<-sa2[,-which(names(sa2) %in% exclude_covar)]
    
+   sa3<-sa2[sa2$age %in% unique(sa2$age)[1:2],]
  
 ```
 
@@ -93,7 +94,7 @@ Here we need to set a few parameters. We Use the evaluatr.init() function to spe
 ```{r setup_data, echo=TRUE}
 
 analysis <- evaluatr.init(
-  country = "SAfrica", data = sa2,
+  country = "SAfrica", data = sa3,
   post_period_start = "2009-04-01", 
   eval_period_start = "2010-04-01", 
   eval_period_end = "2016-12-01", 
@@ -111,7 +112,10 @@ set.seed(1)
 
 
 ```{r}
-source('inla_functions.R')
+#source('inla_functions.R')
+#results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
+results1<-evaluatr.impact(analysis)
+
 ```
 
 ## Run INLA
@@ -119,31 +123,26 @@ source('inla_functions.R')
 #install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 #age.select<-unique(sa2$age)[3]
 
-model.variants<-c('full','time','time_no_offset')
-#model.variants<-c('time')
+#model.variants<-c('full','time','time_no_offset')
 
-#ptm <- proc.time()
-#mods<-lapply(model.variants, run_inla_mod)
-#names(mods)<-model.variants
-#proc.time() - ptm
-#RUns in 2.2 minutes/ 134 seconds
+evaluatr.impact()
 ```
 
 ```{r}
 #Runs whole thing in 142 seconds
-ptm <- proc.time()
-n_cores<-min((detectCores()-1), length(model.variants))
- cl <- makeCluster(n_cores)
-  clusterEvalQ(cl, {
-    library(INLA, quietly = TRUE)
-    library(HDInterval, quietly = TRUE)
-    library(lubridate, quietly = TRUE)
+#ptm <- proc.time()
+#n_cores<-min((detectCores()-1), length(model.variants))
+# cl <- makeCluster(n_cores)
+#  clusterEvalQ(cl, {
+#    library(INLA, quietly = TRUE)
+#    library(HDInterval, quietly = TRUE)
+#    library(lubridate, quietly = TRUE)
 
-  })
-  clusterExport(cl, c('run_inla_mod','inla_mods', 'sa2', 'analysis','model.variants'), environment())
-  mod1<-pblapply(cl = cl, model.variants, FUN=run_inla_mod)
-stopCluster(cl)
-proc.time() - ptm
+#  })
+#  clusterExport(cl, c('run_inla_mod','inla_mods', 'sa2', #'analysis','model.variants'), environment())
+#  mod1<-pblapply(cl = cl, model.variants, #FUN=run_inla_mod)
+#stopCluster(cl)
+#proc.time() - ptm
 
 ```
 

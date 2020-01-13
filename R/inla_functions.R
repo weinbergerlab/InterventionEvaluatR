@@ -15,15 +15,20 @@ run_inla_mod<-function(model.variants.pass){
 #Main function
 inla_mods<-function(age.select, model.variant){
   
-  x<-sa2[sa2$age==age.select,4:40]
+  x.all<-sa2[sa2$age==age.select,4:40]
   y<-  sa2[sa2$age==age.select,"Pneum"]
   dates<-unique(sa2$date)
   y.pre<-y
   y.pre[dates>=analysis$intervention_date]<-NA
   #Filter columsn with 0 variations in the covariate in the pre-vax period
-  x.var<-apply(x,2, function(xx) var(xx))  
-  x.var[is.na(x.var)]<-0
-  x<-x[,x.var>0] 
+  #x.var<-apply(x,2, function(xx) var(xx))  
+  #x.var[is.na(x.var)]<-0
+  #x<-x[,x.var>0] 
+  
+  ##NEEDTO SEPRATE OUT SEASONAL DUMMIES FROM COVARS
+  x<-x.all[,-(1:(analysis$n_seasons-1))]
+  x.months<-x[,(1:(analysis$n_seasons-1))]
+  names(x.months)<-paste0('season', 1:(analysis$n_seasons-1))
   
   x.scale<-apply(x,2, function(z) scale(log(z+0.5))) 
   # x.scale$trend<-1:nrow(x.scale)
@@ -43,12 +48,13 @@ inla_mods<-function(age.select, model.variant){
   form0<-as.formula(paste0('~', paste(names(pcs.combo), collapse='+')))
   pcs.df<-as.data.frame(model.matrix(form0, data=pcs.combo)[,-1])
   
-  df1<-cbind.data.frame(y.pre, 'month'=as.factor(month(dates)), y, x.scale )
+  df1<-cbind.data.frame(y.pre, x.months, y, x.scale )
   df1$t<-1:nrow(df1)
-  covar.df.full<-cbind.data.frame( x.scale, 'month'=df1$month) 
+  covar.df.full<-cbind.data.frame( x.scale, x.months) 
   
-    #Matrix for restriction random effects
-  x.in.full<-as.data.frame(model.matrix(~. , data=covar.df.full))[,-1] #dummies for month, remove intercept
+ #Matrix for restriction random effects
+  #x.in.full<-as.data.frame(model.matrix(~. , data=covar.df.full))[,-1] #dummies for month, remove intercept
+  x.in.full<-covar.df.full
   mod.df.full<- cbind.data.frame(y,y.pre, x.in.full)
   
   if(model.variant=='full'){  
@@ -75,8 +81,8 @@ inla_mods<-function(age.select, model.variant){
   mod.df.full<-cbind.data.frame(mod.df.full,add.beta.cols)
     #Setup for Ridge regression
   #https://bitbucket.org/hrue/r-inla/src/0d9389b414979bcf3507c60f69a50488d18e4c6c/r-inla.org/examples/stacks/stacks.R?at=default
-  x.in.full.no.season<-x.in.full[,-grep('month', names(x.in.full))]
-  x.in.full.season<-x.in.full[,grep('month', names(x.in.full))]
+  x.in.full.no.season<-x.in.full[,-grep('season', names(x.in.full))]
+  x.in.full.season<-x.in.full[,grep('season', names(x.in.full))]
   first.beta<-paste0("f(beta1,", names(x.in.full.no.season)[1], ",model='iid',hyper = param.beta,", "values=c(", paste(1:ncol(x.in.full.no.season), collapse=',') ,"))" )
   next.beta.f<-function(x, covar.index){ 
     paste0("f(beta",covar.index,",", names(x.in.full.no.season)[covar.index], ",copy='beta1', fixed=T)")
@@ -123,7 +129,7 @@ inla_mods<-function(age.select, model.variant){
   
   if(ds$ridge==T){  
     coefs<-ds$fitted.model$summary.random[['beta1']]
-    coefs$covar<-names(ds$x.in)[-grep('month',names(ds$x.in)) ]
+    coefs$covar<-names(ds$x.in)[-grep('season',names(ds$x.in)) ]
   }else{
     coefs<-ds$fitted.model$summary.fixed
   }
@@ -138,7 +144,7 @@ inla_mods<-function(age.select, model.variant){
   
   if(ds$ridge==T){  
     covar.select.betas<-grep('beta1:', post.labels)
-    covar.select.months<-grep('month', post.labels)
+    covar.select.months<-grep('season', post.labels)
     covar.select<-c(covar.select.betas,covar.select.months)
   }else{
     covar.select<- which(names(ds$x.in)  %in% sub("\\:.*", "", post.labels))
