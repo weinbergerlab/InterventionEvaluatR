@@ -111,7 +111,7 @@ analysis <- evaluatr.init(
 set.seed(1)
 ```
 
-With spike and slab without STL-PCA, completes in 6.4 minutes with 7 cores.
+With spike and slab without STL-PCA, completes in 6.4 minutes with 7 cores; INLA runs in 90 seconds!
 ```{r}
 #source('inla_functions.R')
 #results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
@@ -124,32 +124,4 @@ proc.time() - ptm
 
 ```
 
-## Run INLA
-```{r}
-#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
-#age.select<-unique(sa2$age)[3]
-
-#model.variants<-c('full','time','time_no_offset')
-#evaluatr.impact()
-#proc.time() - ptm
-
-```
-
-```{r}
-#Runs whole thing in 142 seconds
-#ptm <- proc.time()
-#n_cores<-min((detectCores()-1), length(model.variants))
-# cl <- makeCluster(n_cores)
-#  clusterEvalQ(cl, {
-#    library(INLA, quietly = TRUE)
-#    library(HDInterval, quietly = TRUE)
-#    library(lubridate, quietly = TRUE)
-
-#  })
-#  clusterExport(cl, c('run_inla_mod','inla_mods', 'sa2', #'analysis','model.variants'), environment())
-#  mod1<-pblapply(cl = cl, model.variants, #FUN=run_inla_mod)
-#stopCluster(cl)
-#proc.time() - ptm
-
-```
 

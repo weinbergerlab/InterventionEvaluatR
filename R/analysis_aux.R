@@ -367,11 +367,10 @@ doCausalImpact <-
 
 
 #Main function
-inla_mods<-function(zoo_data,
-                    intervention_date,
-                    n_seasons,
-                    time_points,
-                    analysis=analysis,
+inla_mods<-function(zoo_data=analysis$.private$data[['full']],
+                    intervention_date=analysis$intervention_date,
+                    n_seasons= analysis$n_seasons,
+                    time_points= analysis$time_points,
                     model.variant){
   
   y <- zoo_data[, 1] #all y

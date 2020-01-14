@@ -270,7 +270,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     library(plyr, quietly = TRUE)
     library(INLA, quietly = TRUE)
   })
-  clusterExport(cl, c('doCausalImpact','inla_mods','rrPredQuantiles','cumsum_func'), environment())
+  clusterExport(cl, c('doCausalImpact','inla_mods','rrPredQuantiles','cumsum_func','analysis'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
   if(analysis$ridge==F){
@@ -303,10 +303,6 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           cl = cl,
           analysis$.private$data[['full']],
           FUN = inla_mods,
-          intervention_date=analysis$intervention_date,
-          n_seasons=analysis$n_seasons,
-          time_points = analysis$time_points,
-          analysis=analysis,
           model.variant=variant
         ),
         analysis$groups
