@@ -139,15 +139,14 @@ analysis.ridge <- evaluatr.init(
   date_name = "date", #Date variable name
   outcome_name = "Pneum", #Outcome variable name
   denom_name = "denom", #Denominator variable name
-  set.burnN=5000,
-  set.sampleN=10000,
   ridge=T
   
 )
+
 set.seed(1)
 ```
 
-
+Adding more samples does not affect results at all.
 ```{r}
 #source('inla_functions.R')
 #results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
@@ -156,6 +155,10 @@ ptm <- proc.time()
 results.ridge<-evaluatr.impact(analysis.ridge, variants=c('full', 'time', 'time_no_offset') )
 proc.time() - ptm
 
+# minutes with 5000 samples
+#ptm <- proc.time()
+#results.ridge.rep<-evaluatr.impact(analysis.ridge.alt, variants=c('full', 'time', 'time_no_offset') )
+#proc.time() - ptm
 ```
 
 
@@ -173,6 +176,7 @@ results.table<- cbind.data.frame(
   htmlTable(table)
 }
 compare.results(results.ridge)
+#compare.results(results.ridge.rep)
 compare.results(results.spike)
 ```
 
@@ -185,8 +189,8 @@ compare.results(results.spike)
 How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series. In this case we are printing results fromthe SC model
 ```{r}
 print.cum<-function(res1){
-last.point<-dim(results.ridge$full$cumsum_prevented)[1]
-cum.prevented<-results.ridge$full$cumsum_prevented[last.point,,]
+last.point<-dim(res1$full$cumsum_prevented)[1]
+cum.prevented<-res1$full$cumsum_prevented[last.point,,]
 cum1<- round(t(cum.prevented))
 cum2<- paste0(cum1[,'50%'], ' (', cum1[,'2.5%'],', ',cum1[,'97.5%'],')')
 cum3<-cbind.data.frame(row.names(cum1), cum2)

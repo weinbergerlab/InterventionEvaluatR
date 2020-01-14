@@ -647,7 +647,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
       #     roll_rr = roll_rr,
       log_rr_full_t_quantiles = log_rr_full_t_quantiles,
       log_rr_full_t_sd = log_rr_full_t_sd,
-       rr = rr.hdi,
+       rr = rr.q,
        rr.iter=rr.agg
     )
   results<-list('impact'=impact, 'quantiles'=quantiles,'cumsum_prevented_hdi'=cumsum_prevented_hdi,'cumsum_prevented'=cumsum_prevented)  
