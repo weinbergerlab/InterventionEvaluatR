@@ -522,6 +522,8 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   beta.posterior.hdi<-cbind(beta.posterior.median,t(hdi(t(beta.posterior), credMass = 0.95)))
   row.names(beta.posterior.hdi)<-names(ds$x.in)
   
+  beta.fix.posterior.hdi<-beta.posterior.hdi[-grep('month',names(ds$x.in)),]
+  
   fixed.effect<- as.matrix(ds$x.in) %*% beta.posterior #fixed piece of regression, excluding intercept
   fixed.effect.hdi<-t(hdi(t(fixed.effect), credMass = 0.95))
   fixed.effect.median<-apply(fixed.effect,1, median)
@@ -572,10 +574,18 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   pred.sum.year.post<-apply(posterior.preds.counts,2, function(x) aggregate(x, by=list('year'=year), FUN=sum))
   pred.sum.year.post<-sapply(pred.sum.year.post,function(x) x[,2])
   pred.sum.year.ci<- t(hdi(t(pred.sum.year.post), credMass = 0.95))
-  pred.yr.sum.q<- apply(pred.sum.year.post,1,quantile, probs=c(0.025,0.5,0.975))
-  pred.yr.sum.hdi<-cbind.data.frame(pred.yr.sum.q['50%',],pred.sum.year.ci)
+  
+  pred.sum.year<-apply(posterior.preds.counts,2, function(x) aggregate(x, by=list('year'=year), FUN=sum))
+  y.agg<-aggregate(y, by=list('year'=year), FUN=sum)
+  pred.sum.year<-sapply(pred.sum.year,function(x) x[,2])
+  pred.yr.sum.q<- as.data.frame(t(apply(pred.sum.year,1,quantile, probs=c(0.025,0.5,0.975))))
+  names(pred.yr.sum.q)<-c('2.5%','50%','97.5%')
+  pred.yr.sum.q$obs <-y.agg[,2]
+  pred.yr.sum.q$year <- unique(year)
+  
+  pred.yr.sum.hdi<-cbind.data.frame(pred.yr.sum.q[,'50%'],pred.sum.year.ci)
   pred_samples_post_full<-post.samples
-  pred<-apply(post.samples,1, quantile, probs=c(0.025, 0.5, 0.975))
+  pred<-t(apply(posterior.preds.counts,1, quantile, probs=c(0.025, 0.5, 0.975)))
   
   #Cases averted
   is_post_period <- which(time_points >= analysis$post_period[1])
@@ -614,7 +624,11 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
       'observed.y' = y,
       'waic'= ds$waic,
       'p_D'=ds$pd,
-      'rho'=rho1
+      'rho'=rho1,
+      'fixed.effect.hdi'=fixed.effect.hdi,
+      'beta'=beta.fix.posterior.hdi,
+      'rand.eff.combined.q'=rand.eff.combined.q
+    
     )
   quantiles <-
     list(

@@ -38,6 +38,8 @@ library(ggbiplot)
 library(htmlTable)
 library(nFactors)
 library(INLA)
+library(xtable)
+
 
 library(bsts)
 
@@ -75,7 +77,7 @@ Local linear trend:
 
    sa2<-sa2[,-which(names(sa2) %in% exclude_covar)]
    
-   sa3<-sa2[sa2$age %in% unique(sa2$age)[1:7],]
+   sa3<-sa2[sa2$age %in% unique(sa2$age)[1:3],]
  
 ```
 
@@ -92,8 +94,42 @@ Here we need to set a few parameters. We Use the evaluatr.init() function to spe
 
 ```{r setup_data, echo=TRUE}
 
-analysis <- evaluatr.init(
-  country = "SAfrica", data = sa3,
+analysis.spike <- evaluatr.init(
+  country = "SAfrica", data = sa2,
+  post_period_start = "2009-04-01", 
+  eval_period_start = "2010-04-01", 
+  eval_period_end = "2016-12-01", 
+  n_seasons = 12, #This is monthly data, so select 12
+  year_def = "cal_year", # we are in southern hemisphere, so aggregate results by calendar year (Jan-Dec)
+  group_name = "age",  #Strata categry name
+  date_name = "date", #Date variable name
+  outcome_name = "Pneum", #Outcome variable name
+  denom_name = "denom", #Denominator variable name
+  set.burnN=5000,
+  set.sampleN=10000,
+  ridge=F
+  
+)
+set.seed(1)
+```
+
+With spike and slab without STL-PCA, completes in 10min with 7 cores; INLA runs in 2 min!
+```{r}
+#source('inla_functions.R')
+#results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
+
+ptm <- proc.time()
+#results1<-evaluatr.impact(analysis)
+results.spike<-evaluatr.impact(analysis.spike, variants=c('full', 'time', 'time_no_offset') )
+
+proc.time() - ptm
+
+```
+
+```{r setup_data, echo=TRUE}
+
+analysis.ridge <- evaluatr.init(
+  country = "SAfrica", data = sa2,
   post_period_start = "2009-04-01", 
   eval_period_start = "2010-04-01", 
   eval_period_end = "2016-12-01", 
@@ -111,17 +147,78 @@ analysis <- evaluatr.init(
 set.seed(1)
 ```
 
-With spike and slab without STL-PCA, completes in 6.4 minutes with 7 cores; INLA runs in 90 seconds!
+
 ```{r}
 #source('inla_functions.R')
 #results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
 
 ptm <- proc.time()
-#results1<-evaluatr.impact(analysis)
-results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
-
+results.ridge<-evaluatr.impact(analysis.ridge, variants=c('full', 'time', 'time_no_offset') )
 proc.time() - ptm
 
 ```
 
 
+Main results 
+```{r Comparison of estimates from different models, results="asis"}
+compare.results<-function(res1){
+results.table<- cbind.data.frame(
+  #impact_results$best$rr_mean_intervals, 
+  res1$full$rr_mean_intervals, 
+  res1$time$rr_mean_intervals, 
+  #impact_results$time_no_offset$rr_mean_intervals, 
+  res1$its$rr_mean_intervals )
+  #impact_results$pca$rr_mean_intervals)
+  table<-xtable(results.table)
+  htmlTable(table)
+}
+compare.results(results.ridge)
+compare.results(results.spike)
+```
+
+
+
+
+
+
+## Cases averted
+How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series. In this case we are printing results fromthe SC model
+```{r}
+print.cum<-function(res1){
+last.point<-dim(results.ridge$full$cumsum_prevented)[1]
+cum.prevented<-results.ridge$full$cumsum_prevented[last.point,,]
+cum1<- round(t(cum.prevented))
+cum2<- paste0(cum1[,'50%'], ' (', cum1[,'2.5%'],', ',cum1[,'97.5%'],')')
+cum3<-cbind.data.frame(row.names(cum1), cum2)
+names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
+  htmlTable(cum3, align='l')}
+
+print.cum(results.ridge)
+print.cum(results.spike)
+
+```
+
+```{r mainplot1, echo=FALSE}
+plots.spike <- evaluatr.plots(analysis.spike)
+plots.ridge <- evaluatr.plots(analysis.ridge)
+
+```
+
+## Plot the results for 1 age group
+### First look at the results from the synthetic controls model for 1 age group.
+
+This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
+```{r, fig.width=5, fig.height=4}
+  plots.spike$groups[["1-4 years"]]$pred_full 
+```
+
+It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
+
+```{r, fig.width=5, fig.height=4}
+      plots.spike$groups[["1-4 years"]]$pred_full_agg 
+```
+Finally, we can look at the cumulative cases prevented. In this example, there have been 445 cases prevented (95%CrI: 58, 931) from the time of vaccine introduction to the last day month of the study period. This is calculated by takin the difference between the observed and fitted number of cases in each month, and summing them. If atleast 1 control disease is identified from the synthetic controls model, then the result here is drawn from that model, otherwise, it is drawn from the STL+PCA model.
+
+```{r, fig.width=5, fig.height=4}
+      plots.spike$groups[["1-4 years"]]$cumsum_prevented 
+```
