@@ -307,7 +307,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           n_seasons=analysis$n_seasons,
           time_points = analysis$time_points,
           analysis=analysis,
-          model.variant=variants
+          model.variant=variant
         ),
         analysis$groups
       )
