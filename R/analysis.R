@@ -90,7 +90,7 @@ evaluatr.init <- function(country,
                         set.sampleN=10000,
                         denom_name,
                         log.covars=TRUE,
-                        ridge=T,
+                        ridge=F,
                         sparse_threshold = 5) {
   analysis = listenv(
     time_points = NA,
