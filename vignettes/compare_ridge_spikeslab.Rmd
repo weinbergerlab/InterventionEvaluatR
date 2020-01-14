@@ -53,7 +53,7 @@ title: "Estimated change associated with the introduction of vaccine in South Af
 ## Important note
 This Rmd file contains analyses of the data from S Africa. It uses a slightly different model (Poisson) than the one described in Kleynhans et al. To see those results, see the synthetic_control_run.R file
 
-Local linear trend:
+In this file, we use ridge regression to weight the control diseases. This is done in the INLA package, which is computationally faster than the spike and slab variable selection that has been used in the past. In many instance, the results are very close between the spike and slab method and the ridge regression method, but there are some instances where differences arise. The two approaches are compared here.
 
 ## Prepare the dataset
 ```{r viewdata}
@@ -156,9 +156,9 @@ results.ridge<-evaluatr.impact(analysis.ridge, variants=c('full', 'time', 'time_
 proc.time() - ptm
 
 # minutes with 5000 samples
-#ptm <- proc.time()
-#results.ridge.rep<-evaluatr.impact(analysis.ridge.alt, variants=c('full', 'time', 'time_no_offset') )
-#proc.time() - ptm
+# ptm <- proc.time()
+# results.ridge.rep<-evaluatr.impact(analysis.ridge, variants=c('full', 'time', 'time_no_offset') )
+# proc.time() - ptm
 ```
 
 
@@ -226,3 +226,19 @@ Finally, we can look at the cumulative cases prevented. In this example, there h
 ```{r, fig.width=5, fig.height=4}
       plots.spike$groups[["1-4 years"]]$cumsum_prevented 
 ```
+
+rho INLA
+```{r}
+round(sapply(results.ridge$full$groups, function(x) x$rho[['0.5quant']], simplify='array'),2)
+```
+
+betas INLA
+```{r}
+beta1<-sapply(results.ridge$full$groups, function(x) x$beta, simplify=F)
+top.betas<-lapply(beta1, function(x){
+  x<-x[order(-x[,'beta.posterior.median']),]
+  x[(1:(min(nrow(x),5))),1]
+  })
+top.betas
+```
+
