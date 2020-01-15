@@ -247,14 +247,14 @@ cum3<-cbind.data.frame(row.names(cum1), cum2)
 names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
   htmlTable(cum3, align='l')}
 
-print.cum(results.ridge)
+print.cum(results.ridge.iid)
 print.cum(results.spike)
 
 ```
 
 ```{r mainplot1, echo=FALSE}
 plots.spike <- evaluatr.plots(analysis.spike)
-plots.ridge <- evaluatr.plots(analysis.ridge)
+plots.ridge <- evaluatr.plots(analysis.ridge.iid)
 
 ```
 
@@ -264,6 +264,8 @@ plots.ridge <- evaluatr.plots(analysis.ridge)
 This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
 ```{r, fig.width=5, fig.height=4}
   plots.spike$groups[["1-4 years"]]$pred_full 
+  plots.ridge$groups[["1-4 years"]]$pred_full 
+
 ```
 
 It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
