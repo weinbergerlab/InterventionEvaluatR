@@ -371,6 +371,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
                     intervention_date=analysis$intervention_date,
                     n_seasons= analysis$n_seasons,
                     time_points= analysis$time_points,
+                    error_dist=analysis$error_dist,
                     model.variant){
   
   y <- zoo_data[, 1] #all y
@@ -451,8 +452,12 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     betas.list<- mapply(next.beta.f, x=x.in.full.no.season[-1], covar.index=2:ncol(x.in.full.no.season), SIMPLIFY=T)
     next.betas<- paste(betas.list, collapse='+')  
     all.betas<-paste(first.beta,next.betas , sep='+')    
+    if(error_dist=='ar1'){
     form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1', constr=T,extraconstr=list(A=A.full, e=e.full))") )
-    
+    }else{
+    form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'iid')") )
+      
+    }
     mod1.full = inla(form1, data = mod.df.full, 
                      control.predictor = list(compute=TRUE, link = 1), 
                      family='poisson',
@@ -477,9 +482,11 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     e.time=rep(0, nrow(A.time))
     mod.df.time$t<-1:nrow(mod.df.time)
     #mod.df.time.offset<-cbind.data.frame(mod.df.time,'log.offset'=log.offset)
-    
+    if(error_dist=='ar1'){
     form2<- as.formula(paste0('y.pre ~',  paste(names(x.in.time), collapse='+'), "+  f(t, model = 'ar1', constr=T,extraconstr=list(A=A.time, e=e.time))") )
-    
+    }else{
+    form2<- as.formula(paste0('y.pre ~',  paste(names(x.in.time), collapse='+'), "+  f(t, model = 'iid')") )
+    }
     if(model.variant=='time_no_offset'){
       mod2.time.no.offset = inla(form2, data = mod.df.time, control.predictor =   list(compute=TRUE, link = 1), family='poisson',control.compute=list(config = TRUE,waic=TRUE))
       waic<-mod2.time.no.offset$waic$waic
@@ -488,7 +495,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     }else if(model.variant=='time'){
       #Time regression with offset
       mod3.time = inla(form2, data = mod.df.time, control.predictor =   list(compute=TRUE, link = 1), family='poisson',E=offset1, control.compute=list(config = TRUE,waic=TRUE))
-      waic<-mod3.time$waic$waic
+        waic<-mod3.time$waic$waic
       pd<- mod3.time$waic$p.eff
       ds<-list('fitted.model'=mod3.time, 'mod.df'=mod.df.time, 'x.in'=x.in.time, 'offset'=offset1,'offset.used'=T,'ridge'=F, 'waic'=waic, 'pd'=pd)
     }
