@@ -404,7 +404,8 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     return(x.scale)
   })
   pca1<- prcomp(y.aware.scale, center = FALSE,scale. = FALSE)
-  n.pcs.keep<-sum(pca1$sdev>1)
+  #n.pcs.keep<-sum(pca1$sdev>1)
+  n.pcs.keep<-5
   pcs<-pca1$x
   pcs<-apply(pcs,2, scale) #SCALE THE PCS prior to regression!
   pcs.combo<-cbind.data.frame( 'month'=as.factor(month(time_points)),pcs[,1:n.pcs.keep, drop=F] )

@@ -168,26 +168,6 @@ proc.time() - ptm
 
 ```
 
-```{r setup_data, echo=TRUE}
-
-analysis.ridge <- evaluatr.init(
-  country = "SAfrica", data = sa2,
-  post_period_start = "2009-04-01", 
-  eval_period_start = "2010-04-01", 
-  eval_period_end = "2016-12-01", 
-  n_seasons = 12, #This is monthly data, so select 12
-  year_def = "cal_year", # we are in southern hemisphere, so aggregate results by calendar year (Jan-Dec)
-  group_name = "age",  #Strata categry name
-  date_name = "date", #Date variable name
-  outcome_name = "Pneum", #Outcome variable name
-  denom_name = "denom", #Denominator variable name
-  ridge=T
-  
-)
-
-set.seed(1)
-```
-
 
 ```{r}
 #source('inla_functions.R')
@@ -209,7 +189,7 @@ proc.time() - ptm
 
 ```
 
-note:Adding more samples does not affect results at all.
+note:Adding more samples does not affect results at all. What is important is ensuring there are enough PCs in the A matrix when restricting the AR1 random effect. If based on PCs with variance>1, there is still residual bias. Just taking an arbitrary 5 PCs seems to do the trick.
 
 
 Main results 
@@ -281,16 +261,43 @@ Finally, we can look at the cumulative cases prevented. In this example, there h
 
 rho INLA
 ```{r}
-round(sapply(results.ridge$full$groups, function(x) x$rho[['0.5quant']], simplify='array'),2)
+round(sapply(results.ridge.ar1$full$groups, function(x) x$rho[['0.5quant']], simplify='array'),2)
 ```
 
 betas INLA
 ```{r}
-beta1<-sapply(results.ridge$full$groups, function(x) x$beta, simplify=F)
+beta1<-sapply(results.ridge.ar1$full$groups, function(x) x$beta, simplify=F)
 top.betas<-lapply(beta1, function(x){
   x<-x[order(-x[,'beta.posterior.median']),]
   x[(1:(min(nrow(x),5))),1]
   })
 top.betas
+```
+
+Compare contributions of fixed and random effects
+
+```{r, fig.width=10, fig.height=4}
+fixed<-lapply(results.ridge.ar1$full$groups, function(x) x$fixed.effect.hdi)
+random<-lapply(results.ridge.ar1$full$groups, function(x) x$rand.eff.combined.q)
+for(i in (1: length(fixed))){
+  par(mfrow=c(1,2))
+  yrange<-range(c(fixed[[i]], random[[i]]))
+  matplot(fixed[[i]], type='l', bty='l', lty=c(1,2,2), col='gray', ylim=yrange)
+    matplot(random[[i]], type='l', bty='l', lty=c(2,1,2), col='gray', ylim=yrange)
+  
+}
+
+```
+```{r, fig.width=10, fig.height=4}
+fixed<-lapply(results.ridge.iid$full$groups, function(x) x$fixed.effect.hdi)
+random<-lapply(results.ridge.iid$full$groups, function(x) x$rand.eff.combined.q)
+for(i in (1: length(fixed))){
+  par(mfrow=c(1,2))
+  yrange<-range(c(fixed[[i]], random[[i]]))
+  matplot(fixed[[i]], type='l', bty='l', lty=c(1,2,2), col='gray', ylim=yrange)
+    matplot(random[[i]], type='l', bty='l', lty=c(2,1,2), col='gray', ylim=yrange)
+  
+}
+
 ```
 
