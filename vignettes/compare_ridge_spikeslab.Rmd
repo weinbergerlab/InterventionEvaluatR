@@ -235,6 +235,7 @@ print.cum(results.spike)
 ```{r mainplot1, echo=FALSE}
 plots.spike <- evaluatr.plots(analysis.spike)
 plots.ridge <- evaluatr.plots(analysis.ridge.iid)
+plots.ridge.ar1 <- evaluatr.plots(analysis.ridge.ar1)
 
 ```
 
@@ -245,6 +246,7 @@ This first plot shows a monthly time series, with observed, fitted, and counterf
 ```{r, fig.width=5, fig.height=4}
   plots.spike$groups[["1-4 years"]]$pred_full 
   plots.ridge$groups[["1-4 years"]]$pred_full 
+  plots.ridge.ar1$groups[["1-4 years"]]$pred_full 
 
 ```
 
@@ -262,6 +264,8 @@ Finally, we can look at the cumulative cases prevented. In this example, there h
 rho INLA
 ```{r}
 round(sapply(results.ridge.ar1$full$groups, function(x) x$rho[['0.5quant']], simplify='array'),2)
+#round(sapply(results.ridge.iid$full$groups, function(x) x$rho[['0.5quant']], simplify='array'),2)
+
 ```
 
 betas INLA
@@ -276,11 +280,15 @@ top.betas
 
 Compare contributions of fixed and random effects
 
-```{r, fig.width=10, fig.height=4}
+```{r, fig.width=10, fig.height=12}
 fixed<-lapply(results.ridge.ar1$full$groups, function(x) x$fixed.effect.hdi)
 random<-lapply(results.ridge.ar1$full$groups, function(x) x$rand.eff.combined.q)
+
+fixed.iid<-lapply(results.ridge.iid$full$groups, function(x) x$fixed.effect.hdi)
+random.iid<-lapply(results.ridge.iid$full$groups, function(x) x$rand.eff.combined.q)
+  par(mfrow=c(3,2))
+
 for(i in (1: length(fixed))){
-  par(mfrow=c(1,2))
   yrange<-range(c(fixed[[i]], random[[i]]))
   matplot(fixed[[i]], type='l', bty='l', lty=c(1,2,2), col='gray', ylim=yrange)
     matplot(random[[i]], type='l', bty='l', lty=c(2,1,2), col='gray', ylim=yrange)
@@ -288,16 +296,68 @@ for(i in (1: length(fixed))){
 }
 
 ```
-```{r, fig.width=10, fig.height=4}
+```{r, fig.width=10, fig.height=12}
 fixed<-lapply(results.ridge.iid$full$groups, function(x) x$fixed.effect.hdi)
 random<-lapply(results.ridge.iid$full$groups, function(x) x$rand.eff.combined.q)
+  par(mfrow=c(3,2))
+
 for(i in (1: length(fixed))){
-  par(mfrow=c(1,2))
   yrange<-range(c(fixed[[i]], random[[i]]))
   matplot(fixed[[i]], type='l', bty='l', lty=c(1,2,2), col='gray', ylim=yrange)
     matplot(random[[i]], type='l', bty='l', lty=c(2,1,2), col='gray', ylim=yrange)
   
 }
+
+```
+
+Why does RR for AR1 and iid have same uncertainty interval?.
+The AR1 error piece is definitely wider here. But as plots above show, the unexplained error is small relative to the variation in the fixed effects, so when this AR1 piece gets added on to the regression piece, it has a small effect
+```{r}
+set.seed(123)
+nsim=10000
+nobs<-100
+sd1<-2.5
+mean1<-0
+rho=0.5
+
+sim.iid<- matrix(NA, nrow=nobs, ncol=nsim)
+sim.iid<-apply(sim.iid, 2, function(x) rnorm(n=nobs, mean=mean1, sd=sd1)  )
+sim.iid.sum<-apply(sim.iid, 2, function(x) sum(x) )
+sim.iid.sum.sd<-sd(sim.iid.sum)
+sim.iid.sum.mean<-mean(sim.iid.sum)
+sim.iid.sum.q<-quantile(sim.iid.sum, probs=c(0.025,0.5,0.975))
+
+sim.ar1<- matrix(NA, nrow=nobs, ncol=nsim)
+sim.ar1<-apply(sim.ar1, 2, function(x){
+  x[1]<-mean1
+  for(i in 2:length(x)){
+    x[i]<- x[i-1]*rho + rnorm(n=1, mean=0, sd=sd1) 
+  }
+  return(x)
+} )
+sim.ar1.sum<-apply(sim.ar1, 2, function(x) sum(x) )
+sim.ar1.sum.sd<-sd(sim.ar1.sum)
+sim.ar1.sum.mean<-mean(sim.ar1.sum)
+sim.ar1.sum.q<-quantile(sim.ar1.sum, probs=c(0.025,0.5,0.975))
+
+sim.ar1.sum.q
+sim.iid.sum.q
+
+ matplot(sim.ar1[,1:10], type='l', ylim=c(-20, 20))
+ matplot(sim.iid[,1:10], type='l', ylim=c(-20,20))
+
+
+ 
+sim.iid.sum.sd
+sim.ar1.sum.sd
+```
+```{r}
+#pointwise uqantile
+sim.ar1.q<-t(apply(sim.ar1,1,quantile, probs=c(0.025,0.5,0.975)))
+sim.iid.q<-t(apply(sim.iid,1,quantile, probs=c(0.025,0.5,0.975)))
+
+matplot(sim.ar1.q, type='l', lty=c(2,1,2), col='red')
+matplot(sim.iid.q, type='l', lty=c(2,1,2), col='blue', add=T)
 
 ```
 
