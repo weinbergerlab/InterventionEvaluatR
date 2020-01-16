@@ -27,6 +27,7 @@ Imports:
     xtable,
     htmlTable,
     HDInterval,
+    INLA,
     coda
 Suggests: 
     knitr,
