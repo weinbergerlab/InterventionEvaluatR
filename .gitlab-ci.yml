@@ -21,7 +21,7 @@ variables:
     - mkdir -p "${R_PACKAGE_CACHE}"
     - echo "R_LIBS_USER=${R_PACKAGE_CACHE}" >> .Renviron
     - echo "R_PACKAGE_CACHE=${R_PACKAGE_CACHE}" >> .Renviron
-    - Rscript -e "devtools::install_dev_deps()"
+    - Rscript -e "devtools::install_dev_deps(repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'))"
   
   cache:
     key: "$CI_COMMIT_REF_SLUG"
