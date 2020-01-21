@@ -75,5 +75,7 @@ pages:
 # Set up docker image for the rest of the build, keyed off commit ID
 autodocker:
   extends: .autodocker
+  before_script:
+    - cp DESCRIPTION gitlab/build/DESCRIPTION
   tags: 
     - dind-mem:2
