@@ -18,8 +18,12 @@ RUN apt-get install -y -qq --no-install-recommends ${R_APT_DEPENDENCIES}
 ARG RUN_APT_DEPENDENCIES="tzdata locales qpdf pandoc pandoc-citeproc"
 RUN apt-get install -y -qq --no-install-recommends ${RUN_APT_DEPENDENCIES}
 
-### Install major build dependencies because we're always going to need these and putting them in Docker speeds up the builds a bit
+### Install build dependencies because we're always going to need these and putting them in Docker speeds up the builds a bit
 RUN install2.r devtools knitr rmarkdown
+RUN mkdir /tmp/install
+COPY DESCRIPTION /tmp/install
+RUN cd /tmp/install && Rscript -e "devtools::install_deps(repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'))"
+RUN cd /tmp/install && Rscript -e "devtools::install_dev_deps(repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'))"
 
 # Finish up the configuration
 RUN echo tzdata tzdata/Areas select America >> /tmp/debconf.txt
