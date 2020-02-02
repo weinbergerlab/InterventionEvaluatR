@@ -28,7 +28,8 @@ Imports:
     htmlTable,
     HDInterval,
     coda,
-    backports
+    backports,
+    INLA
 Suggests: 
     knitr,
     rmarkdown

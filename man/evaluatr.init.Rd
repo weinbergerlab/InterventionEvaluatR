@@ -9,7 +9,8 @@ evaluatr.init(country, data, pre_period_start = "start",
   eval_period_start, eval_period_end, n_seasons = 12,
   year_def = "cal_year", group_name, date_name, outcome_name,
   set.burnN = 5000, set.sampleN = 10000, denom_name,
-  log.covars = TRUE, ridge = T, sparse_threshold = 5)
+  log.covars = TRUE, ridge = F, error_dist = "iid",
+  sparse_threshold = 5)
 }
 \arguments{
 \item{country}{A one-word label for output (eg country or state name).}
@@ -98,6 +99,7 @@ Initialized analysis object, `analysis` as described below
 `analysis$outcome` as passeed to `outcome_name`
 
 `analysis$ridge` as passeed to `ridge`
+`analysis$error_dist` as passeed to `error_dist`
 `analysis$sparse_threshold` as passed to `sparse_threshold`
 }
 \description{

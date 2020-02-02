@@ -17,6 +17,7 @@
 #' @param outcome_name Name of the outcome (y) variable in the 'data' dataframe. Should be a count
 #' @param denom_name Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.
 #' @param ridge Run ridge regression with AR(1) random intercepts (faster) or spike and slab (with iid random intercept) for variable selection. Logical, Default TRUE. 
+#' @parm error_dist For the INLA models: use an 'iid' or 'ar1' error on the random intercept. Defaults to iid. Use caution with AR(1) as it can introduce bias in some situations 
 #' @param sparse_threshold Threshold for filtering out control variables based on sparsity (mean number of cases per time period). Defaults to 5. 
 #' @return Initialized analysis object, `analysis` as described below
 #'
@@ -67,7 +68,7 @@
 #' `analysis$outcome` as passeed to `outcome_name`
 #' 
 #' `analysis$ridge` as passeed to `ridge`
-
+#' `analysis$error_dist` as passeed to `error_dist`
 #' `analysis$sparse_threshold` as passed to `sparse_threshold`
 #'
 #' @importFrom listenv listenv
@@ -91,6 +92,7 @@ evaluatr.init <- function(country,
                         denom_name,
                         log.covars=TRUE,
                         ridge=F,
+                        error_dist='iid',
                         sparse_threshold = 5) {
   analysis = listenv(
     time_points = NA,
@@ -156,6 +158,7 @@ evaluatr.init <- function(country,
   analysis$set.sampleN <-set.sampleN
   analysis$log.covars <- log.covars
   analysis$ridge <- ridge
+  analysis$error_dist<-error_dist
     normalizeDate <- function(d) {
     if (is.Date(d)) {
       d
