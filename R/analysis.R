@@ -255,6 +255,7 @@ evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) 
 #' @importFrom MASS mvrnorm
 #' @importFrom HDInterval hdi
 #' @importFrom RcppRoll roll_sum
+#' @importFrom plyr rbind.fill
 #' @importFrom pogit poissonBvs
 #' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster parLapply
 #' @importFrom future availableCores
@@ -265,63 +266,63 @@ evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
   addProgress(analysis, sprintf("Impact analysis (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
   evaluatr.impact.pre(analysis)
-  results = list()
+  results1 = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
   clusterEvalQ(cluster(analysis), {
     library(pogit, quietly = TRUE)
     library(lubridate, quietly = TRUE)
+    library(RcppRoll, quietly = TRUE)
+    library(HDInterval, quietly = TRUE)
+    library(plyr, quietly = TRUE)
+    
   })
-  clusterExport(cluster(analysis), c('doCausalImpact'), environment())
+  clusterExport(cluster(analysis), c('doCausalImpact','rrPredQuantiles'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
   
   for (variant in variants) {
     progressStartPart(analysis)
-    results[[variant]]$groups <- setNames(
+    results1[[variant]]$groups <- setNames(
       parLapply(
         cl = cluster(analysis),
         analysis$.private$data[[variant]],
         fun = doCausalImpact,
-        analysis$intervention_date,
-        analysis$n_seasons,
+        intervention_date=analysis$intervention_date,
+        n_seasons=analysis$n_seasons,
         var.select.on = analysis$.private$variants[[variant]]$var.select.on,
         time_points = analysis$time_points,
         trend = analysis$.private$variants[[variant]]$trend,
         burnN=analysis$set.burnN,
         sampleN=analysis$set.sampleN,
-        crossval.stage = FALSE
+        crossval.stage = FALSE,
+        analysis=analysis
       ),
       analysis$groups
     )
     progressEndPart(analysis)
   }
   stopCluster(analysis)
+
+#    return(results1)
+#}
+#part2<-function(ds){
+  results <- vector("list", length(variants))
+  names(results)<-variants
+  quantiles<-vector("list", length(variants))
+  names(quantiles)<-variants
+  
+  for (variant in variants) {
+    results[[variant]]$groups<-sapply(results1[[variant]]$groups,function(x) x[['impact']], simplify=F)  
+    quantiles[[variant]]<-sapply(results1[[variant]]$groups,function(x) x$quantiles, simplify=F)  
+    results[[variant]]$quantiles <- quantiles[[variant]]
+  }
   
   clusterUpdateAnalysis(analysis, function(analysis) {
     for (variant in intersect(c('full', 'time'), variants)) {
       #Save the inclusion probabilities from each of the models
       results[[variant]]$inclusion_prob <-
         setNames(lapply(results[[variant]]$groups, inclusionProb), analysis$groups)
-    }
-  
-    for (variant in variants) {
-      #All model results combined
-      results[[variant]]$quantiles <-
-        setNames(lapply(
-          analysis$groups,
-          FUN = function(group) {
-            rrPredQuantiles(
-              impact = results[[variant]]$groups[[group]],
-              denom_data = analysis$.private$ds[[group]][, analysis$denom_name],
-              eval_period = analysis$eval_period,
-              post_period = analysis$post_period,
-              year_def = analysis$year_def,
-              time_points = analysis$time_points,
-              n_seasons = analysis$n_seasons
-            )
-          }
-        ), analysis$groups)
     }
   
     # Calculate best model
