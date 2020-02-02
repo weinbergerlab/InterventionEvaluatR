@@ -1,0 +1,321 @@
+---
+title: "inla-test"
+author: "Dan Weinberger"
+date: "1/3/2020"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  echo=F,
+  comment = "#>",
+  fig.height = 3,
+  fig.width = 5,
+  fig.align = "center", 
+  dpi=300, 
+	out.width="600px"
+)
+```
+
+---
+
+```{r setup_packages, include=FALSE, echo=TRUE}
+#Install the package
+#library(devtools)
+#devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR') 
+library(knitr)
+library(plyr)
+library(InterventionEvaluatR)
+library(rjags)
+library(coda)
+library(HDInterval)
+library(lubridate)
+library(pbapply)
+library(parallel)
+library(plyr)
+library(ggbiplot)
+library(htmlTable)
+library(nFactors)
+library(INLA)
+library(xtable)
+
+
+library(bsts)
+
+```
+
+---
+title: "Estimated change associated with the introduction of vaccine in South Africa"
+---
+
+---
+## Important note
+This Rmd file contains analyses of the data from S Africa. It uses a slightly different model (Poisson) than the one described in Kleynhans et al. To see those results, see the synthetic_control_run.R file
+
+In this file, we use ridge regression to weight the control diseases. This is done in the INLA package, which is computationally faster than the spike and slab variable selection that has been used in the past. In many instance, the results are very close between the spike and slab method and the ridge regression method, but there are some instances where differences arise. The two approaches are compared here.
+
+## Prepare the dataset
+```{r viewdata}
+  n.time<-120
+
+ar1.gen<-function(rho, prec.set){
+  y<-rep(NA, times=n.time)
+  y[1]<-  0
+  for(i in 2:n.time){
+    y[i]<- y[i-1]*rho +  rnorm(1,0, sqrt(1/(prec.set/(1-rho*rho)) ))
+  }
+  y<-y 
+  return(y)
+}
+
+set.seed(123)
+
+X1<-rpois(n.time, 15)
+X2<-rpois(n.time, 10)
+ts1<-exp(1+ ar1.gen(rho=0.7, prec.set=10) + 0.2*log(X1) +0.3*log(X2) )
+ts1[108:120]<-ts1[108:120]*0.8
+ts1.count<-rpois(length(ts1), ts1)
+dates<-seq.Date(from=as.Date('2000-01-01'), length.out = n.time, by='month')
+ds1<-cbind.data.frame('Y'=ts1.count,'rep'=1,'date'=dates, X1, X2, denom=1)
+ds2<-cbind.data.frame('Y'=ts1.count,'rep'=2,'date'=dates, X1, X2, denom=1)
+ds1<-rbind.data.frame(ds1,ds2)
+ds1$rep<-as.factor(ds1$rep)
+```
+
+
+## Set parameters for analysis
+
+Here we need to set a few parameters. We Use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any).
+
+#Select which age group to analyze
+```{r}
+#age.select=unique(sa2$age)[6]
+#age.select
+```
+
+```{r setup_data, echo=TRUE}
+
+analysis.ridge.iid <- evaluatr.init(
+  country = "sim", data = ds1,
+  post_period_start = "2008-01-01", 
+  eval_period_start = "2009-01-01", 
+  eval_period_end = "2009-12-01", 
+  n_seasons = 12, #This is monthly data, so select 12
+  year_def = "cal_year", # we are in southern hemisphere, so aggregate results by calendar year (Jan-Dec)
+  group_name = "rep",  #Strata categry name
+  date_name = "date", #Date variable name
+  outcome_name = "Y", #Outcome variable name
+  denom_name = "denom", #Denominator variable name
+  ridge=T,  error_dist='iid'
+)
+set.seed(1)
+```
+
+```{r setup_data, echo=TRUE}
+
+analysis.ridge.ar1 <- evaluatr.init(
+  country = "sim", data = ds1,
+  post_period_start = "2008-01-01", 
+  eval_period_start = "2009-01-01", 
+  eval_period_end = "2009-12-01", 
+  n_seasons = 12, #This is monthly data, so select 12
+  year_def = "cal_year", # we are in southern hemisphere, so aggregate results by calendar year (Jan-Dec)
+  group_name = "rep",  #Strata categry name
+  date_name = "date", #Date variable name
+  outcome_name = "Y", #Outcome variable name
+  denom_name = "denom", #Denominator variable name
+  ridge=T,  error_dist='ar1'
+)
+set.seed(1)
+```
+
+
+
+```{r}
+#source('inla_functions.R')
+#results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
+
+ptm <- proc.time()
+results.ridge.iid<-evaluatr.impact(analysis.ridge.iid, variants=c('full', 'time', 'time_no_offset') )
+proc.time() - ptm
+
+```
+
+```{r}
+#source('inla_functions.R')
+#results1<-evaluatr.impact(analysis, variants=c('full', 'time', 'time_no_offset') )
+
+ptm <- proc.time()
+results.ridge.ar1<-evaluatr.impact(analysis.ridge.ar1, variants=c('full', 'time', 'time_no_offset') )
+proc.time() - ptm
+
+```
+
+note:Adding more samples does not affect results at all. What is important is ensuring there are enough PCs in the A matrix when restricting the AR1 random effect. If based on PCs with variance>1, there is still residual bias. Just taking an arbitrary 5 PCs seems to do the trick.
+
+
+Main results 
+```{r Comparison of estimates from different models, results="asis"}
+compare.results<-function(res1){
+results.table<- cbind.data.frame(
+  #impact_results$best$rr_mean_intervals, 
+  res1$full$rr_mean_intervals, 
+  res1$time$rr_mean_intervals, 
+  #impact_results$time_no_offset$rr_mean_intervals, 
+  res1$its$rr_mean_intervals )
+  #impact_results$pca$rr_mean_intervals)
+  table<-xtable(results.table)
+  htmlTable(table)
+}
+compare.results(results.ridge.ar1)
+compare.results(results.ridge.iid)
+```
+
+
+## Cases averted
+How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series. In this case we are printing results fromthe SC model
+```{r}
+print.cum<-function(res1){
+last.point<-dim(res1$full$cumsum_prevented)[1]
+cum.prevented<-res1$full$cumsum_prevented[last.point,,]
+cum1<- round(t(cum.prevented))
+cum2<- paste0(cum1[,'50%'], ' (', cum1[,'2.5%'],', ',cum1[,'97.5%'],')')
+cum3<-cbind.data.frame(row.names(cum1), cum2)
+names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
+  htmlTable(cum3, align='l')}
+
+print.cum(results.ridge.iid)
+print.cum(results.spike)
+
+```
+
+```{r mainplot1, echo=FALSE}
+plots.spike <- evaluatr.plots(analysis.spike)
+plots.ridge <- evaluatr.plots(analysis.ridge.iid)
+plots.ridge.ar1 <- evaluatr.plots(analysis.ridge.ar1)
+
+```
+
+## Plot the results for 1 age group
+### First look at the results from the synthetic controls model for 1 age group.
+
+This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
+```{r, fig.width=5, fig.height=4}
+  plots.spike$groups[["1-4 years"]]$pred_full 
+  plots.ridge$groups[["1-4 years"]]$pred_full 
+  plots.ridge.ar1$groups[["1-4 years"]]$pred_full 
+
+```
+
+It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
+
+```{r, fig.width=5, fig.height=4}
+      plots.spike$groups[["1-4 years"]]$pred_full_agg 
+```
+Finally, we can look at the cumulative cases prevented. In this example, there have been 445 cases prevented (95%CrI: 58, 931) from the time of vaccine introduction to the last day month of the study period. This is calculated by takin the difference between the observed and fitted number of cases in each month, and summing them. If atleast 1 control disease is identified from the synthetic controls model, then the result here is drawn from that model, otherwise, it is drawn from the STL+PCA model.
+
+```{r, fig.width=5, fig.height=4}
+      plots.spike$groups[["1-4 years"]]$cumsum_prevented 
+```
+
+rho INLA
+```{r}
+round(sapply(results.ridge.ar1$full$groups, function(x) x$rho[['0.5quant']], simplify='array'),2)
+#round(sapply(results.ridge.iid$full$groups, function(x) x$rho[['0.5quant']], simplify='array'),2)
+
+```
+
+betas INLA
+```{r}
+beta1<-sapply(results.ridge.ar1$full$groups, function(x) x$beta, simplify=F)
+top.betas<-lapply(beta1, function(x){
+  x<-x[order(-x[,'beta.posterior.median']),]
+  x[(1:(min(nrow(x),5))),1]
+  })
+top.betas
+```
+
+Compare contributions of fixed and random effects
+
+```{r, fig.width=10, fig.height=12}
+fixed<-lapply(results.ridge.ar1$full$groups, function(x) x$fixed.effect.hdi)
+random<-lapply(results.ridge.ar1$full$groups, function(x) x$rand.eff.combined.q)
+
+fixed.iid<-lapply(results.ridge.iid$full$groups, function(x) x$fixed.effect.hdi)
+random.iid<-lapply(results.ridge.iid$full$groups, function(x) x$rand.eff.combined.q)
+  par(mfrow=c(3,2))
+
+for(i in (1: length(fixed))){
+  yrange<-range(c(fixed[[i]], random[[i]]))
+  matplot(fixed[[i]], type='l', bty='l', lty=c(1,2,2), col='gray', ylim=yrange)
+    matplot(random[[i]], type='l', bty='l', lty=c(2,1,2), col='gray', ylim=yrange)
+  
+}
+
+```
+```{r, fig.width=10, fig.height=12}
+fixed<-lapply(results.ridge.iid$full$groups, function(x) x$fixed.effect.hdi)
+random<-lapply(results.ridge.iid$full$groups, function(x) x$rand.eff.combined.q)
+  par(mfrow=c(3,2))
+
+for(i in (1: length(fixed))){
+  yrange<-range(c(fixed[[i]], random[[i]]))
+  matplot(fixed[[i]], type='l', bty='l', lty=c(1,2,2), col='gray', ylim=yrange)
+    matplot(random[[i]], type='l', bty='l', lty=c(2,1,2), col='gray', ylim=yrange)
+  
+}
+
+```
+
+Why does RR for AR1 and iid have same uncertainty interval?.
+The AR1 error piece is definitely wider here. But as plots above show, the unexplained error is small relative to the variation in the fixed effects, so when this AR1 piece gets added on to the regression piece, it has a small effect
+```{r}
+set.seed(123)
+nsim=10000
+nobs<-100
+sd1<-2.5
+mean1<-0
+rho=0.5
+
+sim.iid<- matrix(NA, nrow=nobs, ncol=nsim)
+sim.iid<-apply(sim.iid, 2, function(x) rnorm(n=nobs, mean=mean1, sd=sd1)  )
+sim.iid.sum<-apply(sim.iid, 2, function(x) sum(x) )
+sim.iid.sum.sd<-sd(sim.iid.sum)
+sim.iid.sum.mean<-mean(sim.iid.sum)
+sim.iid.sum.q<-quantile(sim.iid.sum, probs=c(0.025,0.5,0.975))
+
+sim.ar1<- matrix(NA, nrow=nobs, ncol=nsim)
+sim.ar1<-apply(sim.ar1, 2, function(x){
+  x[1]<-mean1
+  for(i in 2:length(x)){
+    x[i]<- x[i-1]*rho + rnorm(n=1, mean=0, sd=sd1) 
+  }
+  return(x)
+} )
+sim.ar1.sum<-apply(sim.ar1, 2, function(x) sum(x) )
+sim.ar1.sum.sd<-sd(sim.ar1.sum)
+sim.ar1.sum.mean<-mean(sim.ar1.sum)
+sim.ar1.sum.q<-quantile(sim.ar1.sum, probs=c(0.025,0.5,0.975))
+
+sim.ar1.sum.q
+sim.iid.sum.q
+
+ matplot(sim.ar1[,1:10], type='l', ylim=c(-20, 20))
+ matplot(sim.iid[,1:10], type='l', ylim=c(-20,20))
+
+
+ 
+sim.iid.sum.sd
+sim.ar1.sum.sd
+```
+```{r}
+#pointwise uqantile
+sim.ar1.q<-t(apply(sim.ar1,1,quantile, probs=c(0.025,0.5,0.975)))
+sim.iid.q<-t(apply(sim.iid,1,quantile, probs=c(0.025,0.5,0.975)))
+
+matplot(sim.ar1.q, type='l', lty=c(2,1,2), col='red')
+matplot(sim.iid.q, type='l', lty=c(2,1,2), col='blue', add=T)
+
+```
+
