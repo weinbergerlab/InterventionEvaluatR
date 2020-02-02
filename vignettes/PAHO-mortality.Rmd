@@ -10,7 +10,8 @@ params:
   sensitivity: TRUE
   crossval: FALSE
 ---
-
+need to delete: impact_results$[[VARIANT]]$groups$`ec 2-23m A`$
+predict.bsts reg.mean  beta.mat
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -177,10 +178,10 @@ results.table<- cbind.data.frame(
 
 
 ## Cases averted
-How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series
+How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series. In this case we are printing results fromthe SC model
 ```{r}
-last.point<-dim(impact_results$best$cumsum_prevented)[1]
-cum.prevented<-impact_results$best$cumsum_prevented[last.point,,]
+last.point<-dim(impact_results$full$cumsum_prevented)[1]
+cum.prevented<-impact_results$full$cumsum_prevented[last.point,,]
 ```
 
 Format and print table 
@@ -305,7 +306,7 @@ for (group in names(plots$groups)) {
 
 ## Save results
 ```{r save_results, echo=FALSE}
-output_file <- "Results" # Directory where results will be saved.
-output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
-evaluatr.save(analysis, output_file)
+#output_file <- "Results" # Directory where results will be saved.
+#output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
+#evaluatr.save(analysis, output_file)
 ```
