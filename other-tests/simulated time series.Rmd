@@ -164,8 +164,8 @@ results.table<- cbind.data.frame(
   #impact_results$best$rr_mean_intervals, 
   res1$full$rr_mean_intervals, 
   res1$time$rr_mean_intervals, 
-  #impact_results$time_no_offset$rr_mean_intervals, 
-  res1$its$rr_mean_intervals )
+  res1$time_no_offset$rr_mean_intervals) 
+  #res1$its$rr_mean_intervals )
   #impact_results$pca$rr_mean_intervals)
   table<-xtable(results.table)
   htmlTable(table)
