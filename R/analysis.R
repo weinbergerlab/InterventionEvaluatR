@@ -17,7 +17,7 @@
 #' @param outcome_name Name of the outcome (y) variable in the 'data' dataframe. Should be a count
 #' @param denom_name Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.
 #' @param ridge Run ridge regression with AR(1) random intercepts (faster) or spike and slab (with iid random intercept) for variable selection. Logical, Default TRUE. 
-#' @parm error_dist For the INLA models: use an 'iid' or 'ar1' error on the random intercept. Defaults to iid. Use caution with AR(1) as it can introduce bias in some situations 
+#' @param error_dist For the INLA models: use an 'iid' or 'ar1' error on the random intercept. Defaults to iid. Use caution with AR(1) as it can introduce bias in some situations 
 #' @param sparse_threshold Threshold for filtering out control variables based on sparsity (mean number of cases per time period). Defaults to 5. 
 #' @return Initialized analysis object, `analysis` as described below
 #'

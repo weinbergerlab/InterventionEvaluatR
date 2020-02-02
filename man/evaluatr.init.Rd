@@ -47,6 +47,8 @@ evaluatr.init(country, data, pre_period_start = "start",
 
 \item{ridge}{Run ridge regression with AR(1) random intercepts (faster) or spike and slab (with iid random intercept) for variable selection. Logical, Default TRUE.}
 
+\item{error_dist}{For the INLA models: use an 'iid' or 'ar1' error on the random intercept. Defaults to iid. Use caution with AR(1) as it can introduce bias in some situations}
+
 \item{sparse_threshold}{Threshold for filtering out control variables based on sparsity (mean number of cases per time period). Defaults to 5.}
 }
 \value{

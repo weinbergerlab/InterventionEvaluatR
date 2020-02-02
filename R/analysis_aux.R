@@ -455,7 +455,9 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     all.betas<-paste(first.beta,next.betas , sep='+')    
     if(error_dist=='ar1'){
     form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1', constr=T,extraconstr=list(A=A.full, e=e.full))") )
-    }else{
+    #form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1')") )
+      
+       }else{
     form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'iid')") )
       
     }
