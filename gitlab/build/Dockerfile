@@ -19,7 +19,7 @@ ARG RUN_APT_DEPENDENCIES="tzdata locales qpdf pandoc pandoc-citeproc"
 RUN apt-get install -y -qq --no-install-recommends ${RUN_APT_DEPENDENCIES}
 
 ### Install major build dependencies because we're always going to need these and putting them in Docker speeds up the builds a bit
-RUN install2.r devtools knitr rmarkdown
+RUN install2.r devtools knitr rmarkdown RcppEigen
 
 # Finish up the configuration
 RUN echo tzdata tzdata/Areas select America >> /tmp/debconf.txt
