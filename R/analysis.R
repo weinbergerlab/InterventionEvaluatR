@@ -16,6 +16,7 @@
 #' @param date_name Name of the variable with the date for the time series
 #' @param outcome_name Name of the outcome (y) variable in the 'data' dataframe. Should be a count
 #' @param denom_name Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.
+#' @param ridge Run ridge regression with AR(1) random intercepts (faster) or spike and slab (with iid random intercept) for variable selection. Logical, Default TRUE. 
 #' @param sparse_threshold Threshold for filtering out control variables based on sparsity (mean number of cases per time period). Defaults to 5. 
 #' @return Initialized analysis object, `analysis` as described below
 #'
@@ -65,6 +66,8 @@
 #' 
 #' `analysis$outcome` as passeed to `outcome_name`
 #' 
+#' `analysis$ridge` as passeed to `ridge`
+
 #' `analysis$sparse_threshold` as passed to `sparse_threshold`
 #'
 #' @importFrom listenv listenv
@@ -87,6 +90,7 @@ evaluatr.init <- function(country,
                         set.sampleN=10000,
                         denom_name,
                         log.covars=TRUE,
+                        ridge=F,
                         sparse_threshold = 5) {
   analysis = listenv(
     time_points = NA,
@@ -151,6 +155,7 @@ evaluatr.init <- function(country,
   analysis$set.burnN <-set.burnN
   analysis$set.sampleN <-set.sampleN
   analysis$log.covars <- log.covars
+  analysis$ridge <- ridge
     normalizeDate <- function(d) {
     if (is.Date(d)) {
       d
@@ -265,7 +270,7 @@ evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) 
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
   addProgress(analysis, sprintf("Impact analysis (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
-  evaluatr.impact.pre(analysis)
+  evaluatr.impact.pre(analysis, run.stl= ('pca' %in% variants))
   results1 = list()
   
   #Start Cluster for CausalImpact (the main analysis function).
@@ -275,33 +280,49 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     library(RcppRoll, quietly = TRUE)
     library(HDInterval, quietly = TRUE)
     library(plyr, quietly = TRUE)
-    
+    library(INLA, quietly = TRUE)
   })
-  clusterExport(cluster(analysis), c('doCausalImpact','rrPredQuantiles','cumsum_func'), environment())
+  clusterExport(cluster(analysis), c('doCausalImpact','inla_mods','rrPredQuantiles','cumsum_func','analysis'), environment())
   
   analysis$.private$variants = analysis$.private$variants[variants]
-  
-  for (variant in variants) {
-    progressStartPart(analysis)
-    results1[[variant]]$groups <- setNames(
-      parLapply(
-        cl = cluster(analysis),
-        analysis$.private$data[[variant]],
-        fun = doCausalImpact,
-        intervention_date=analysis$intervention_date,
-        n_seasons=analysis$n_seasons,
-        var.select.on = analysis$.private$variants[[variant]]$var.select.on,
-        time_points = analysis$time_points,
-        trend = analysis$.private$variants[[variant]]$trend,
-        burnN=analysis$set.burnN,
-        sampleN=analysis$set.sampleN,
-        crossval.stage = FALSE,
-        analysis=analysis
-      ),
-      analysis$groups
-    )
-    progressEndPart(analysis)
-  }
+  if(analysis$ridge==F){
+    for (variant in variants) {
+      progressStartPart(analysis)
+      results1[[variant]]$groups <- setNames(
+        parLapply(
+          cl = cluster(analysis),
+          analysis$.private$data[[variant]],
+          fun = doCausalImpact,
+          intervention_date=analysis$intervention_date,
+          n_seasons=analysis$n_seasons,
+          var.select.on = analysis$.private$variants[[variant]]$var.select.on,
+          time_points = analysis$time_points,
+          trend = analysis$.private$variants[[variant]]$trend,
+          burnN=analysis$set.burnN,
+          sampleN=analysis$set.sampleN,
+          crossval.stage = FALSE,
+          analysis=analysis
+        ),
+        analysis$groups
+      )
+      progressEndPart(analysis)
+    }
+  }else{
+    for (variant in variants) {
+      progressStartPart(analysis)
+      results1[[variant]]$groups <- setNames(
+        pblapply(
+          cl = cl,
+          analysis$.private$data[['full']],
+          FUN = inla_mods,
+          model.variant=variant
+        ),
+        analysis$groups
+      )
+      progressEndPart(analysis)
+    }
+  }  
+
   stopCluster(analysis)
 
 #    return(results1)
@@ -332,9 +353,13 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     }
   
     # Calculate best model
-    if ("full" %in% variants) {
-      analysis$model_size <-
-        sapply(results$full$groups, modelsize_func, n_seasons = analysis$n_seasons)
+    if(analysis$ridge==F){
+      if ("full" %in% variants) {
+        analysis$model_size <-
+          sapply(results$full$groups, modelsize_func, n_seasons = analysis$n_seasons)
+      }
+    }else{
+      analysis$model_size <- NA
     }
   
     if (all(c("full", "pca") %in% variants)) {
@@ -357,11 +382,11 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       variants = c("best", variants)
     }
   
-    if(analysis$model_size >= 1){
+    # if(analysis$model_size >= 1){
       results$best$cumsum_prevented<- results$full$cumsum_prevented
-    }else{
-      results$best$cumsum_prevented<- results$pca$cumsum_prevented
-    }
+    # }else{
+    #   results$best$cumsum_prevented<- results$pca$cumsum_prevented
+    # }
 
     for (variant in variants) {
       # Predictions, aggregated by year

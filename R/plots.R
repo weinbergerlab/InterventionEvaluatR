@@ -112,6 +112,7 @@ evaluatr.plots <- function(analysis) {
           analysis$outcome[, group]
         )
       ))
+    if(length(impact_results$best$pred_quantiles[, , group])>0){
     pred_best_plot <-
       plotPred(
         impact_results$best$pred_quantiles[, , group],
@@ -121,6 +122,9 @@ evaluatr.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'Best estimate')
       )
+    }else{
+      pred_best_plot<-NA
+    }
     pred_full_plot <-
       plotPred(
         impact_results$full$pred_quantiles[, , group],
@@ -139,6 +143,7 @@ evaluatr.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'Time trend adjustment estimate (with offset)')
       )
+    if(length(impact_results$pca$pred_quantiles[, , group])>0){
     pred_pca_plot <-
       plotPred(
         impact_results$pca$pred_quantiles[, , group],
@@ -148,6 +153,9 @@ evaluatr.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'STL+PCA estimate')
       )
+    }else{
+      pred_pca_plot<-NA
+    }
     if (!is.na(crossval_results)) {
       pred_stack_plot <-
         plotPred(
@@ -171,6 +179,7 @@ evaluatr.plots <- function(analysis) {
         )
       
     }
+    if(length(impact_results$best$ann_pred_quantiles[[group]])>0){
     pred_best_plot_agg <-
       plotPredAgg(
         impact_results$best$ann_pred_quantiles[[group]],
@@ -182,6 +191,9 @@ evaluatr.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'Best estimate')
       )
+    }else{
+      pred_best_plot_agg <-NA
+    }
     pred_full_plot_agg <-
       plotPredAgg(
         impact_results$full$ann_pred_quantiles[[group]],
@@ -204,6 +216,7 @@ evaluatr.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'Time trend adjustment estimate (with offset)')
       )
+    if(length(impact_results$pca$ann_pred_quantiles[[group]])>0){
     pred_pca_plot_agg <-
       plotPredAgg(
         impact_results$pca$ann_pred_quantiles[[group]],
@@ -215,6 +228,9 @@ evaluatr.plots <- function(analysis) {
         analysis$outcome[, group],
         title = paste(group, 'STL+PCA estimate')
       )
+    }else{
+      pred_pca_plot_agg<-NA
+    }
     ##
     #Plot cumulative sums
     cumsum.ds<- as.data.frame(impact_results$best$cumsum_prevented[, , group])
@@ -265,247 +281,269 @@ evaluatr.plots <- function(analysis) {
     #points(prelog_data[[10]]$J12_18)
     
     #Plot rolling rate ratio
-    min_max <-
-      c(
-        min(
-          impact_results$full$rr_roll[, , group],
-          impact_results$time$rr_roll[, , group]
-        ),
-        max(
-          impact_results$full$rr_roll[, , group],
-          impact_results$time$rr_roll[, , group]
-        )
-      )
-    rr_roll_best_plot <-
-      ggplot(
-        melt(
-          as.data.frame(impact_results$best$rr_roll[, , group]),
-          id.vars = NULL
-        ),
-        mapping = aes_string(
-          x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$best$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(impact_results$best$rr_roll[, , group])
-          ),
-          y = 'value',
-          linetype = 'variable'
-        )
-      ) +
-      geom_line() + geom_hline(yintercept = 1, linetype = 4) +
-      labs(x = 'Time', y = 'Rolling Rate Ratio') +
-      ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
-      coord_cartesian(ylim = min_max) +
-      theme_bw() +
-      theme(
-        axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()
-      ) +
-      theme(
-        legend.title = element_blank(),
-        legend.position = c(0, 1),
-        legend.justification = c(0, 1),
-        legend.background = element_rect(colour = NA, fill = 'transparent'),
-        plot.title = element_text(hjust = 0.5),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()
-      )
-    
-      rr_roll_full_plot <-
-      ggplot(
-        melt(
-          as.data.frame(impact_results$full$rr_roll[, , group]),
-          id.vars = NULL
-        ),
-        mapping = aes_string(
-          x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$full$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(impact_results$full$rr_roll[, , group])
-          ),
-          y = 'value',
-          linetype = 'variable'
-        )
-      ) +
-      geom_line() + geom_hline(yintercept = 1, linetype = 4) +
-      labs(x = 'Time', y = 'Rolling Rate Ratio') +
-      ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
-      coord_cartesian(ylim = min_max) +
-      theme_bw() +
-      theme(
-        axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()
-      ) +
-      theme(
-        legend.title = element_blank(),
-        legend.position = c(0, 1),
-        legend.justification = c(0, 1),
-        legend.background = element_rect(colour = NA, fill = 'transparent'),
-        plot.title = element_text(hjust = 0.5),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()
-      )
-    rr_roll_time_plot <-
-      ggplot(
-        melt(
-          as.data.frame(impact_results$time$rr_roll[, , group]),
-          id.vars = NULL
-        ),
-        mapping = aes_string(
-          x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$time$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(impact_results$time$rr_roll[, , group])
-          ),
-          y = 'value',
-          linetype = 'variable'
-        )
-      ) +
-      geom_line() + geom_hline(yintercept = 1, linetype = 4) +
-      labs(x = 'Time', y = 'Rolling Rate Ratio') +
-      ggtitle(paste(group, 'TT Rolling Rate Ratio')) +
-      coord_cartesian(ylim = min_max) +
-      theme_bw() +
-      theme(
-        axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()
-      ) +
-      theme(
-        legend.title = element_blank(),
-        legend.position = c(0, 1),
-        legend.justification = c(0, 1),
-        legend.background = element_rect(colour = NA, fill = 'transparent'),
-        plot.title = element_text(hjust = 0.5),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()
-      )
-    rr_roll_pca_plot <-
-      ggplot(
-        melt(
-          as.data.frame(impact_results$pca$rr_roll[, , group]),
-          id.vars = NULL
-        ),
-        mapping = aes_string(
-          x = rep(
-            analysis$time_points[(length(analysis$time_points) - nrow(impact_results$pca$rr_roll[, , group]) + 1):length(analysis$time_points)],
-            ncol(impact_results$pca$rr_roll[, , group])
-          ),
-          y = 'value',
-          linetype = 'variable'
-        )
-      ) +
-      geom_line() + geom_hline(yintercept = 1, linetype = 4) +
-      labs(x = 'Time', y = 'Rolling Rate Ratio') +
-      ggtitle(paste(group, 'STL+PCA Rolling Rate Ratio')) +
-      coord_cartesian(ylim = min_max) +
-      theme_bw() +
-      theme(
-        axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()
-      ) +
-      theme(
-        legend.title = element_blank(),
-        legend.position = c(0, 1),
-        legend.justification = c(0, 1),
-        legend.background = element_rect(colour = NA, fill = 'transparent'),
-        plot.title = element_text(hjust = 0.5),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()
-      )
-    
-    if (!is.na(crossval_results)) {
-      rr_roll_stack_plot <-
-        ggplot(
-          melt(
-            as.data.frame(crossval_results$rr_roll_stack[, , group]),
-            id.vars = NULL
-          ),
-          mapping = aes_string(
-            x = rep(
-              analysis$time_points[(
-                length(analysis$time_points) - nrow(crossval_results$rr_roll_stack[, , group]) + 1
-              ):length(analysis$time_points)],
-              ncol(crossval_results$rr_roll_stack[, , group])
+    if(!is.list(impact_results$full$rr_roll)){
+        min_max <-
+          c(
+            min(
+              impact_results$full$rr_roll[, , group],
+              impact_results$time$rr_roll[, , group]
             ),
-            y = 'value',
-            linetype = 'variable'
+            max(
+              impact_results$full$rr_roll[, , group],
+              impact_results$time$rr_roll[, , group]
+            )
           )
-        ) +
-        geom_line() + geom_hline(yintercept = 1, linetype = 4) +
-        labs(x = 'Time', y = 'Rolling Rate Ratio') +
-        ggtitle(paste(group, 'Stacked Rolling Rate Ratio')) +
-        coord_cartesian(ylim = min_max) +
-        theme_bw() +
-        theme(
-          axis.line = element_line(colour = "black"),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_blank()
-        ) +
-        theme(
-          legend.title = element_blank(),
-          legend.position = c(0, 1),
-          legend.justification = c(0, 1),
-          legend.background = element_rect(colour = NA, fill = 'transparent'),
-          plot.title = element_text(hjust = 0.5),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank()
-        )
+        if(length(impact_results$best$rr_roll[, , group])>0){
+        rr_roll_best_plot <-
+          ggplot(
+            melt(
+              as.data.frame(impact_results$best$rr_roll[, , group]),
+              id.vars = NULL
+            ),
+            mapping = aes_string(
+              x = rep(
+                analysis$time_points[(length(analysis$time_points) - nrow(impact_results$best$rr_roll[, , group]) + 1):length(analysis$time_points)],
+                ncol(impact_results$best$rr_roll[, , group])
+              ),
+              y = 'value',
+              linetype = 'variable'
+            )
+          ) +
+          geom_line() + geom_hline(yintercept = 1, linetype = 4) +
+          labs(x = 'Time', y = 'Rolling Rate Ratio') +
+          ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
+          coord_cartesian(ylim = min_max) +
+          theme_bw() +
+          theme(
+            axis.line = element_line(colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank()
+          ) +
+          theme(
+            legend.title = element_blank(),
+            legend.position = c(0, 1),
+            legend.justification = c(0, 1),
+            legend.background = element_rect(colour = NA, fill = 'transparent'),
+            plot.title = element_text(hjust = 0.5),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank()
+          )
+        }else{
+          rr_roll_best_plot<-NA
+        }
+        if(length(impact_results$full$rr_roll[, , group])>0){
+          rr_roll_full_plot <-
+          ggplot(
+            melt(
+              as.data.frame(impact_results$full$rr_roll[, , group]),
+              id.vars = NULL
+            ),
+            mapping = aes_string(
+              x = rep(
+                analysis$time_points[(length(analysis$time_points) - nrow(impact_results$full$rr_roll[, , group]) + 1):length(analysis$time_points)],
+                ncol(impact_results$full$rr_roll[, , group])
+              ),
+              y = 'value',
+              linetype = 'variable'
+            )
+          ) +
+          geom_line() + geom_hline(yintercept = 1, linetype = 4) +
+          labs(x = 'Time', y = 'Rolling Rate Ratio') +
+          ggtitle(paste(group, 'Synthetic Control Rolling Rate Ratio')) +
+          coord_cartesian(ylim = min_max) +
+          theme_bw() +
+          theme(
+            axis.line = element_line(colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank()
+          ) +
+          theme(
+            legend.title = element_blank(),
+            legend.position = c(0, 1),
+            legend.justification = c(0, 1),
+            legend.background = element_rect(colour = NA, fill = 'transparent'),
+            plot.title = element_text(hjust = 0.5),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank()
+          )
+        }else{
+          rr_roll_full_plot<-NA
+        }
+        if(length(impact_results$time$rr_roll[, , group])>0){
+        rr_roll_time_plot <-
+          ggplot(
+            melt(
+              as.data.frame(impact_results$time$rr_roll[, , group]),
+              id.vars = NULL
+            ),
+            mapping = aes_string(
+              x = rep(
+                analysis$time_points[(length(analysis$time_points) - nrow(impact_results$time$rr_roll[, , group]) + 1):length(analysis$time_points)],
+                ncol(impact_results$time$rr_roll[, , group])
+              ),
+              y = 'value',
+              linetype = 'variable'
+            )
+          ) +
+          geom_line() + geom_hline(yintercept = 1, linetype = 4) +
+          labs(x = 'Time', y = 'Rolling Rate Ratio') +
+          ggtitle(paste(group, 'TT Rolling Rate Ratio')) +
+          coord_cartesian(ylim = min_max) +
+          theme_bw() +
+          theme(
+            axis.line = element_line(colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank()
+          ) +
+          theme(
+            legend.title = element_blank(),
+            legend.position = c(0, 1),
+            legend.justification = c(0, 1),
+            legend.background = element_rect(colour = NA, fill = 'transparent'),
+            plot.title = element_text(hjust = 0.5),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank()
+          )}else{
+            rr_roll_time_plot<-NA
+          }
+       if(length(impact_results$pca$rr_roll[, , group])>0){
+         rr_roll_pca_plot <-
+          ggplot(
+            melt(
+              as.data.frame(impact_results$pca$rr_roll[, , group]),
+              id.vars = NULL
+            ),
+            mapping = aes_string(
+              x = rep(
+                analysis$time_points[(length(analysis$time_points) - nrow(impact_results$pca$rr_roll[, , group]) + 1):length(analysis$time_points)],
+                ncol(impact_results$pca$rr_roll[, , group])
+              ),
+              y = 'value',
+              linetype = 'variable'
+            )
+          ) +
+          geom_line() + geom_hline(yintercept = 1, linetype = 4) +
+          labs(x = 'Time', y = 'Rolling Rate Ratio') +
+          ggtitle(paste(group, 'STL+PCA Rolling Rate Ratio')) +
+          coord_cartesian(ylim = min_max) +
+          theme_bw() +
+          theme(
+            axis.line = element_line(colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank()
+          ) +
+          theme(
+            legend.title = element_blank(),
+            legend.position = c(0, 1),
+            legend.justification = c(0, 1),
+            legend.background = element_rect(colour = NA, fill = 'transparent'),
+            plot.title = element_text(hjust = 0.5),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank()
+          )
+       }else{
+         rr_roll_pca_plot<-NA
+       }
+        
+        if (!is.na(crossval_results)) {
+          rr_roll_stack_plot <-
+            ggplot(
+              melt(
+                as.data.frame(crossval_results$rr_roll_stack[, , group]),
+                id.vars = NULL
+              ),
+              mapping = aes_string(
+                x = rep(
+                  analysis$time_points[(
+                    length(analysis$time_points) - nrow(crossval_results$rr_roll_stack[, , group]) + 1
+                  ):length(analysis$time_points)],
+                  ncol(crossval_results$rr_roll_stack[, , group])
+                ),
+                y = 'value',
+                linetype = 'variable'
+              )
+            ) +
+            geom_line() + geom_hline(yintercept = 1, linetype = 4) +
+            labs(x = 'Time', y = 'Rolling Rate Ratio') +
+            ggtitle(paste(group, 'Stacked Rolling Rate Ratio')) +
+            coord_cartesian(ylim = min_max) +
+            theme_bw() +
+            theme(
+              axis.line = element_line(colour = "black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_blank(),
+              panel.background = element_blank()
+            ) +
+            theme(
+              legend.title = element_blank(),
+              legend.position = c(0, 1),
+              legend.justification = c(0, 1),
+              legend.background = element_rect(colour = NA, fill = 'transparent'),
+              plot.title = element_text(hjust = 0.5),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank()
+            )
+          
+        }
+    }else{
+      rr_roll_best_plot<-NA
+      rr_roll_full_plot<-NA
+      rr_roll_time_plot<-NA
+      rr_roll_pca_plot<-NA
       
     }
-   
-    
-    if (!is.na(crossval_results)) {
-      cumsum_prevented_stack_plot <-
-        ggplot(
-          melt(
-            as.data.frame(crossval_results$cumsum_prevented_stack[, , group]),
-            id.vars = NULL
-          ),
-          mapping = aes_string(
-            x = rep(
-              analysis$time_points,
-              ncol(crossval_results$cumsum_prevented_stack[, , group])
-            ),
-            y = 'value',
-            linetype = 'variable'
-          )
-        ) +
-        geom_line() + geom_hline(yintercept = 1, linetype = 4) +
-        labs(x = 'Time', y = 'Cumulative Sum Prevented') +
-        ggtitle(paste(
-          group,
-          'Cumulative Number of Cases Prevented (Stacked model)'
-        )) +
-        theme_bw() +
-        theme(
-          axis.line = element_line(colour = "black"),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_blank()
-        ) +
-        theme(
-          legend.title = element_blank(),
-          legend.position = c(0, 1),
-          legend.justification = c(0, 1),
-          legend.background = element_rect(colour = NA, fill = 'transparent'),
-          plot.title = element_text(hjust = 0.5),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank()
-        )
-      
-    }
+       
+        
+        if (!is.na(crossval_results)) {
+          cumsum_prevented_stack_plot <-
+            ggplot(
+              melt(
+                as.data.frame(crossval_results$cumsum_prevented_stack[, , group]),
+                id.vars = NULL
+              ),
+              mapping = aes_string(
+                x = rep(
+                  analysis$time_points,
+                  ncol(crossval_results$cumsum_prevented_stack[, , group])
+                ),
+                y = 'value',
+                linetype = 'variable'
+              )
+            ) +
+            geom_line() + geom_hline(yintercept = 1, linetype = 4) +
+            labs(x = 'Time', y = 'Cumulative Sum Prevented') +
+            ggtitle(paste(
+              group,
+              'Cumulative Number of Cases Prevented (Stacked model)'
+            )) +
+            theme_bw() +
+            theme(
+              axis.line = element_line(colour = "black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_blank(),
+              panel.background = element_blank()
+            ) +
+            theme(
+              legend.title = element_blank(),
+              legend.position = c(0, 1),
+              legend.justification = c(0, 1),
+              legend.background = element_rect(colour = NA, fill = 'transparent'),
+              plot.title = element_text(hjust = 0.5),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank()
+            )
+          
+          }
     
     
     if (!is.na(crossval_results)) {
