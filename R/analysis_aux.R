@@ -408,7 +408,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   n.pcs.keep<-5
   pcs<-pca1$x
   pcs<-apply(pcs,2, scale) #SCALE THE PCS prior to regression!
-  pcs.combo<-cbind.data.frame( 'month'=as.factor(month(time_points)),pcs[,1:n.pcs.keep, drop=F] )
+  pcs.combo<-cbind.data.frame( 'month'=as.factor(month(time_points)),pcs[,1:min(n.pcs.keep, ncol(pcs)), drop=F] )
   form0<-as.formula(paste0('~', paste(names(pcs.combo), collapse='+')))
   pcs.df<-as.data.frame(model.matrix(form0, data=pcs.combo)[,-1])
   
