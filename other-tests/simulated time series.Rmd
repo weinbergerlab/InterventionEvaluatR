@@ -73,7 +73,9 @@ set.seed(123)
 
 X1<-rpois(n.time, 15)
 X2<-rpois(n.time, 10)
-ts1<-exp(1+ ar1.gen(rho=0.7, prec.set=10) + 0.2*log(X1) +0.3*log(X2) )
+ar.piece<-ar1.gen(rho=0.7, prec.set=10) 
+fixed.piece<- 0.2*log(X1) +0.3*log(X2)
+ts1<-exp(1+ar.piece + fixed.piece)
 ts1[108:120]<-ts1[108:120]*0.8
 ts1.count<-rpois(length(ts1), ts1)
 dates<-seq.Date(from=as.Date('2000-01-01'), length.out = n.time, by='month')
