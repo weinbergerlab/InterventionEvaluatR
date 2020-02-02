@@ -129,8 +129,8 @@ doCausalImpact <-
       if (trend) {
         x <-
           as.matrix(zoo_data$full.data[,-c(1, 2)]) #Removes outcome column and offset from dataset
-        offset.t <- as.vector(exp(as.matrix(zoo_data$full.data[, 2])))
-        offset.t.pre <- as.vector(exp(as.matrix(zoo_data$cv.data[, 2])))
+        offset.t <- as.vector(exp(as.matrix(zoo_data$full.data[, 2])))-0.5
+        offset.t.pre <- as.vector(exp(as.matrix(zoo_data$cv.data[, 2])))-0.5
         x.pre <- as.matrix(zoo_data$cv.data[, -c(1, 2)])
       } else{
         x <-
@@ -149,7 +149,7 @@ doCausalImpact <-
       if (trend) {
         x <-
           as.matrix(zoo_data[,-c(1, 2)]) #Removes outcome column and offset from dataset
-        offset.t <- as.vector(exp(as.matrix(zoo_data[, 2])))
+        offset.t <- as.vector(exp(as.matrix(zoo_data[, 2])))-0.5
         offset.t.pre <-
           offset.t[time_points < as.Date(intervention_date)]
       } else{
@@ -169,9 +169,9 @@ doCausalImpact <-
     
     #Which variables are fixed in the analysis (not estimated)
     if (trend) {
-      deltafix.mod <-
-        c(rep(1, times = (ncol(x.pre) - 1)), 0) #monthly dummies, offset, fixed
-      bsts_model.pois  <-
+      deltafix.mod <- rep(0, times = (ncol(x.pre)))
+      deltafix.mod[1:(n_seasons - 1)] <- 1 #fix  monthly dummies
+       bsts_model.pois  <-
         poissonBvs(
           y = y.pre ,
           X = x.pre,
@@ -198,7 +198,7 @@ doCausalImpact <-
             BVS = TRUE,
             model = list(
               deltafix = deltafix.mod,
-              ri = TRUE,
+              ri = ri.select,
               clusterID = cID
             ),
             mcmc=list(
@@ -337,7 +337,7 @@ doCausalImpact <-
     if(trend==F){
     denom.ds<- rep(1,nrow(zoo_data))
     }else{
-      denom.ds<- zoo_data[,'log.offset'] #3full only
+      denom.ds<- exp(zoo_data[,'log.offset']) #3full only
     }
     quantiles<-rrPredQuantiles(impact=ds,denom_data=denom.ds, 
                       eval_period = analysis$eval_period,
@@ -1253,7 +1253,7 @@ glm.fun <- function(ds.fit, post.start.index) {
       family = 'poisson',
       control = glmerControl(optimizer = "bobyqa",
                              optCtrl =
-                               list(maxfun = 2e5))
+                               list(maxfun = 2e6))
     )
   pred.mean <- predict(mod1, newdata = ds.fit, re.form = NA)
   aic.test <- AIC(mod1)
@@ -1387,7 +1387,7 @@ its_func <- function(ds1,
       family = poisson(link = log),
       control = glmerControl(optimizer = "bobyqa",
                              optCtrl =
-                               list(maxfun = 2e5))
+                               list(maxfun = 2e6))
     )
   #GENERATE PREDICTIONS
   covars3 <-
@@ -1493,7 +1493,10 @@ single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, ev
   names(ds2)[ncol(ds2)]<-covars[i]
   ds2$obs<-as.factor(1:nrow(ds2))
   form1<-as.formula(paste0('outcome.pre~s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+' ,covars[i], '+(1|obs)')) 
-                    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2)
+                    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2,
+                                control = glmerControl(optimizer = "bobyqa",
+                                                       optCtrl =
+                                                         list(maxfun = 2e6)))
                     #Manually calculate CIs
                     aic.summary[[i]]<-AIC(mod1) #only for reference--tough to use for mixed model
                      covars3<-as.matrix(ds2[c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11',covars[i])])
