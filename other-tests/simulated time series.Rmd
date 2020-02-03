@@ -80,8 +80,6 @@ ts1[108:120]<-ts1[108:120]*0.8
 ts1.count<-rpois(length(ts1), ts1)
 dates<-seq.Date(from=as.Date('2000-01-01'), length.out = n.time, by='month')
 ds1<-cbind.data.frame('Y'=ts1.count,'rep'=1,'date'=dates, X1, X2, denom=1)
-ds2<-cbind.data.frame('Y'=ts1.count,'rep'=2,'date'=dates, X1, X2, denom=1)
-ds1<-rbind.data.frame(ds1,ds2)
 ds1$rep<-as.factor(ds1$rep)
 ```
 
@@ -193,7 +191,6 @@ print.cum(results.spike)
 ```
 
 ```{r mainplot1, echo=FALSE}
-plots.spike <- evaluatr.plots(analysis.spike)
 plots.ridge <- evaluatr.plots(analysis.ridge.iid)
 plots.ridge.ar1 <- evaluatr.plots(analysis.ridge.ar1)
 
@@ -204,9 +201,8 @@ plots.ridge.ar1 <- evaluatr.plots(analysis.ridge.ar1)
 
 This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
 ```{r, fig.width=5, fig.height=4}
-  plots.spike$groups[["1-4 years"]]$pred_full 
-  plots.ridge$groups[["1-4 years"]]$pred_full 
-  plots.ridge.ar1$groups[["1-4 years"]]$pred_full 
+  plots.ridge$groups[["1"]]$pred_full 
+  plots.ridge.ar1$groups[["1"]]$pred_full 
 
 ```
 
@@ -318,6 +314,187 @@ sim.iid.q<-t(apply(sim.iid,1,quantile, probs=c(0.025,0.5,0.975)))
 
 matplot(sim.ar1.q, type='l', lty=c(2,1,2), col='red')
 matplot(sim.iid.q, type='l', lty=c(2,1,2), col='blue', add=T)
+
+```
+
+try to run analysis outside of loop
+
+```{r}
+analysis<-analysis.ridge.ar1
+zoo_data=ds1
+                    intervention_date=analysis$intervention_date
+                    n_seasons= analysis$n_seasons
+                    time_points= analysis$time_points
+                    error_dist=analysis$error_dist
+                    model.variant='full'
+  
+  y <- zoo_data[, 1] #all y
+  y.pre <-y
+  y.pre[time_points >= as.Date(intervention_date)]<-NA
+  post_period_response<- y[time_points >= as.Date(intervention_date)]
+  x.all <-as.matrix(zoo_data[,c('X1','X2')]) #Removes outcome column from dataset
+  months<-model.matrix(~as.factor(month(zoo_data$date)), data=zoo_data)[,-1]
+  
+  y.pre[time_points>=analysis$intervention_date]<-NA
+  
+  #Filter columsn with 0 variations in the covariate in the pre-vax period
+  #x.var<-apply(x,2, function(xx) var(xx))  
+  #x.var[is.na(x.var)]<-0
+  #x<-x[,x.var>0] 
+  
+  ##NEEDTO SEPRATE OUT SEASONAL DUMMIES FROM COVARS
+  x<-x.all
+  x.months<-months
+  dimnames(x.months)[[2]]<-paste0('season', 1:(analysis$n_seasons-1))
+  
+  #Should be already scaled, but doesn't hurt...
+  x.scale<-apply(x,2, function(z) scale(z)) 
+  
+  df1<-cbind.data.frame(y.pre, 'month'=as.factor(month(time_points)), y, x.scale )
+  df1$t<-1:nrow(df1)
+  covar.df.full<-cbind.data.frame( x.scale, 'month'=df1$month) 
+  
+  #Matrix for restriction random effects
+  x.in.full<-as.data.frame(model.matrix(~. , data=covar.df.full))[,-1] #dummies for month, remove intercept
+  mod.df.full<- cbind.data.frame(y,y.pre, x.in.full)
+  
+  
+    A.full<- t(mod.df.full[,3:15])
+    A.full[,is.na(mod.df.full$y.pre)]<-0  #extraploation period shouldn't factor into constraint
+    e.full=rep(0, nrow(A.full))
+    
+    n <- nrow(mod.df.full)
+    X <- matrix(1,nrow = n, ncol= 1)
+    Z <- as.matrix(x.in.full) 
+    pX = ncol(X) 
+    pZ = ncol(Z)
+    idx.X = c(1:pX, rep(NA, pZ))
+    idx.Z = c(rep(NA,pX), 1:pZ)
+    hyper.fixed = list(prec = list(initial = log(0.00001), fixed=TRUE))
+    param.beta = list(prec = list(param = c(1.0e-3, 1.0e-3))) 
+    param.Z =  param.beta   
+    param.data = list(prec = list(param = c(1.0e-3, 1.0e-3)))
+    t=1:nrow(x.in.full)
+    #http://www.r-inla.org/faq
+    add.beta.cols<-as.data.frame(matrix(rep(1:ncol(x.in.full), each=nrow(x.in.full)), nrow=nrow(x.in.full)))
+    names(add.beta.cols)<-paste0('beta', 1:ncol(x.in.full))
+    mod.df.full<-cbind.data.frame(mod.df.full,add.beta.cols)
+    #Setup for Ridge regression
+    #https://bitbucket.org/hrue/r-inla/src/0d9389b414979bcf3507c60f69a50488d18e4c6c/r-inla.org/examples/stacks/stacks.R?at=default
+    x.in.full.no.season<-x.in.full[,-grep('month', names(x.in.full))]
+    x.in.full.season<-x.in.full[,grep('month', names(x.in.full))]
+    first.beta<-paste0("f(beta1,", names(x.in.full.no.season)[1], ",model='iid',hyper = param.beta,", "values=c(", paste(1:ncol(x.in.full.no.season), collapse=',') ,"))" )
+    next.beta.f<-function(x, covar.index){ 
+      paste0("f(beta",covar.index,",", names(x.in.full.no.season)[covar.index], ",copy='beta1', fixed=T)")
+    }
+    betas.list<- mapply(next.beta.f, x=x.in.full.no.season[-1], covar.index=2:ncol(x.in.full.no.season), SIMPLIFY=T)
+    next.betas<- paste(betas.list, collapse='+')  
+    all.betas<-paste(first.beta,next.betas , sep='+')    
+    
+    if(error_dist=='ar1'){
+    form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1', constr=T,extraconstr=list(A=A.full, e=e.full))" ) )
+    #form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1')") )
+      
+       }else{
+    form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'iid')") )
+      
+    }
+    
+    mod1.full = inla(form1, data = mod.df.full, 
+                     control.predictor = list(compute=TRUE, link = 1), 
+                     family='poisson',
+                     control.compute=list(config = TRUE,waic=TRUE))
+    waic<-mod1.full$waic$waic
+    pd<- mod1.full$waic$p.eff
+    ds<-list('fitted.model'=mod1.full, 'mod.df'=mod.df.full, 'x.in'=x.in.full,'offset'=NA,'offset.used'=F,'ridge'=T, 'waic'=waic, 'pd'=pd)
+  
+  
+  if(ds$ridge==T){  
+    coefs<-ds$fitted.model$summary.random[['beta1']]
+    coefs$covar<-names(ds$x.in)[-grep('month',names(ds$x.in)) ]
+  }else{
+    coefs<-ds$fitted.model$summary.fixed
+  }
+  coefs<-coefs[order(coefs$`0.5quant`),]
+  
+  posterior.list<-inla.posterior.sample(n=500, ds$fitted.model, seed=123)
+  post.labels<-dimnames(posterior.list[[1]]$latent)[[1]]
+  #post.labels<-gsub(":", "_", post.labels)
+  posterior.samples<- sapply(posterior.list, '[[', 'latent')
+  preds.select<-grep('Predictor',post.labels )
+  rand.eff.select.t1<-which(substr(post.labels,1,2 )=='t:')
+  
+  if(ds$ridge==T){  
+    covar.select.betas<-grep('beta1:', post.labels)
+    covar.select.months<-grep('month', post.labels)
+    covar.select<-c(covar.select.betas,covar.select.months)
+  }else{
+    covar.select<- which(names(ds$x.in)  %in% sub("\\:.*", "", post.labels))
+  }
+  
+  beta.posterior<-(posterior.samples[covar.select,]) 
+  beta.posterior.median<- apply(beta.posterior,1,median)
+  beta.posterior.hdi<-cbind(beta.posterior.median,t(hdi(t(beta.posterior), credMass = 0.95)))
+  row.names(beta.posterior.hdi)<-names(ds$x.in)
+  
+  beta.fix.posterior.hdi<-beta.posterior.hdi[-grep('month',names(ds$x.in)),]
+  
+  fixed.effect<- as.matrix(ds$x.in) %*% beta.posterior #fixed piece of regression, excluding intercept
+  fixed.effect.hdi<-t(hdi(t(fixed.effect), credMass = 0.95))
+  fixed.effect.median<-apply(fixed.effect,1, median)
+  fixed.effect.hdi<-cbind.data.frame('median'=fixed.effect.median, fixed.effect.hdi)
+  
+  posterior.preds<-exp(posterior.samples[preds.select,]) #lambda
+  #now take Poisson samples withmean of lambda
+  posterior.preds.counts<- matrix(rpois(n=length(posterior.preds), lambda=posterior.preds), nrow=nrow(posterior.preds), ncol=ncol(posterior.preds))
+  
+  rand.eff.t1<-posterior.samples[rand.eff.select.t1,]
+  rand.eff1.q<-t(apply(rand.eff.t1, 1, quantile, probs=c(0.025,0.5,0.975)))
+  
+  posterior.preds.q<-t(apply(posterior.preds.counts,1,quantile, probs=c(0.025, 0.5, 0.975)))
+  posterior.median<-as.integer(round(t(apply(posterior.preds.counts,1,median))))
+  ci<- t(hdi(t(posterior.preds.counts), credMass = 0.95))
+  posterior.pred.hdi<- cbind.data.frame('median'=posterior.median, ci)
+  
+  rho1<-ds$fitted.model$summary.hyperpar[3,c('0.5quant','0.025quant', '0.975quant')]
+  
+  rand.eff.combined<-rand.eff.t1 #+rand.eff.t2
+  rand.eff.combined.q<-t(apply(rand.eff.combined, 1, quantile, probs=c(0.025,0.5,0.975)))
+  
+  log.rr.pointwise<- apply(posterior.preds.counts, 2, function(x)log( (mod.df.full$y+1)/ (x+1)) )
+  log.rr.pointwise.ci<- t(hdi(t(log.rr.pointwise), credMass = 0.95))
+  log.rr.pointwise.median<- apply(log.rr.pointwise.ci,1,median)
+  log_rr_full_t_hdi<-cbind(log.rr.pointwise.median,log.rr.pointwise.ci)
+  # matplot(log.rr, type='l', col='gray', lty=c(2,1,2))
+  # abline(h=0, col='red')
+  log_rr_full_t_quantiles<- t(apply(log.rr.pointwise,1,quantile, probs=c(0.025,0.5,0.975)))
+  log_rr_full_t_sd<- apply(log.rr.pointwise,1,sd)
+  #log_rr_full_t_samples.prec.post<-1/log_rr_full_t_sd^2
+    
+  post.period<- which(time_points>= analysis$eval_period[1]  &time_points<= analysis$eval_period[2] )
+  
+  post.samples<-posterior.preds.counts[post.period,]
+  
+  post.samples.sum<-apply(post.samples,2,sum)
+  obs.post.sum<- sum(mod.df.full$y[post.period])
+  rr.agg<-obs.post.sum/post.samples.sum
+  rr.q<-quantile(rr.agg, probs=c(0.025, 0.5, 0.975)) 
+  rr.hdi<-c(rr.q['50%'],hdi(rr.agg, credMass = 0.95))
+  mean_rr<-mean(rr.agg)
+  
+  post.samples.sum.q<-quantile(post.samples.sum, probs=c(0.025, 0.5, 0.975))
+  pred.hdi <- cbind( post.samples.sum['50%'],hdi(post.samples.sum, credMass = 0.95))
+  
+  year<-year(time_points)  
+  pred.sum.year.post<-apply(posterior.preds.counts,2, function(x) aggregate(x, by=list('year'=year), FUN=sum))
+  pred.sum.year.post<-sapply(pred.sum.year.post,function(x) x[,2])
+  pred.sum.year.ci<- t(hdi(t(pred.sum.year.post), credMass = 0.95))
+  
+  pred_samples_post_full<-post.samples
+  pred<-t(apply(posterior.preds.counts,1, quantile, probs=c(0.025, 0.5, 0.975)))
+  
+
+  
 
 ```
 
