@@ -277,7 +277,11 @@ evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) 
 #' @export
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
-  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
+  if (analysis$ridge) {
+    # No PCA under ridge
+    variants = intersect(c('full', 'time', 'time_no_offset'), variants)    
+  }
+  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(variants, function(variant) variant$name)))
   evaluatr.impact.pre(analysis, run.stl= ('pca' %in% variants))
   results1 = list()
   
@@ -319,10 +323,10 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     for (variant in variants) {
       progressStartPart(analysis)
       results1[[variant]]$groups <- setNames(
-        pblapply(
-          cl = cl,
+        parLapply(
+          cl = cluster(analysis),
           analysis$.private$data[['full']],
-          FUN = inla_mods,
+          fun = inla_mods,
           model.variant=variant
         ),
         analysis$groups
