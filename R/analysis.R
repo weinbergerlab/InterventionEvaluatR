@@ -226,8 +226,13 @@ evaluatr.init <- function(country,
 
 # This is used by the web UI to set up parallel computation 
 evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) {
-  analysis$.private$startCluster = startCluster
-  analysis$.private$stopCluster = stopCluster
+  if (!is.null(startCluster)) {
+    analysis$.private$startCluster = startCluster
+    analysis$.private$stopCluster = stopCluster
+  } else {
+    analysis$.private$startCluster = defaultStartCluster
+    analysis$.private$stopCluster = defaultStopCluster
+  }
   analysis$.private$progress = progress
 }
 
