@@ -4,7 +4,10 @@
 \alias{evaluatr.prune}
 \title{Prune unneeded data from the analysis object. Used internally before saving to reduce size of saved data.}
 \usage{
-evaluatr.prune(analysis)
+evaluatr.prune(analysis, what = "all")
+}
+\arguments{
+\item{what}{What to prune. 'impact' means prune intermediate results of impact analysis, but leave around data needed for sensitivity analysis and cross-validation. 'all' means prune everything.}
 }
 \description{
 Prune unneeded data from the analysis object. Used internally before saving to reduce size of saved data.

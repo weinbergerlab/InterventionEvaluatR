@@ -38,18 +38,37 @@ evaluatr.save <- function (analysis, output_file, prune=TRUE) {
 #' Prune unneeded data from the analysis object. Used internally before saving to reduce size of saved data.
 
 #' @export
+#' @param what What to prune. 'impact' means prune intermediate results of impact analysis, but leave around data needed for sensitivity analysis and cross-validation. 'all' means prune everything.
 #' @keywords internal
 
-evaluatr.prune <- function(analysis) {
-  analysis$.private$ds = NULL
-  analysis$.private$data = NULL
-  analysis$.private$data.cv = NULL
+evaluatr.prune <- function(analysis, what='all') {
+  if (what == 'all') {
+    analysis$.private$ds = NULL
+    analysis$.private$data = NULL
+    analysis$.private$data.cv = NULL
+  }
   
   for (variant in c("best", names(analysis$.private$variants))) {
-    analysis$results$impact[[variant]]$log_rr_full_t_samples.prec = NULL
-    analysis$results$impact[[variant]]$log_rr_quantiles = NULL
-    analysis$results$impact[[variant]]$quantiles = NULL
-    analysis$results$impact[[variant]]$groups = NULL
+    if (what == "all") {
+      analysis$results$impact[[variant]]$log_rr_full_t_samples.prec = NULL
+      analysis$results$impact[[variant]]$log_rr_quantiles = NULL
+      analysis$results$impact[[variant]]$quantiles = NULL
+      analysis$results$impact[[variant]]$groups = NULL
+    } else if (what == "impact") {
+      for (group in names(analysis$results$impact[[variant]]$groups)) {
+        analysis$results$impact[[variant]]$groups[[group]]$reg.mean = NULL
+        analysis$results$impact[[variant]]$groups[[group]]$rand.eff = NULL
+        analysis$results$impact[[variant]]$groups[[group]]$predict.bsts = NULL
+        analysis$results$impact[[variant]]$groups[[group]]$beta.mat = NULL
+      }
+
+      for (group in names(analysis$results$impact[[variant]]$quantiles)) {
+        analysis$results$impact[[variant]]$quantiles[[group]]$pred_samples_post_full = NULL
+        analysis$results$impact[[variant]]$quantiles[[group]]$pred_samples = NULL
+      }
+
+      analysis$results$impact[[variant]]$rr_iter = NULL
+    }
   }
   
   analysis

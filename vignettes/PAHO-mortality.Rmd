@@ -39,7 +39,7 @@ library(xtable)
 library(knitr)
 library(htmlTable)
 library(InterventionEvaluatR)
-library(coda)
+library(coda) 
 ```
 
 
@@ -141,14 +141,14 @@ impact_results = evaluatr.impact(analysis)
 ## Check model convergence
 These models are fit using Markov Chain Monte Carlo (MCMC). It is important to evaluate the convergence of the model. A quick way to check this is to evaluate the trace plots for rate ratio estimates from the synthetic controls model (or for the other model variants). We use Geweke's diagnostic, which tests whether the mean estimate for the rate ratio in the first 10% of the iterations is equal to the mean estimate for the rate ration in the last 50% of the iterations. If the model has not converged, you might need to add more iterations or a longer burn in period
 ```{r}
-all.traces<-sapply(impact_results,'[[', 'rr_iter')
-cats<-dimnames(all.traces[[1]])[[1]]
-all.converge.status<-sapply(impact_results,'[[', 'converge')
-for(j in c('full','time','pca')){
-for(i in 1: nrow(all.traces[[1]])){
-   plot(all.traces[[j]][i,], type='l', main=paste0(j,' ',cats[i],' ' ,all.converge.status[[j]][i,2] ), bty='l', ylim=c(0.2,2))
-}
-}
+# all.traces<-sapply(impact_results,'[[', 'rr_iter')
+# cats<-dimnames(all.traces[[1]])[[1]]
+# all.converge.status<-sapply(impact_results,'[[', 'converge')
+# for(j in c('full','time','pca')){
+# for(i in 1: nrow(all.traces[[1]])){
+#    plot(all.traces[[j]][i,], type='l', main=paste0(j,' ',cats[i],' ' ,all.converge.status[[j]][i,2] ), bty='l', ylim=c(0.2,2))
+# }
+# }
 
 ```
 
