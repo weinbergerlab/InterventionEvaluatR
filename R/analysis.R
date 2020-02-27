@@ -281,7 +281,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     # No PCA under ridge
     variants = intersect(c('full', 'time', 'time_no_offset'), variants)    
   }
-  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(variants, function(variant) variant$name)))
+  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(variants, function(variant) analysis$.private$variants[[variant]]$name)))
   evaluatr.impact.pre(analysis, run.stl= ('pca' %in% variants))
   results1 = list()
   
