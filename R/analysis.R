@@ -129,7 +129,7 @@ evaluatr.init <- function(country,
         time_no_offset = list(
           var.select.on = FALSE,
           trend = FALSE,
-          name = "Time trend (no offset)"
+          name = "Time trend — no offset"
         ),
         pca = list(
           var.select.on = FALSE,
