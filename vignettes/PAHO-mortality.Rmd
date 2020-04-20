@@ -202,7 +202,7 @@ htmlTable(model_size, align='c')
 ```
 
 ## Inclusion Probabilities
-```{r incl, include = FALSE}
+```{r incl, include = TRUE}
 incl_probs <- NULL
 for (group in analysis$groups) {
   incl_prob <- impact_results$full$groups[[group]]$inclusion_probs[-c(1:(analysis$n_seasons - 1)), ]
