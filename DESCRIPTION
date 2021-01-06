@@ -7,10 +7,11 @@ Maintainer: Ben Artin <ben@artins.org>
 Description: Intervention evaluation package
 Depends:
     R(>= 3.5.0)
+# Incompatible with future 1.20+ until https://github.com/HenrikBengtsson/future/issues/462 is fixed
 Imports: 
     plyr,
     parallel,
-    future,
+    future (<= 1.19.1),
     pomp,
     splines,
     MASS,
