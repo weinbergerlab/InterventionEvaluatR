@@ -10,11 +10,11 @@ This package is designed to run several different types of analyses to evaluate 
 -library(devtools)
 
 
-*Note* There is an issue with one of the dependencies for tis package. Recent versions of the "future" package do not work. You need to first install a previous version of future using:
+**Note There is an issue with one of the packages that InterventionEvaluatrR depends on. Recent versions of the "future" package do not work. You need to first install a previous version of future using:
 
 install_version("future", version = "1.19.1", repos = "http://cran.us.r-project.org")
 
-Then continue on with the installation of InterventionEvaluatR (do not update packages when prompted)
+Then continue on with the installation of InterventionEvaluatR (do not update packages when prompted) as follows:
 
 
 -devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR')
