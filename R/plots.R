@@ -66,17 +66,7 @@ evaluatr.plots <- function(analysis) {
     }else {
       pred_pca_plot <- NA
     }
-    if (!is.na(crossval_results)) {
-      pred_stack_plot <- plotPred(crossval_results$pred_quantiles_stack[, 
-                                                                        , group], analysis$time_points, analysis$post_period, 
-                                  min_max, analysis$outcome[, group], title = paste(group, 
-                                                                                    "Stacked estimate"))
-      pred_stack_plot_agg <- plotPredAgg(crossval_results$ann_pred_quantiles_stack[[group]], 
-                                         analysis$time_points, analysis$year_def, analysis$intervention_date, 
-                                         analysis$post_period, min_max, analysis$outcome[, 
-                                                                                         group], title = paste(group, "Stacked estimate"))
-    }
-   
+
     pred_full_plot_agg <- plotPredAgg(impact_results$full$ann_pred_quantiles[[group]], 
                                       analysis$time_points, analysis$year_def, analysis$intervention_date, 
                                       analysis$post_period, min_max, analysis$outcome[, 
@@ -210,24 +200,6 @@ evaluatr.plots <- function(analysis) {
       }
       else {
         rr_roll_pca_plot <- NA
-      }
-      if (!is.na(crossval_results)) {
-        rr_roll_stack_plot <- ggplot(melt(as.data.frame(crossval_results$rr_roll_stack[, 
-                                                                                       , group]), id.vars = NULL), mapping = aes_string(x = rep(analysis$time_points[(length(analysis$time_points) - 
-                                                                                                                                                                        nrow(crossval_results$rr_roll_stack[, , group]) + 
-                                                                                                                                                                        1):length(analysis$time_points)], ncol(crossval_results$rr_roll_stack[, 
-                                                                                                                                                                                                                                              , group])), y = "value", linetype = "variable")) + 
-          geom_line() + geom_hline(yintercept = 1, linetype = 4) + 
-          labs(x = "Time", y = "Rolling Rate Ratio") + 
-          ggtitle(paste(group, "Stacked Rolling Rate Ratio")) + 
-          coord_cartesian(ylim = min_max) + theme_bw() + 
-          theme(axis.line = element_line(colour = "black"), 
-                panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
-                panel.border = element_blank(), panel.background = element_blank()) + 
-          theme(legend.title = element_blank(), legend.position = c(0, 
-                                                                    1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, 
-                                                                                                                                         fill = "transparent"), plot.title = element_text(hjust = 0.5), 
-                panel.grid.major = element_blank(), panel.grid.minor = element_blank())
       }
     }  else {
       rr_roll_best_plot <- NA
