@@ -21,7 +21,6 @@ evaluatr.init(
   set.sampleN = 10000,
   denom_name,
   log.covars = TRUE,
-  ridge = F,
   error_dist = "iid",
   sparse_threshold = 5
 )
@@ -58,8 +57,6 @@ evaluatr.init(
 \item{denom_name}{Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.}
 
 \item{log.covars}{Should the covariate be log transformed? (default: TRUE)}
-
-\item{ridge}{Run ridge regression with AR(1) random intercepts (faster) or spike and slab (with iid random intercept) for variable selection. Logical, Default TRUE.}
 
 \item{error_dist}{For the INLA models: use an 'iid' or 'ar1' error on the random intercept. Defaults to iid. Use caution with AR(1) as it can introduce bias in some situations}
 
@@ -114,7 +111,6 @@ Initialized analysis object, `analysis` as described below
 
 `analysis$outcome` as passeed to `outcome_name`
 
-`analysis$ridge` as passeed to `ridge`
 `analysis$error_dist` as passeed to `error_dist`
 `analysis$sparse_threshold` as passed to `sparse_threshold`
 }
