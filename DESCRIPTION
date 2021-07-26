@@ -1,10 +1,10 @@
-Package: InterventionEvaluatR
-Title: InterventionEvaluatR
+Package: InterventionEvaluatRlite
+Title: InterventionEvaluatRlite
 Version: 0.1
 Date: 2018-01-15
 Author: Daniel Weinberger, Ben Artin
 Maintainer: Ben Artin <ben@artins.org>
-Description: Intervention evaluation package
+Description: Intervention evaluation package-Lite edition
 Depends:
     R(>= 3.5.0)
 # Incompatible with future 1.20+ until https: //github.com/HenrikBengtsson/future/issues/462 is fixed
