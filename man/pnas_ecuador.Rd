@@ -4,7 +4,8 @@
 \name{pnas_ecuador}
 \alias{pnas_ecuador}
 \title{TODO}
-\format{Monthly time series of cause-specific hospitalizations from Ecuador, as described in Bruhn et al., PNAS. 
+\format{
+Monthly time series of cause-specific hospitalizations from Ecuador, as described in Bruhn et al., PNAS. 
 The columns refer to sets of ICD10 codes. 
 'age_group' categories: 
   0: <3months 
@@ -16,7 +17,8 @@ The columns refer to sets of ICD10 codes.
   6:40-64 years
   7:65-79 years
   8: 80+ years
-  9: <12 months}
+  9: <12 months
+}
 \description{
 TODO
 }

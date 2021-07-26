@@ -76,24 +76,24 @@
 #' @export
 
 evaluatr.init <- function(country,
-                        data,
-                        pre_period_start='start',
-                        post_period_start,
-                        post_period_end=eval_period_end,
-                        eval_period_start,
-                        eval_period_end,
-                        n_seasons=12,
-                        year_def='cal_year',
-                        group_name,
-                        date_name,
-                        outcome_name,
-                        set.burnN=5000,
-                        set.sampleN=10000,
-                        denom_name,
-                        log.covars=TRUE,
-                        ridge=F,
-                        error_dist='iid',
-                        sparse_threshold = 5) {
+                          data,
+                          pre_period_start='start',
+                          post_period_start,
+                          post_period_end=eval_period_end,
+                          eval_period_start,
+                          eval_period_end,
+                          n_seasons=12,
+                          year_def='cal_year',
+                          group_name,
+                          date_name,
+                          outcome_name,
+                          set.burnN=5000,
+                          set.sampleN=10000,
+                          denom_name,
+                          log.covars=TRUE,
+                          ridge=F,
+                          error_dist='iid',
+                          sparse_threshold = 5) {
   analysis = listenv(
     time_points = NA,
     
@@ -159,7 +159,7 @@ evaluatr.init <- function(country,
   analysis$log.covars <- log.covars
   analysis$ridge <- ridge
   analysis$error_dist<-error_dist
-    normalizeDate <- function(d) {
+  normalizeDate <- function(d) {
     if (is.Date(d)) {
       d
     } else {
@@ -167,7 +167,7 @@ evaluatr.init <- function(country,
     }
   }
   
-
+  
   # Parse date formats of various inputs  
   data[, date_name] <- normalizeDate(data[, date_name])
   post_period_start <- normalizeDate(post_period_start)
@@ -175,7 +175,7 @@ evaluatr.init <- function(country,
   eval_period_start <- normalizeDate(eval_period_start)
   eval_period_end <- normalizeDate(eval_period_end)
   
-
+  
   # Identify various significant dates  
   if(!is.Date(pre_period_start) && pre_period_start=='start'){
     first.date.data<-min(data[,date_name])
@@ -334,19 +334,19 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       progressEndPart(analysis)
     }
   }  
-
+  
   stopCluster(analysis)
-
-#    return(results1)
-#}
-#part2<-function(ds){
+  
+  #    return(results1)
+  #}
+  #part2<-function(ds){
   results <- vector("list", length(variants))
   names(results)<-variants
   quantiles<-vector("list", length(variants))
   names(quantiles)<-variants
   cumsum1<-vector("list", length(variants))
   names(cumsum1)<-variants  
- # cumsum1.hdi<-vector("list", length(variants))
+  # cumsum1.hdi<-vector("list", length(variants))
   #names(cumsum1.hdi)<-variants
   
   for (variant in variants) {
@@ -363,7 +363,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       results[[variant]]$inclusion_prob <-
         setNames(lapply(results[[variant]]$groups, inclusionProb), analysis$groups)
     }
-  
+    
     # Calculate best model
     if(analysis$ridge==F){
       if ("full" %in% variants) {
@@ -371,9 +371,9 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           sapply(results$full$groups, modelsize_func, n_seasons = analysis$n_seasons)
       }
     }else{
-      analysis$model_size <- NA
+      analysis$model_size <- 1 #For ridge, just use SC model as 'best'
     }
-  
+    
     if (all(c("full", "pca") %in% variants)) {
       results$best$quantiles <-
         vector("list", length(results$full$quantiles))
@@ -383,23 +383,23 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         results$pca$quantiles[analysis$model_size < 1]
       results$best$quantiles <-
         setNames(results$best$quantiles, analysis$groups)
-
+      
       results$best$variant <-
         vector("list", length(results$full$quantiles))
       results$best$variant[analysis$model_size >= 1] <- "full"
       results$best$variant[analysis$model_size < 1] <- "pca"
       results$best$variant <-
         setNames(results$best$variant, analysis$groups)
-
+      
       variants = c("best", variants)
     }
-  
+    
     # if(analysis$model_size >= 1){
-      results$best$cumsum_prevented<- results$full$cumsum_prevented
+    results$best$cumsum_prevented<- results$full$cumsum_prevented
     # }else{
     #   results$best$cumsum_prevented<- results$pca$cumsum_prevented
     # }
-
+    
     for (variant in variants) {
       # Predictions, aggregated by year
       results[[variant]]$pred_quantiles <-
@@ -411,7 +411,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       results[[variant]]$ann_pred_HDI <-
         sapply(results[[variant]]$quantiles, getAnnPredHDI, simplify = FALSE)
     }
-
+    
     for (variant in intersect(c('full', 'best'), variants)) {
       # Pointwise RR and uncertainty for second stage meta variant
       results[[variant]]$log_rr_quantiles <-
@@ -432,7 +432,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           },
           simplify = 'array'
         )
-    
+      
       results[[variant]]$log_rr_hdi <-
         sapply(
           results[[variant]]$quantiles,
@@ -443,7 +443,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         )
       dimnames(results[[variant]]$log_rr_hdi)[[1]] <-
         analysis$time_points
-    
+      
       results[[variant]]$log_rr_full_t_samples.prec <-
         sapply(
           results[[variant]]$quantiles,
@@ -453,7 +453,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           simplify = 'array'
         )
     }
-  
+    
     for (variant in variants) {
       # Rolling rate ratios
       results[[variant]]$rr_roll <-
@@ -471,7 +471,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         t(sapply(results[[variant]]$quantiles, getRRiter))
       results[[variant]]$rr_mean_hdi <-
         t(sapply(results[[variant]]$quantiles, getRRHDI))
-    
+      
       #Convergence status
       trace1<-results[[variant]]$rr_iter
       con.stat<-matrix(NA, nrow=nrow(trace1), ncol=2)
@@ -485,13 +485,13 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           con.stat[i,2]<-'Not converged'
         } 
       }
-        results[[variant]]$converge<-con.stat 
-      }
-  
+      results[[variant]]$converge<-con.stat 
+    }
+    
     if ('best' %in% variants) {
       results$best$log_rr <- t(sapply(results$best$quantiles, getsdRR))
     }
-  
+    
     for (variant in variants) {
       results[[variant]]$rr_mean_intervals <-
         setNames(
@@ -505,12 +505,12 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           )
         )
     }
-
+    
     if ('time' %in% variants) {
       colnames(results$time$rr_mean) <-
         paste('Time_trend', colnames(results$time$rr_mean))
     }
-  
+    
     #Run a classic ITS analysis
     rr.its1 <-
       lapply(
@@ -534,7 +534,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         check.names = FALSE,
         row.names = analysis$groups
       )
-
+    
     #Combine RRs into 1 for ease of plotting
     results$rr_mean_combo <- 
       do.call(rbind, lapply(seq_along(names(analysis$.private$variants)), function(idx) {
@@ -553,13 +553,13 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
           c('Model', 'Model_tag', 'groups', 'group.index', 'lcl', 'mean.rr', 'ucl')
         )
       }))
-
+    
     results$point.weights <-
       as.data.frame(matrix(rep(1, nrow(
         results$rr_mean_combo
       )), ncol = 1))
     names(results$point.weights) <- 'value'
-  
+    
     results$rr_mean_combo$group.index <-
       as.numeric(as.character(results$rr_mean_combo$group.index))
     results$rr_mean_combo$mean.rr <-
@@ -582,8 +582,8 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         )
       )
     #print(levels(rr_mean_combo$Model))
-  
-  
+    
+    
     analysis$results$impact <- results
     analysis = evaluatr.prune(analysis, what="impact")
     return(analysis)
@@ -872,7 +872,7 @@ evaluatr.sensitivity = function(analysis) {
         sensitivity_groups
       )
     stopCluster(analysis)
-
+    
     results$sensitivity_pred_quantiles <-
       lapply(
         sensitivity_analysis_full,
@@ -979,7 +979,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
     for (name in setdiff(names.before, names.after)) {
       dataCheckWarning(paste0("Data for '", name, "' removed from all groups due to zero variance.\n"))
     }
-  
+    
     # Format covars
     #test<-split(prelog_data, factor(prelog_data[,analysis$group_name]))
     #outcome.na<-sapply(test, function(x) sum(is.na(x[,analysis$outcome_name])))
@@ -1005,30 +1005,30 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
       analysis$groups
     )
     #if (exists('exclude_group')) {prelog_data <- prelog_data[!(names(prelog_data) %in% exclude_group)]}
-  
+    
     #Log-transform all variables, adding 0.5 to counts of 0.
- if(analysis$log.covars){
-    analysis$.private$ds <-
-      setNames(lapply(
-        prelog_data,
-        FUN = logTransform,
-        no_log = c(
-          analysis$group_name,
-          analysis$date_name,
-          analysis$outcome_name
-        )
-      ),
-      analysis$groups)
- }else{
-   analysis$.private$ds <-
-     setNames( prelog_data,
-     analysis$groups)
-   
- }
-   
+    if(analysis$log.covars){
+      analysis$.private$ds <-
+        setNames(lapply(
+          prelog_data,
+          FUN = logTransform,
+          no_log = c(
+            analysis$group_name,
+            analysis$date_name,
+            analysis$outcome_name
+          )
+        ),
+        analysis$groups)
+    }else{
+      analysis$.private$ds <-
+        setNames( prelog_data,
+                  analysis$groups)
+      
+    }
+    
     analysis$time_points <-
       unique(analysis$.private$ds[[1]][, analysis$date_name])
-  
+    
     #Monthly dummies
     if (analysis$n_seasons == 4) {
       dt <- quarter(as.Date(analysis$time_points))
@@ -1047,7 +1047,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
     analysis$.private$season.dummies <- as.data.frame(analysis$.private$season.dummies)
     names(analysis$.private$season.dummies) <- paste0('s', 1:analysis$n_seasons)
     analysis$.private$season.dummies <- analysis$.private$season.dummies[, -analysis$n_seasons]
-  
+    
     analysis$.private$ds <-
       lapply(analysis$.private$ds, function(ds) {
         if (!(analysis$denom_name %in% colnames(ds))) {
@@ -1055,7 +1055,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         }
         return(ds)
       })
-  
+    
     analysis$sparse_groups <-
       sapply(analysis$.private$ds, function(ds) {
         return(ncol(ds[!(
@@ -1074,7 +1074,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
       stop("Unable to proceed with analysis: all groups are sparse")
     }
     analysis$groups <- analysis$groups[!analysis$sparse_groups]
-  
+    
     #Process and standardize the covariates. For the Brazil data, adjust for 2008 coding change.
     analysis$covars = list()
     analysis$covars$full <-
@@ -1119,7 +1119,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         }
       ),
       analysis$groups)
-  
+    
     #Standardize the outcome variable and save the original mean and SD for later analysis.
     analysis$outcome <-
       sapply(
@@ -1131,8 +1131,8 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
     
     analysis
   })
-    
-    
+  
+  
   offset <-
     sapply(
       analysis$.private$ds,
@@ -1144,69 +1144,69 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
   #EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
   # Set a list of parameters for STL
   if(run.stl==TRUE){
-        stl.covars <-
-          mapply(
-            smooth_func,
-            ds.list = analysis$.private$ds,
-            covar.list = analysis$covars$full,
-            SIMPLIFY = FALSE,
-            MoreArgs = list(n_seasons = analysis$n_seasons)
+    stl.covars <-
+      mapply(
+        smooth_func,
+        ds.list = analysis$.private$ds,
+        covar.list = analysis$covars$full,
+        SIMPLIFY = FALSE,
+        MoreArgs = list(n_seasons = analysis$n_seasons)
+      )
+    post.start.index <-
+      which(analysis$time_points == analysis$post_period[1])
+    
+    if (length(analysis$groups) > 1) {
+      stl.data.setup <-
+        mapply(
+          stl_data_fun,
+          covars = stl.covars,
+          ds.sub = analysis$.private$ds ,
+          SIMPLIFY = FALSE,
+          MoreArgs = list(
+            n_seasons = analysis$n_seasons,
+            outcome_name = analysis$outcome_name,
+            post.start.index = post.start.index
           )
-        post.start.index <-
-          which(analysis$time_points == analysis$post_period[1])
-        
-        if (length(analysis$groups) > 1) {
-          stl.data.setup <-
-            mapply(
-              stl_data_fun,
-              covars = stl.covars,
-              ds.sub = analysis$.private$ds ,
-              SIMPLIFY = FALSE,
-              MoreArgs = list(
-                n_seasons = analysis$n_seasons,
-                outcome_name = analysis$outcome_name,
-                post.start.index = post.start.index
-              )
-            ) #list of lists that has covariates for each regression for each strata
-        } else{
-          stl.data.setup <-
-            list(
-              mapply(
-                stl_data_fun,
-                covars = stl.covars,
-                ds.sub = analysis$.private$ds,
-                MoreArgs = list(
-                  n_seasons = analysis$n_seasons,
-                  outcome_name = analysis$outcome_name,
-                  post.start.index = post.start.index
-                )
-              )
+        ) #list of lists that has covariates for each regression for each strata
+    } else{
+      stl.data.setup <-
+        list(
+          mapply(
+            stl_data_fun,
+            covars = stl.covars,
+            ds.sub = analysis$.private$ds,
+            MoreArgs = list(
+              n_seasons = analysis$n_seasons,
+              outcome_name = analysis$outcome_name,
+              post.start.index = post.start.index
             )
-        }
-        
-        ##SECTION 2: run first stage models for STL
-        addProgress(analysis, sprintf("STL first stage (group %s)", analysis$groups), after=0)
-        glm.results <-
-          vector("list", length = length(stl.data.setup)) #combine models into a list
-        clusterEvalQ(cluster(analysis), {
-          library(lme4, quietly = TRUE)
-        })
-        clusterExport(cluster(analysis),
-                      c('stl.data.setup', 'glm.fun', 'post.start.index'),
-                      environment())
-        for (i in 1:length(stl.data.setup)) {
-          progressStartPart(analysis)
-          glm.results[[i]] <-
-            parLapply(
-              cl = cluster(analysis),
-              stl.data.setup[[i]],
-              fun = function(d) {
-                glm.fun(d, post.start.index)
-              }
-            )
-          progressEndPart(analysis)
-        }
-        stopCluster(analysis)
+          )
+        )
+    }
+    
+    ##SECTION 2: run first stage models for STL
+    addProgress(analysis, sprintf("STL first stage (group %s)", analysis$groups), after=0)
+    glm.results <-
+      vector("list", length = length(stl.data.setup)) #combine models into a list
+    clusterEvalQ(cluster(analysis), {
+      library(lme4, quietly = TRUE)
+    })
+    clusterExport(cluster(analysis),
+                  c('stl.data.setup', 'glm.fun', 'post.start.index'),
+                  environment())
+    for (i in 1:length(stl.data.setup)) {
+      progressStartPart(analysis)
+      glm.results[[i]] <-
+        parLapply(
+          cl = cluster(analysis),
+          stl.data.setup[[i]],
+          fun = function(d) {
+            glm.fun(d, post.start.index)
+          }
+        )
+      progressEndPart(analysis)
+    }
+    stopCluster(analysis)
   }
   ######################
   
@@ -1236,19 +1236,19 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         analysis$groups
       )
     if(run.stl==TRUE){
-    analysis$.private$data$pca <-
-      mapply(
-        FUN = pca_top_var,
-        glm.results.in = glm.results,
-        covars = stl.covars,
-        ds.in = analysis$.private$ds,
-        SIMPLIFY = FALSE,
-        MoreArgs = list(
-          outcome_name = analysis$outcome_name,
-          season.dummies = analysis$.private$season.dummies
+      analysis$.private$data$pca <-
+        mapply(
+          FUN = pca_top_var,
+          glm.results.in = glm.results,
+          covars = stl.covars,
+          ds.in = analysis$.private$ds,
+          SIMPLIFY = FALSE,
+          MoreArgs = list(
+            outcome_name = analysis$outcome_name,
+            season.dummies = analysis$.private$season.dummies
+          )
         )
-      )
-    names(analysis$.private$data$pca) <- analysis$groups
+      names(analysis$.private$data$pca) <- analysis$groups
     }
     #Time trend model but without a denominator
     analysis$.private$data$time_no_offset <-
@@ -1313,9 +1313,9 @@ evaluatr.univariate <- function(analysis) {
   clusterUpdateAnalysis(analysis, function(analysis) {
     results<-lapply( analysis$.private$data$full, single.var.glmer, 
                      n_seasons=analysis$n_seasons,
-                    intro.date=analysis$post_period[1],
-                    time_points=analysis[['time_points']],
-                    eval.period=analysis$eval_period)  
+                     intro.date=analysis$post_period[1],
+                     time_points=analysis[['time_points']],
+                     eval.period=analysis$eval_period)  
     univariate.aic <- lapply(results, '[[','aic.summary')
     covar.names <- lapply(results, '[[','covar.names')
     aic.weights<- lapply(univariate.aic, function(x) exp(-0.5*(x-min(x)))/sum(exp(-0.5*(x-min(x)))) )
@@ -1323,8 +1323,8 @@ evaluatr.univariate <- function(analysis) {
     summary.results<- vector("list", length(rr.post)) 
     for(i in 1:length(rr.post)){
       summary.results[[i]]<-cbind.data.frame(rr.post[[i]],round(aic.weights[[i]],3),covar.names[[i]])
-     names(summary.results[[i]])<-c('rr.lcl','rr','rr.ucl','aic.wgt','covar')
-     summary.results[[i]]<-summary.results[[i]][order(-summary.results[[i]]$aic.wgt),]
+      names(summary.results[[i]])<-c('rr.lcl','rr','rr.ucl','aic.wgt','covar')
+      summary.results[[i]]<-summary.results[[i]][order(-summary.results[[i]]$aic.wgt),]
     }
     analysis$results$univariate<-summary.results
     return(analysis)
@@ -1332,7 +1332,7 @@ evaluatr.univariate <- function(analysis) {
   
   return(analysis$results$univariate)
 }
-  
+
 
 dataCheckWarning = function(message) {
   warning(warningCondition(message, class="evaluatr.dataCheck"))

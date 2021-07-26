@@ -4,7 +4,8 @@
 \name{pnas_chile}
 \alias{pnas_chile}
 \title{TODO}
-\format{Monthly time series of cause-specific hospitalizations from Chile, as described in Bruhn et al., PNAS. 
+\format{
+Monthly time series of cause-specific hospitalizations from Chile, as described in Bruhn et al., PNAS. 
 The columns refer to sets of ICD10 codes. 
 'age_group' categories: 
   2:12-23m 
@@ -14,7 +15,8 @@ The columns refer to sets of ICD10 codes.
   6:40-64 years
   7:65-79 years
   8: 80+ years
-  92: <24 months}
+  92: <24 months
+}
 \description{
 TODO
 }
