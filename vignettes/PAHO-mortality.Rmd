@@ -127,14 +127,11 @@ This function runs Interrupted time series analysis, an alternative time trend a
 
 Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. These models are fit to data from the pre-vaccine periods and extrapolated to the post-vaccine period. Fitting 1 control variable at a time allows us to see how the use of different controls influences the results. This take a few minutes, so we will use a pre-run set of results.
 
-```{r univariate, echo = T, results = 'hide',warning=FALSE, eval=F}
+```{r univariate, echo = T, results = 'hide',warning=FALSE}
  glmer_results= evaluatr.univariate(analysis)
 ```
 
-```{r, echo=F}
-#saveRDS(glmer_results,'./Data/univariate_results.rds')
- glmer_results= readRDS('./Results/univariate_results.rds')
-```
+
 
 
 Then plot the results. The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top. Each plot represents a different age group. Overall, we see a generally consistent pattern. The use of the subchapter R00-09 as a control variable leads to estimates that are closer to 1 (no effect). This subchapter is "Symptoms and signs involving the circulatory and respiratory systems". These are often considered non-specific 'junk' codes. There could be arguments for or against using this subchapter as a control. On the downside, it is possible that actual pneumonia deaths incorrectly were assigned a code of R00-99, and the vaccine could therefore reduce the incidence of R00-09 codes and bias the estimates towards no effect. On the upside, the use of these junk codes as a control could help to adjust for underlying improvements or changes in coding quality.   
@@ -150,15 +147,10 @@ lapply(glmer_results,evaluatr.univariate.plot)
 
 For teaching purposes, this code has been pre-run since it takes some time and computational resources.
 
-```{r,message = FALSE,warning=FALSE, eval=F}
+```{r,message = FALSE,warning=FALSE}
 impact_results = evaluatr.impact(analysis)
-saveRDS(impact_results,'./Results/ec_sc.rds')
 ```
 
-```{r, echo=F}
-#Load the pre-run results
-impact_results <- readRDS('./Results/ec_sc.rds')
-```
 
 Were there any strata that were too sparse to analyze?
 
@@ -233,15 +225,9 @@ htmlTable(incl_probs)
 ###Sensitivity analysis
 In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of a specific variable
 
-```{r sensitivity_analyses, include = FALSE, eval=F}
+```{r sensitivity_analyses, include = FALSE}
   sensitivity_results <- evaluatr.sensitivity(analysis)
-  saveRDS(sensitivity_results, './Results/sensitivity.rds')
-  saveRDS(analysis, './Results/analysis_post_run.rds')  
-```
 
-Load the pre-run results
-```{r, echo=F}
-  sensitivity_results <- readRDS('./Results/sensitivity.rds')
 ```
 
 
