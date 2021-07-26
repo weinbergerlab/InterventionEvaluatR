@@ -1,139 +1,195 @@
 ---
-author: "Daniel Weinberger"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{PAHO mortality example}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
-params:
-  sensitivity: TRUE
-  crossval: FALSE
----
-need to delete: impact_results$[[VARIANT]]$groups$`ec 2-23m A`$
-predict.bsts reg.mean  beta.mat
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.height = 3,
-  fig.width = 5,
-  fig.align = "center", 
-  dpi=300, 
-	out.width="600px"
-)
+title: Evaluating the impact of PCVs in South Africa
+
+output:
+  rmdformats::readthedown:
+    code_folding: show
+    self_contained: true
+    thumbnails: false
+    lightbox: false
+    css: ./Data/stylesreadthedown.css
+    toc_depth: '3'
+--- 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
----
 
-## Installing the package
-Uncomment and run the following 3 lines of code to install the package. You will be prompted to manually select a number to indicate whether to update dependencies and which ones. 
+## Getting started
+Before starting, you should install R and Rstudio on your computer. R can be downloaded from here: https://cran.r-project.org/mirrors.html. and RStudio can be downloaded from https://rstudio.com/products/rstudio/. Both are free. Once both programs are installed, open RStudio, and either open the .Rmd file practical exercises.Rmd or create a new RMarkdown document File/New File/R Notebook.
+
+Load the libraries we need for this exercise. 
+
 ```{r}
-#install.packages('devtools') 
+#install.packages(c('lubridate', 'RCurl','devtools','xtable','knitr','htmlTable','coda','rmdformats','httr'))
 #library(devtools) 
-#devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR') 
-```
+#devtools::install_github('https://github.com/weinbergerlab/InterventionEvaluatR')
+#install_version("future", version = "1.19.1", repos = "http://cran.us.r-project.org")
 
-```{r setup_packages, include=FALSE, echo=TRUE}
-library(xtable)
+
+library(lubridate)
+library(RCurl)
 library(knitr)
 library(htmlTable)
 library(InterventionEvaluatR)
-library(coda) 
+library(coda)
+library(rmdformats)
+library(httr)
+library(pbapply)
+library(xtable)
+
+
 ```
 
 
-```{r, echo=F}
-#Save the Ecuador mortality data as part of the package
-# library(RCurl)
-# script <- getURL("https://raw.githubusercontent.com/weinbergerlab/paho-pneumonia-mortality/master/Data/PAHO%20all%20age%20cuts_SubChapters.csv", ssl.verifypeer = FALSE)
-# 
-# paho1 <-read.csv(text=getURL("https://raw.githubusercontent.com/weinbergerlab/paho-pneumonia-mortality/master/Data/PAHO%20all%20age%20cuts_SubChapters.csv"),  header=T)
-# ecuador_mortality<-paho1[paho1$age_group %in% c('ec 2-59m A','ec 2-23m A','ec 24-59m A'), ]
-# ecuador_mortality$age_group<-factor(ecuador_mortality$age_group)
-# save(ecuador_mortality, file='../data/ecuador_mortality.rda')
-```
+## Introduction to the Example
 
----
-title: "Estimated change in mortality associated with the introduction of vaccine in Ecuador"
----
-## Analysis goal
-The goal for this analysis is to quantify changes in the rates of mortality due to pneumonia  following the introduction of PCV10 in Ecuador in **August 2010**. To do this, we will use data from the national mortality registry from Ecuador for the period from 2005-2016. We will learn how to analyze these time series data and how to interpret the results.
+In this example, you will learn about:
+  1. How to perform visual quality checks
+  2. How to fit models to the data to evaluate vaccine impact
+  3. How to interpret and describe the results 
 
-The main outcome of interest for the analysis will be to evaluate changes in **J12_J18_prim**, which is the number of deaths where J12-J18 is coded as the primary cause of death (In Ecuador, only a single cause of death is recorded). 
+In this example, we will analyze data on deaths due to pneumonia in South Africa to evaluate the impact of PCVs. This example is based on the analysis by Kleynhans et al (PLOS Medicine 2021), available from https://pubmed.ncbi.nlm.nih.gov/33591995/. The data and code for the original study can be found at https://github.com/weinbergerlab/south_africa_kleynhans
 
----
-## View dataset
-We are using a dataset that has 3 different age strata: 2-23 months, 24-59 months, and 2-59 months, combined. The dataset contains monthly time series for a number of different causes of death that are classified by ICD10 sub-chapter. The columns have counts per month of deaths for the causes indicated by the range of ICD10 codes indicated in the header name. 
+South Africa introduced PCV7 in 2009. Estimating the impact of the vaccine on mortality is especially challenging in this setting because of unrelated changes in the incidence of HIV and the rollout of antiretroviral therapies, both of which had a strong influence on death rates due to pneumonia. There are a number of potential control causes of death that could be used to adjust for these trends. 
 
-Let's load the data, which are included with the package
-```{r viewdata, include=TRUE}
-    data(ecuador_mortality, package = "InterventionEvaluatR") #load the data
-    head(ecuador_mortality[,1:5]) #View first few rows and columns
-    ds<-ecuador_mortality
-```
 
-Ensure your date variable is in an R date format. If your variable is in a character or factor format, you need to tell R the format. 
--- %m is a 2 digit month; %b is a month abbreviation (ie Jan, Feb)
--- %d is a 2 digit day (0-31), 
--- %Y is a 4 digit year (e.g. 2011), %y is a 2 digit year (e.g. 11).  
-These codes are separated by a dash or slash or space. Modify the tryFormats script below if needed to match the format in your dataset
+
+## Read in and explore data
+**CHANGE THIS TO DOWNLOAD FROM GITHUB**
 ```{r}
-ds$monthdate<-as.Date(ds$monthdate, tryFormats=c('%Y-%m-%d',
-                                                    '%m-%d-%Y',
-                                                    '%m/%d/%Y',
-                                                    '%Y/%m/%d',
-                                                    '%d/%m/%Y'
-                                                    ) )
+d2 <- read.csv('./Data/RSA.csv') #imports file into R and saves as object 'd2'
 ```
 
-## Set parameters for analysis
+### Look at the first few lines
+```{r}
+head(d2)
+```
 
-Here we need to set a few parameters. We Use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any). You can also set the number of interations for the MCMC. the default is to use a burn-in period of 5000 iterations and to sample 10,000 iterations afterthe burn in. This is a decent place to start. After evaluating model convergence (see below), you might want to increase the burn-in period.
+Make sure R knows that the 'date' variable is a date. We tell it tha the date has a 4 digit year (%Y), a 2 digit month (%m), and 2 digit day (%d), separated by dashes.
+```{r}
+d2$date<-as.Date(d2$date,"%Y-%m-%d")
+```
+
+
+### Exclude certain covariates
+```{r}
+exclude_covar <- c("denom", "A20_B99_excl_bac", "A16", "A17", "A18", "A19", "R00_R09", "R10_R19", "R20_R39", "R40_R49", "R50_R69", "R70_R94", "R95_R99", "D50_D89")      
+
+d2 <- d2[,-which(names(d2) %in% exclude_covar)]
+
+d2 <-
+  d2[, c(
+    'date',
+    'age',
+    'Pneum',
+    "A16_A19",
+    "A20_A48",
+    "A39",
+    "A50_A79",
+    "A80_B34",
+    "B05_B06",
+    "B20_B24",
+    "B35_B49" ,
+    "B45",
+    "B50_B89",
+    "B99" ,
+    "C00_D49" ,
+    "A20_B99_a_D50_D89" ,
+    "E00_E89"      ,
+    "E10_E14"  ,
+    "E40_E46",
+    "F01_F99"   ,
+    "G05_G99"   ,
+    "H00_H99_excl_cj_om",
+    "I00_I99"  ,
+    "I60_I64"   ,
+    "K00_K95"   ,
+    "K35"  ,
+    "K80"   ,
+    "L00_L99"       ,
+    "M00_M99"   ,
+    "N00_N99"  ,
+    "N39"     ,
+    "O00_O99"       ,
+    "P00_P15" ,
+    "P05_P07",
+    "Q00_Q99"      ,
+    "R00_R99"   ,
+    "S00_T88"  ,
+    "V01_Y99"
+  )]
+
+```
+
+Subset to a few age groups for analysis
+
+```{r}
+d2 <- d2[d2$age %in% c('1-11 months', '1-4 years','65-79 years'),]
+```
+
+
+
+## Plot your time series
+```{r, fig.width=8, fig.height=3}
+par(mfrow=c(1,3))
+d2.spl <- split(d2, factor(d2$age))
+lapply(names(d2.spl), function(x){
+  y <- d2.spl[[x]]
+ plot(y$date,y$Pneum,  #names of variable
+      type='l', #'l' for line plot
+      bty='l' ,#turn off the top and right border
+      main=x
+      )
+})
+```
+
+
+
+
+## Set parameters for analysis with InterventionEvaluatR
+
+Here we need to set a few parameters. We use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any). You can also set the number of interations for the MCMC. the default is to use a burn-in period of 5000 iterations and to sample 10,000 iterations afterthe burn in. This is a decent place to start. After evaluating model convergence (see below), you might want to increase the burn-in period.
 
 ```{r setup_data, echo=TRUE}
 
+d2$one <- 1 
+
 analysis <- evaluatr.init(
-  country = "Ecuador", data = ds,
-  post_period_start = "2010-08-01", #First 'post-intervention' month is Jan 2012
-  eval_period_start = "2011-08-01", #We ignore first 12 month of data to allow for vaccine ramp up
-  eval_period_end = "2015-12-01", #The evaluation period lasts 2 years
+  country = "South Africa", data = d2,
+  post_period_start = "2009-04-01", #First 'post-intervention' month is April 2009
+  eval_period_start = "2012-01-01", #We ignore first few years to allow for vaccine ramp up
+  eval_period_end = "2016-12-01", #The evaluation period lasts 5 years
   n_seasons = 12, #This is monthly data, so select 12
   year_def = "cal_year", # we are in southern hemisphere, so aggregate results by calendar year (Jan-Dec)
-  group_name = "age_group",  #Strata categry name
-  date_name = "monthdate", #Date variable name
-  outcome_name = "J12_J18_prim", #Outcome variable name
-  denom_name = "acm_noj_prim" , #Denominator variable name
+  group_name = "age",  #Strata categry name
+  date_name = "date", #Date variable name
+  outcome_name = "Pneum", #Outcome variable name
+  denom_name = "one" , #Denominator variable name
   log.covars=TRUE, #log-transform the covariates
   set.burnN=5000,
-  set.sampleN=10000,
-  ridge= F
+  ridge=F, #Ridge regression---faster version
+  error_dist= 'iid',
+  set.sampleN=10000
 )
 set.seed(1)
+
+analysis <- readRDS('./Results/analysis_post_run_SA.rds') #reads in analysis object that was modified after running SC
 ```
 
-### Sort data by age group and month
+## Run a simple analysis controlling for 1 control variable at a time
+
+Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. this allows us to see how the use of different controls influences the results
+
+```{r univariate, echo = T, results = 'hide',warning=FALSE, message = FALSE}
+# glmer_results= evaluatr.univariate(analysis)
+```
+
+
 ```{r}
-    ds<-ds[order(ds[, analysis$group_name], ds[,analysis$date_name]),] #Sort data by age group and month
-```
-
-
-## Run analyses
-
-This function runs Interrupted time series analysis, an alternative time trend analysis, synthetic controls, and STL+PCA. All of these results are saved in the object 'impact_results'.
-
-
-### Run a simple control analysis, controlling for 1 control variable at a time
-
-Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. These models are fit to data from the pre-vaccine periods and extrapolated to the post-vaccine period. Fitting 1 control variable at a time allows us to see how the use of different controls influences the results. This take a few minutes, so we will use a pre-run set of results.
-
-```{r univariate, echo = T, results = 'hide',warning=FALSE, eval=F}
- glmer_results= evaluatr.univariate(analysis)
-```
-
-```{r, echo=F}
-#saveRDS(glmer_results,'./Data/univariate_results.rds')
- glmer_results= readRDS('./Results/univariate_results.rds')
+#saveRDS(glmer_results,'./Results/univariate_results_SA.rds')
+glmer_results  <- readRDS('./Results/univariate_results_SA.rds')
 ```
 
 
@@ -145,19 +201,18 @@ group.labels<-as.character(unique(analysis$input_data[,analysis$group_name]))
 lapply(glmer_results,evaluatr.univariate.plot)
 ```
 
-
-### Run Synthetic control analysis
+## Run Synthetic control analysis
 
 For teaching purposes, this code has been pre-run since it takes some time and computational resources.
 
-```{r,message = FALSE,warning=FALSE, eval=F}
-impact_results = evaluatr.impact(analysis)
-saveRDS(impact_results,'./Results/ec_sc.rds')
+```{r,message = FALSE,warning=FALSE}
+#impact_results = evaluatr.impact(analysis)
 ```
 
-```{r, echo=F}
-#Load the pre-run results
-impact_results <- readRDS('./Results/ec_sc.rds')
+Load the pre-run results
+```{r}
+#saveRDS(impact_results,'./Results/SA_sc.rds')
+impact_results <- readRDS('./Results/SA_sc.rds')
 ```
 
 Were there any strata that were too sparse to analyze?
@@ -168,22 +223,22 @@ if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(na
 }
 ```
 
-## Compare estimates from different models
+### Compare estimates from different models
 This shows the estimated rate ratio and 95% credible intervals from a synthetic controls analysis; a time-trend analysis where we used the specified denominator (all non-respiratory deaths) to adjust the number of pneumonia deaths in each month and a linear trend for time; a classic interrupted time series analysis (segmented regression); and the STL+PCA approach, which smooths and combines the control variables prior to including them in the model. 
-
 ```{r Comparison of estimates from different models, results="asis"}
 results.table<- cbind.data.frame(
+  #impact_results$best$rr_mean_intervals, 
   impact_results$full$rr_mean_intervals, 
   impact_results$time$rr_mean_intervals, 
+  #impact_results$time_no_offset$rr_mean_intervals, 
   impact_results$its$rr_mean_intervals, 
   impact_results$pca$rr_mean_intervals)
   table<-xtable(results.table)
-  
   htmlTable(table)
 ```
 
 
-## Cases averted
+### Cases averted
 How many cases were prevented from the time of vaccine introduction to the last time point in each stratum (+/- 95% CrI)? You can modify the number 'last.point' to pull out the cumulative number of cases at any point in the time series. In this case we are printing results fromthe SC model
 ```{r}
 last.point<-dim(impact_results$full$cumsum_prevented)[1]
@@ -199,7 +254,7 @@ names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
   htmlTable(cum3, align='l')
 ```
 
-## Number of variables selected in SC analysis
+### Number of variables selected in SC analysis
 The Synthetic controls analysis uses a Bayesian variable selection algorithm to weight the candidate covariates. In each MCMC iteration, it tests a different combination of variables. The model size indicates how many variables are selected in any given model. If <1 variable is selected on average, this indicates that no suitable control variables were identified. 
 In this example 1-2 variables were selected on average in the 2-23m and 2-59 m age categories, while no controls were identified in the 24-59m age group (the average model size is <1 (0.44)).
 
@@ -209,7 +264,7 @@ htmlTable(model_size, align='c')
 ```
 
 
-## Inclusion Probabilities
+### Inclusion Probabilities
 ```{r incl, include = TRUE}
 incl_probs <- NULL
 for (group in analysis$groups) {
@@ -230,18 +285,21 @@ htmlTable(incl_probs)
 ```
 
 
-###Sensitivity analysis
+### Sensitivity analysis
 In the sensitivity analyses, we re-run the synthetic controls analysis, but sequentially drop the top 1,2, or 3 variables that were most influential (received the most weight) in the original analysis. This allows us to evaluate whether the results are sensitive to the inclusion of a specific variable
 
-```{r sensitivity_analyses, include = FALSE, eval=F}
-  sensitivity_results <- evaluatr.sensitivity(analysis)
-  saveRDS(sensitivity_results, './Results/sensitivity.rds')
-  saveRDS(analysis, './Results/analysis_post_run.rds')  
+```{r sensitivity_analyses, include = FALSE}
+
+  #sensitivity_results <- evaluatr.sensitivity(analysis)
+  
 ```
 
 Load the pre-run results
-```{r, echo=F}
-  sensitivity_results <- readRDS('./Results/sensitivity.rds')
+```{r}
+  #saveRDS(sensitivity_results, './Results/sensitivity_SA.rds')
+  #saveRDS(analysis, './Results/analysis_post_run_SA.rds')
+
+  sensitivity_results <- readRDS('./Results/sensitivity_SA.rds')
 ```
 
 
@@ -259,25 +317,28 @@ if (exists("sensitivity_results")) {
 plots <- evaluatr.plots(analysis)
 ```
 
-## Plot the results for 1 age group
+### Plot the results for 1 age group
 ### First look at the results from the synthetic controls model for 1 age group.
 
 This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
+
+In the 1-11 month olds, we can clearly see the observed data going below the expected values after vaccination. This suggests that pneumonia is declining more than would be expected based on the decline in the control diseases.
 ```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-23m A"]]$pred_full 
+      plots$groups[["1-11 months"]]$pred_full 
 ```
 
-It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
+
+It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
 
 ```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-23m A"]]$pred_full_agg 
+      plots$groups[["1-11 months"]]$pred_full_agg 
 ```
 
 
 Finally, we can look at the cumulative cases prevented. In this example, there have been 445 cases prevented (95%CrI: 58, 931) from the time of vaccine introduction to the last day month of the study period. This is calculated by takin the difference between the observed and fitted number of cases in each month, and summing them. If atleast 1 control disease is identified from the synthetic controls model, then the result here is drawn from that model, otherwise, it is drawn from the STL+PCA model.
 
 ```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-23m A"]]$cumsum_prevented 
+      plots$groups[["1-11 months"]]$cumsum_prevented 
 ```
 
 
@@ -285,8 +346,11 @@ Finally, we can look at the cumulative cases prevented. In this example, there h
 We instead might want to just print everything for all age groups and models. We can use the following code to do that
 
 ## Plot Observed vs expected yearly time series
+
+For the synthetic controls analyses, we can see clear effects of PCV in children (where the vaccine is used), but not in adults. This suggests that the indirect effects of PCVs, observed in other populations, are not protecting adults from death in this population. It is also clear here why the unadjusted time trend model fails due to the non-linear shape of the trend in the pre-vaccine period. 
 ```{r plots2, results = 'asis', fig.width=5, fig.height=4}
       par(mfrow=c(4,1))
+
 for (group in names(plots$groups)) {
       print(plots$groups[[group]]$pred_full_agg )
       print(plots$groups[[group]]$pred_best_agg )
@@ -301,3 +365,4 @@ for (group in names(plots$groups)) {
 #output_file <- paste0(output_file, "_", analysis$country, "_", format(Sys.time(), "%Y-%m-%d-%H%M%S"), ".Rds")
 #evaluatr.save(analysis, output_file)
 ```
+
