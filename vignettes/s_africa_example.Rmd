@@ -239,7 +239,11 @@ cum3<-cbind.data.frame(row.names(cum1), cum2)
 names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
   htmlTable(cum3, align='l')
 ```
+look at the betas--which are most influential?
+```{r}
+beta.check <- lapply(impact_results$full$groups,'[[','beta')
 
+```
 
 
 
