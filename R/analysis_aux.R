@@ -110,6 +110,7 @@ makeTimeSeries <-
     }
   }
 
+
 #Main function
 inla_mods<-function(zoo_data=analysis$.private$data[['full']],
                     intervention_date=analysis$intervention_date,
@@ -149,7 +150,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   })
   pca1<- prcomp(y.aware.scale, center = FALSE,scale. = FALSE)
   #n.pcs.keep<-sum(pca1$sdev>1)
-  n.pcs.keep<-5
+  n.pcs.keep<-2
   pcs<-pca1$x
   pcs<-apply(pcs,2, scale) #SCALE THE PCS prior to regression!
   pcs.combo<-cbind.data.frame( 'month'=as.factor(month(time_points)),pcs[,1:min(n.pcs.keep, ncol(pcs)), drop=F] )
@@ -198,11 +199,10 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     next.betas<- paste(betas.list, collapse='+')  
     all.betas<-paste(first.beta,next.betas , sep='+')    
     if(error_dist=='ar1'){
-    form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1', constr=T,extraconstr=list(A=A.full, e=e.full))") )
-    #form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1')") )
-      
-       }else{
-    form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'iid')") )
+      form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1', constr=T,extraconstr=list(A=A.full, e=e.full))") )
+      #form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'ar1')") )
+    }else{
+      form1<- as.formula(paste0("y.pre ~", paste(names(x.in.full.season), collapse="+"),"+", all.betas,    "+ f(t, model = 'iid')") )
       
     }
     mod1.full = inla(form1, data = mod.df.full, 
@@ -230,11 +230,11 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     mod.df.time$t<-1:nrow(mod.df.time)
     #mod.df.time.offset<-cbind.data.frame(mod.df.time,'log.offset'=log.offset)
     if(error_dist=='ar1'){
-    form2<- as.formula(paste0('y.pre ~',  paste(names(x.in.time), collapse='+'), "+  f(t, model = 'ar1', constr=T,extraconstr=list(A=A.time, e=e.time))") )
+      form2<- as.formula(paste0('y.pre ~',  paste(names(x.in.time), collapse='+'), "+  f(t, model = 'ar1', constr=T,extraconstr=list(A=A.time, e=e.time))") )
     }else{
-    form2<- as.formula(paste0('y.pre ~',  paste(names(x.in.time), collapse='+'), "+  f(t, model = 'iid')") )
+      form2<- as.formula(paste0('y.pre ~',  paste(names(x.in.time), collapse='+'), "+  f(t, model = 'iid')") )
     }
-    if(model.variant=='time_no_offset'){
+    if(model.variant %in% c('time_no_offset')){
       mod2.time.no.offset = inla(form2, data = mod.df.time, control.predictor =   list(compute=TRUE, link = 1), family='poisson',control.compute=list(config = TRUE,waic=TRUE))
       waic<-mod2.time.no.offset$waic$waic
       pd<- mod2.time.no.offset$waic$p.eff
@@ -242,7 +242,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     }else if(model.variant=='time'){
       #Time regression with offset
       mod3.time = inla(form2, data = mod.df.time, control.predictor =   list(compute=TRUE, link = 1), family='poisson',E=offset1, control.compute=list(config = TRUE,waic=TRUE))
-        waic<-mod3.time$waic$waic
+      waic<-mod3.time$waic$waic
       pd<- mod3.time$waic$p.eff
       ds<-list('fitted.model'=mod3.time, 'mod.df'=mod.df.time, 'x.in'=x.in.time, 'offset'=offset1,'offset.used'=T,'ridge'=F, 'waic'=waic, 'pd'=pd)
     }
@@ -332,7 +332,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   log_rr_full_t_quantiles<- t(apply(log.rr.pointwise,1,quantile, probs=c(0.025,0.5,0.975)))
   log_rr_full_t_sd<- apply(log.rr.pointwise,1,sd)
   #log_rr_full_t_samples.prec.post<-1/log_rr_full_t_sd^2
-    
+  
   post.period<- which(time_points>= analysis$eval_period[1]  &time_points<= analysis$eval_period[2] )
   
   post.samples<-posterior.preds.counts[post.period,]
@@ -405,7 +405,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
       'fixed.effect.hdi'=fixed.effect.hdi,
       'beta'=beta.fix.posterior.hdi,
       'rand.eff.combined.q'=rand.eff.combined.q
-    
+      
     )
   quantiles <-
     list(
@@ -424,8 +424,8 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
       #     roll_rr = roll_rr,
       log_rr_full_t_quantiles = log_rr_full_t_quantiles,
       log_rr_full_t_sd = log_rr_full_t_sd,
-       rr = rr.q,
-       rr.iter=rr.agg
+      rr = rr.q,
+      rr.iter=rr.agg
     )
   results<-list('impact'=impact, 'quantiles'=quantiles,'cumsum_prevented_hdi'=cumsum_prevented_hdi,'cumsum_prevented'=cumsum_prevented)  
   return(results)
@@ -459,10 +459,10 @@ rrPredQuantiles <-
         na.rm = TRUE
       ))
     pred.hdi <- cbind( pred[,'50%'],t(hdi(t(pred_samples), credMass = 0.95)) )
-      
+    
     eval_indices <-
       match(which(time_points == eval_period[1]), (1:length( impact$observed.y))):match(which(time_points ==
-                                                                                               eval_period[2]), (1:length( impact$observed.y)))
+                                                                                                eval_period[2]), (1:length( impact$observed.y)))
     
     pred_eval_sum <- colSums(pred_samples[eval_indices,])
     
@@ -483,8 +483,8 @@ rrPredQuantiles <-
     } else{
       year <- year(time_points)
     }
-
-        #aggregate observed and predicted
+    
+    #aggregate observed and predicted
     obs.y.year <- tapply( impact$observed.y, year, sum)
     pred.yr.spl <- split(as.data.frame(pred_samples), year)
     pred.yr.spl.sum <-
@@ -544,7 +544,7 @@ rrPredQuantiles <-
     plot_rr_start <- which(time_points == post_period[1]) - n_seasons
     roll_rr_indices <-
       match(plot_rr_start, (1:length( impact$observed.y))):match(which(time_points ==
-                                                                        eval_period[2]), (1:length( impact$observed.y)))
+                                                                         eval_period[2]), (1:length( impact$observed.y)))
     
     obs_full <- impact$observed.y
     
@@ -584,8 +584,8 @@ rrPredQuantiles <-
     #log_rr_full_t_samples.covar <- cov(log_rr_full_t_samples)
     post.indices <-
       which(time_points == post_period[1]):which(time_points == post_period[2])
-   # log_rr_full_t_samples.prec.post <-
-     # solve(log_rr_full_t_samples.covar) #NOT INVERTIBLE?
+    # log_rr_full_t_samples.prec.post <-
+    # solve(log_rr_full_t_samples.covar) #NOT INVERTIBLE?
     #
     # quantiles <- list(pred_samples_post_full = pred_samples_post,roll_rr=roll_rr, log_rr_full_t_samples.prec=log_rr_full_t_samples.prec, log_rr_full_t_samples=log_rr_full_t_samples,log_rr_full_t_quantiles=log_rr_full_t_quantiles,log_rr_full_t_sd=log_rr_full_t_sd, plot_pred = plot_pred,log_plot_pred=log_plot_pred, log_plot_pred_SD=log_plot_pred_SD, rr = rr, mean_rate_ratio = mean_rate_ratio,rr.iter=rr.iter)
     # quantiles <- list(pred_samples = pred_samples, pred = pred, rr = rr, roll_rr = roll_rr, mean_rr = mean_rr)
@@ -596,9 +596,9 @@ rrPredQuantiles <-
         rr.hdi=rr.hdi,
         pred.yr.sum.hdi=pred.yr.sum.hdi,
         pred.hdi=pred.hdi,
-      #  unbias_rr_q = unbias_rr_q,
+        #  unbias_rr_q = unbias_rr_q,
         pred.yr.sum.q = pred.yr.sum.q,
-       # log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
+        # log_rr_full_t_samples.prec.post = log_rr_full_t_samples.prec.post,
         pred_samples = pred_samples,
         pred = pred,
         rr = rr,
@@ -813,7 +813,7 @@ plotPredAgg <-
            plot_sensitivity = FALSE) {
     
     # See rrPredQuantiles about the meaning of time values. Short version, numeric X for cal_years and factor "X/X+1" for epi_years.
-
+    
     # Intervention marker is a vertical line placed midway between 
     # a. the last complete year preceding the post period
     # b. the first year overlapping the post period
@@ -838,7 +838,7 @@ plotPredAgg <-
     }
     # Put the intervention marker at 0.5 years before the first post-intervention year
     year.intervention = as.Date(date_decimal(year.post - 0.5))
-
+    
     #how mny time points in each aggregation period?
     if (year_def == 'epi_year') {
       yrvec <- year(time_points)
@@ -860,7 +860,7 @@ plotPredAgg <-
     
     # We care about observed data from all years
     ann_obs <- ann_pred_quantiles
-
+    
     # But we don't care about predicted data before intervention date
     ann_pred_quantiles_pre <- subset(ann_pred_quantiles, year < year.post)
     ann_pred_quantiles_post <- subset(ann_pred_quantiles, year >= year.post)
@@ -870,7 +870,7 @@ plotPredAgg <-
     last_pre_intervention = ann_obs[ann_obs$year == year.post - 1,]
     last_pre_intervention$'2.5%' = last_pre_intervention$'50%' = last_pre_intervention$'97.5%' = last_pre_intervention$obs
     ann_pred_quantiles_post <- rbind(last_pre_intervention, ann_pred_quantiles_post)
-
+    
     pred_plot <- ggplot() +
       geom_ribbon(
         aes_(
@@ -1120,7 +1120,7 @@ cumsum_func <-
         na.rm = TRUE
       ))
     if(hdi==TRUE){
-    cumsum_prevented <- cbind(cumsum_prevented[,'50%'],  t(hdi( t(cumsum_cases_prevented),credMass = 0.95 )))
+      cumsum_prevented <- cbind(cumsum_prevented[,'50%'],  t(hdi( t(cumsum_cases_prevented),credMass = 0.95 )))
     }
     return(cumsum_prevented)
   }
@@ -1252,38 +1252,38 @@ single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, ev
   rr.post.q.glmer.manual <- vector("list", length(covars)) 
   aic.summary <- vector("list", length(covars)) 
   for(i in 1:length(covars)){
-  covar1<-ds1[,covars[i]]
-  eval.start.index<-which(time_points==eval.period[1])
-  months<-month(time_points)
-  season.dummies<-   dummies::dummy(months)[,1:(n_seasons-1)]
-  dimnames(season.dummies)[[2]]<-paste0('s',1:(n_seasons-1))
-  ds2<-cbind.data.frame(outcome.pre, season.dummies, scale(covar1))
-  names(ds2)[ncol(ds2)]<-covars[i]
-  ds2$obs<-as.factor(1:nrow(ds2))
-  form1<-as.formula(paste0('outcome.pre~s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+' ,covars[i], '+(1|obs)')) 
-                    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2,
-                                control = glmerControl(optimizer = "bobyqa",
-                                                       optCtrl =
-                                                         list(maxfun = 2e6)))
-                    #Manually calculate CIs
-                    aic.summary[[i]]<-AIC(mod1) #only for reference--tough to use for mixed model
-                     covars3<-as.matrix(ds2[c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11',covars[i])])
-                    covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
-                    names(covars3)[1]<-"Intercept"
-                    pred.coefs.reg.mean<- mvrnorm(n = 100, mu=fixef(mod1), Sigma=vcov( mod1))
-                    re.sd<-as.numeric(sqrt(VarCorr(mod1)[[1]]))
-                    preds.stage1.regmean<- as.matrix(covars3) %*% t(pred.coefs.reg.mean) 
-                    re.int<-rnorm(n<-length(preds.stage1.regmean), mean=0, sd=re.sd) 
-                    preds.stage1.regmean<-preds.stage1.regmean+re.int
-             
-                    preds.stage2<-rpois(n=length(preds.stage1.regmean)*100, exp(preds.stage1.regmean))
-                    preds.stage2<-matrix(preds.stage2, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)*100)
-                    
-                    post.preds1.manual<-preds.stage2[eval.start.index:nrow(preds.stage1.regmean),]
-                    post.preds.sums1.manual<-apply(post.preds1.manual,2,sum)
-                    post.obs.sum<-  sum(ds1[ eval.start.index:nrow(preds.stage1.regmean),'outcome'])
-                    post.rr1.manual<-post.obs.sum/post.preds.sums1.manual
-                    rr.post.q.glmer.manual[[i]]<-quantile(post.rr1.manual,probs=c(0.025,0.5,0.975))
+    covar1<-ds1[,covars[i]]
+    eval.start.index<-which(time_points==eval.period[1])
+    months<-month(time_points)
+    season.dummies<-   dummies::dummy(months)[,1:(n_seasons-1)]
+    dimnames(season.dummies)[[2]]<-paste0('s',1:(n_seasons-1))
+    ds2<-cbind.data.frame(outcome.pre, season.dummies, scale(covar1))
+    names(ds2)[ncol(ds2)]<-covars[i]
+    ds2$obs<-as.factor(1:nrow(ds2))
+    form1<-as.formula(paste0('outcome.pre~s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+' ,covars[i], '+(1|obs)')) 
+    mod1<-glmer(form1 , family=poisson(link=log) , data=ds2,
+                control = glmerControl(optimizer = "bobyqa",
+                                       optCtrl =
+                                         list(maxfun = 2e6)))
+    #Manually calculate CIs
+    aic.summary[[i]]<-AIC(mod1) #only for reference--tough to use for mixed model
+    covars3<-as.matrix(ds2[c('s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11',covars[i])])
+    covars3<-cbind.data.frame(rep(1, times=nrow(covars3)), covars3)
+    names(covars3)[1]<-"Intercept"
+    pred.coefs.reg.mean<- mvrnorm(n = 100, mu=fixef(mod1), Sigma=vcov( mod1))
+    re.sd<-as.numeric(sqrt(VarCorr(mod1)[[1]]))
+    preds.stage1.regmean<- as.matrix(covars3) %*% t(pred.coefs.reg.mean) 
+    re.int<-rnorm(n<-length(preds.stage1.regmean), mean=0, sd=re.sd) 
+    preds.stage1.regmean<-preds.stage1.regmean+re.int
+    
+    preds.stage2<-rpois(n=length(preds.stage1.regmean)*100, exp(preds.stage1.regmean))
+    preds.stage2<-matrix(preds.stage2, nrow=nrow(preds.stage1.regmean), ncol=ncol(preds.stage1.regmean)*100)
+    
+    post.preds1.manual<-preds.stage2[eval.start.index:nrow(preds.stage1.regmean),]
+    post.preds.sums1.manual<-apply(post.preds1.manual,2,sum)
+    post.obs.sum<-  sum(ds1[ eval.start.index:nrow(preds.stage1.regmean),'outcome'])
+    post.rr1.manual<-post.obs.sum/post.preds.sums1.manual
+    rr.post.q.glmer.manual[[i]]<-quantile(post.rr1.manual,probs=c(0.025,0.5,0.975))
   }
   names(rr.post.q.glmer.manual)<-covars
   aic.summary<-unlist(aic.summary)

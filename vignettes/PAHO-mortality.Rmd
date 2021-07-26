@@ -105,7 +105,8 @@ analysis <- evaluatr.init(
   denom_name = "acm_noj_prim" , #Denominator variable name
   log.covars=TRUE, #log-transform the covariates
   set.burnN=5000,
-  set.sampleN=10000
+  set.sampleN=10000,
+  ridge= F
 )
 set.seed(1)
 ```
@@ -115,13 +116,25 @@ set.seed(1)
     ds<-ds[order(ds[, analysis$group_name], ds[,analysis$date_name]),] #Sort data by age group and month
 ```
 
-## Run a simple analysis controlling for 1 control variable at a time
 
-Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. this allows us to see how the use of different controls influences the results
+## Run analyses
 
-```{r univariate, echo = T, results = 'hide',warning=FALSE}
+This function runs Interrupted time series analysis, an alternative time trend analysis, synthetic controls, and STL+PCA. All of these results are saved in the object 'impact_results'.
+
+
+### Run a simple control analysis, controlling for 1 control variable at a time
+
+Before getting into more complicated analyses, we will first try to fit a simple Poisson regression model (with overdispersion) where we adjust for seasonality and 1 control variable at a time. These models are fit to data from the pre-vaccine periods and extrapolated to the post-vaccine period. Fitting 1 control variable at a time allows us to see how the use of different controls influences the results. This take a few minutes, so we will use a pre-run set of results.
+
+```{r univariate, echo = T, results = 'hide',warning=FALSE, eval=F}
  glmer_results= evaluatr.univariate(analysis)
 ```
+
+```{r, echo=F}
+#saveRDS(glmer_results,'./Data/univariate_results.rds')
+ glmer_results= readRDS('./Results/univariate_results.rds')
+```
+
 
 Then plot the results. The results are ordered by goodness of fit (based on AIC scores), with best fitting covariates on top. Each plot represents a different age group. Overall, we see a generally consistent pattern. The use of the subchapter R00-09 as a control variable leads to estimates that are closer to 1 (no effect). This subchapter is "Symptoms and signs involving the circulatory and respiratory systems". These are often considered non-specific 'junk' codes. There could be arguments for or against using this subchapter as a control. On the downside, it is possible that actual pneumonia deaths incorrectly were assigned a code of R00-99, and the vaccine could therefore reduce the incidence of R00-09 codes and bias the estimates towards no effect. On the upside, the use of these junk codes as a control could help to adjust for underlying improvements or changes in coding quality.   
 
@@ -131,15 +144,17 @@ group.labels<-as.character(unique(analysis$input_data[,analysis$group_name]))
 lapply(glmer_results,evaluatr.univariate.plot)
 ```
 
-## Run the main analysis
-Save the results in object 'impact_results'
-```{r main analysis, include = TRUE, echo=TRUE}
+
+### Run Synthetic control analysis
+
+For teaching purposes, this code has been pre-run since it takes some time and computational resources.
+
+```{r,message = FALSE,warning=FALSE, eval=F}
 impact_results = evaluatr.impact(analysis)
 ```
 
 
-#`r params$country` Results
-
+Were there any strata that were too sparse to analyze?
 
 ```{r sparse, results="asis", echo=F}
 if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(names(analysis$sparse_groups[analysis$sparse_groups])) != 0) {
@@ -149,16 +164,15 @@ if (!is.null(names(analysis$sparse_groups[analysis$sparse_groups])) && length(na
 
 ## Compare estimates from different models
 This shows the estimated rate ratio and 95% credible intervals from a synthetic controls analysis; a time-trend analysis where we used the specified denominator (all non-respiratory deaths) to adjust the number of pneumonia deaths in each month and a linear trend for time; a classic interrupted time series analysis (segmented regression); and the STL+PCA approach, which smooths and combines the control variables prior to including them in the model. 
+
 ```{r Comparison of estimates from different models, results="asis"}
 results.table<- cbind.data.frame(
-  #impact_results$best$rr_mean_intervals, 
   impact_results$full$rr_mean_intervals, 
   impact_results$time$rr_mean_intervals, 
-  #impact_results$time_no_offset$rr_mean_intervals, 
   impact_results$its$rr_mean_intervals, 
   impact_results$pca$rr_mean_intervals)
-
   table<-xtable(results.table)
+  
   htmlTable(table)
 ```
 
@@ -189,21 +203,21 @@ plots <- evaluatr.plots(analysis)
 
 This first plot shows a monthly time series, with observed, fitted, and counterfacual values. The observed number of deaths is shown in the black line. The fitted values for the pre-vaccine period are shown in the red dotted line, and the counterfactual estimate with its 95% credible interval is shown as the white dotted line and gray shaded area. if the black line is below the gray shaded area, this would indicate that obsrved cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. 
 ```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-59m A"]]$pred_full 
+      plots$groups[["ec 2-23m A"]]$pred_full 
 ```
 
 It is sometimes easier to look at the results if we aggregate the observed and expected values up to the annual time scale. Here the observed values are shown as black dots. When the black dots go below the gray shaded area, this indicates that the observed cases are lower than expected based on changes in the control diseases in the post-vaccine period. If the controls appropriately adjust for underlying trends, then this would reflect an effect of the vaccine. The vertical line indicates the date of vaccine introduction. The year when the vaccine is introduced is included to the right of the line, even if the vaccine was introduced part-way through the year. For instance, regardless of whether the the vaccine was introduced in January 2009 or November 2009, the observed dot for 2009 would be to the right of the line.
 
 ```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-59m A"]]$pred_full_agg 
+      plots$groups[["ec 2-23m A"]]$pred_full_agg 
 ```
+
+
 Finally, we can look at the cumulative cases prevented. In this example, there have been 445 cases prevented (95%CrI: 58, 931) from the time of vaccine introduction to the last day month of the study period. This is calculated by takin the difference between the observed and fitted number of cases in each month, and summing them. If atleast 1 control disease is identified from the synthetic controls model, then the result here is drawn from that model, otherwise, it is drawn from the STL+PCA model.
 
 ```{r, fig.width=5, fig.height=4}
-      plots$groups[["ec 2-59m A"]]$cumsum_prevented 
+      plots$groups[["ec 2-23m A"]]$cumsum_prevented 
 ```
-
-
 
 
 ## Printing plots for all models and age groups
@@ -211,8 +225,8 @@ We instead might want to just print everything for all age groups and models. We
 
 ## Plot Observed vs expected yearly time series
 ```{r plots2, results = 'asis', fig.width=5, fig.height=4}
-for (group in names(plots$groups)) {
       par(mfrow=c(4,1))
+for (group in names(plots$groups)) {
       print(plots$groups[[group]]$pred_full_agg )
       print(plots$groups[[group]]$pred_time_agg )
       print(plots$groups[[group]]$pred_pca_agg )
