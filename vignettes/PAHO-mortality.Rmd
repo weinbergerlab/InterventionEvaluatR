@@ -38,8 +38,7 @@ Uncomment and run the following 3 lines of code to install the package. You will
 library(xtable)
 library(knitr)
 library(htmlTable)
-library(InterventionEvaluatR)
-library(coda) 
+library(InterventionEvaluatRlite)
 ```
 
 
