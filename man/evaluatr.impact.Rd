@@ -24,10 +24,6 @@ Analysis results, `results`, as described below
 
 `results$its` Results from classic interrupted time series model
 
-`results$best` Results from 'best model (either synthetic controls or STL+PCA, depending on )
-
-`results$point.weights` TODO
-
 `results$rr_mean_combo` Rate ratios during the evaluation period, as calculated in each of the models.
 }
 \description{
