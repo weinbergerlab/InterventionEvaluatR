@@ -245,6 +245,7 @@ beta.check <- lapply(impact_results$full$groups,'[[','beta')
 
 beta.check <- lapply(beta.check,function(x) x[order(-abs(x[,1])),])
 
+beta.check
 ```
 
 
