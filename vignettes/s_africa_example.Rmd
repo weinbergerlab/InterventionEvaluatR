@@ -243,6 +243,8 @@ look at the betas--which are most influential?
 ```{r}
 beta.check <- lapply(impact_results$full$groups,'[[','beta')
 
+beta.check <- lapply(beta.check,function(x) x[order(-abs(x[,1])),])
+
 ```
 
 
