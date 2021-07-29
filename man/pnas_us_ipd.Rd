@@ -4,8 +4,7 @@
 \name{pnas_us_ipd}
 \alias{pnas_us_ipd}
 \title{TODO}
-\format{
-Monthly time series of cause-specific hospitalizations from Brazil, as described in Bruhn et al., PNAS. 
+\format{Monthly time series of cause-specific hospitalizations from Brazil, as described in Bruhn et al., PNAS. 
 The potential outcome variables are: m_ACP (all-cause pneumonia); m_IPD: (invasive pneumococcal disease); or
 gg_ACP: a more stringent definition of pneumonia (enriched for community-acquired pneumonia), as developed by Carlos Grijalva
 and Marie Griffin. 'ach_sid_noresp'is all non-respiratory causes of hospitalization.
@@ -20,8 +19,7 @@ The columns refer to sets of ICD9 codes. Note small counts are masked with 99999
   6: 40-64 years
   7: 65-79 years
   8: 80+ years
-  9: <12 months
-}
+  9: <12 months}
 \description{
 TODO
 }
