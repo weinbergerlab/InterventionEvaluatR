@@ -4,27 +4,13 @@
 \alias{evaluatr.init}
 \title{Initialize analysis}
 \usage{
-evaluatr.init(
-  country,
-  data,
-  pre_period_start = "start",
-  post_period_start,
-  post_period_end = eval_period_end,
-  eval_period_start,
-  eval_period_end,
-  n_seasons = 12,
-  year_def = "cal_year",
-  group_name,
-  date_name,
-  outcome_name,
-  set.burnN = 5000,
-  set.sampleN = 10000,
-  denom_name,
-  log.covars = TRUE,
-  ridge = F,
-  error_dist = "iid",
-  sparse_threshold = 5
-)
+evaluatr.init(country, data, pre_period_start = "start",
+  post_period_start, post_period_end = eval_period_end,
+  eval_period_start, eval_period_end, n_seasons = 12,
+  year_def = "cal_year", group_name, date_name, outcome_name,
+  set.burnN = 5000, set.sampleN = 10000, denom_name,
+  log.covars = TRUE, ridge = F, error_dist = "iid",
+  sparse_threshold = 5)
 }
 \arguments{
 \item{country}{A one-word label for output (eg country or state name).}

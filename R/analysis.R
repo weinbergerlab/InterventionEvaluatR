@@ -577,7 +577,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
       factor(
         results$rr_mean_combo$Model,
         lapply(
-          analysis$.private$variants[c('time', 'time_no_offset', 'pca', 'full')], 
+          analysis$.private$variants[variants], 
           function(variant) variant$name
         )
       )
