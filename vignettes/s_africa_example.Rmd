@@ -200,9 +200,11 @@ lapply(glmer_results,evaluatr.univariate.plot)
 For teaching purposes, this code has been pre-run since it takes some time and computational resources.
 
 ```{r,message = FALSE,warning=FALSE}
-impact_results1 = evaluatr.impact(analysis, variants=c('full','time'))
+impact_results = evaluatr.impact(analysis, variants=c('full','time'))
 #impact_results2 = evaluatr.impact(analysis, variants=c('full','pca'))
 #impact_results3 = evaluatr.impact(analysis, variants=c('time','pca'))
+#impact_results2 = evaluatr.impact(analysis, variants=c('full'))
+
 
 
 ```
