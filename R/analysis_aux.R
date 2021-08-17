@@ -403,6 +403,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
     x.scale<-x1*slope - mean(x1*slope)
     return(x.scale)
   })
+ 
   pca1<- prcomp(y.aware.scale, center = FALSE,scale. = FALSE)
   #n.pcs.keep<-sum(pca1$sdev>1)
   n.pcs.keep<-2
@@ -501,29 +502,6 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
       pd<- mod3.time$waic$p.eff
       ds<-list('fitted.model'=mod3.time, 'mod.df'=mod.df.time, 'x.in'=x.in.time, 'offset'=offset1,'offset.used'=T,'ridge'=F, 'waic'=waic, 'pd'=pd)
     }
-  }
-  
-  if(model.variant=='pca'){  
-    x.pca <- pcs.df
-    mod.df.pca<- cbind.data.frame(y,y.pre, x.pca)
-    A.pca<- rbind(t(x.pca[,names(x.pca), drop=F]))
-    A.pca[,is.na(mod.df.pca$y.pre)]<-0  #extraploation period shouldn't factor into constraint
-    e.pca=rep(0, nrow(A.pca))
-    t=1:nrow(x.pca)
-    
-    if(error_dist=='ar1'){
-      form2<- as.formula(paste0('y.pre ~',  paste(names(x.pca), collapse='+'), "+  f(t, model = 'iid')") )
-    }else{
-      form2<- as.formula(paste0('y.pre ~',  paste(names(x.pca), collapse='+'), "+  f(t, model = 'ar1', constr=T,extraconstr=list(A=A.pca, e=e.pca))") )
-      
-    }
-    mod1.pca = inla(form2, data = mod.df.pca, 
-                    control.predictor = list(compute=TRUE, link = 1), 
-                    family='poisson',
-                    control.compute=list(config = TRUE,waic=TRUE))
-    waic<-mod1.pca$waic$waic
-    pd<- mod1.pca$waic$p.eff
-    ds<-list('fitted.model'=mod1.pca, 'mod.df'=mod.df.pca, 'x.in'=x.pca,'offset'=NA,'offset.used'=F,'ridge'=F, 'waic'=waic, 'pd'=pd)
   }
   
   if(ds$ridge==T){  

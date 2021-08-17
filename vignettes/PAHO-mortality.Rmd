@@ -106,9 +106,7 @@ analysis <- evaluatr.init(
   denom_name = "acm_noj_prim" , #Denominator variable name
   log.covars=TRUE, #log-transform the covariates
   set.burnN=5000,
-  set.sampleN=10000,
-  ridge= F
-)
+  set.sampleN=10000)
 set.seed(1)
 ```
 

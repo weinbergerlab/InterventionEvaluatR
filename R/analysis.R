@@ -218,9 +218,6 @@ evaluatr.init <- function(country,
   analysis$.private$progress_done = 0
   analysis$.private$progress = showProgress
   
-  # Setup default cluster
-  analysis$.private$startCluster = defaultStartCluster
-  analysis$.private$stopCluster = defaultStopCluster
   return(analysis)
 }
 
@@ -271,72 +268,29 @@ evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) 
 #' @importFrom plyr rbind.fill
 #' @importFrom pogit poissonBvs
 #' @importFrom parallel makeCluster clusterEvalQ clusterExport stopCluster parLapply
-#' @importFrom future availableCores
-#' @importFrom coda geweke.diag mcmc
 #' @importFrom stats pnorm
 #' @export
 
-evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
-  if (analysis$ridge) {
-    # No PCA under ridge
-    variants = intersect(c('full', 'time', 'time_no_offset'), variants)    
-  }
-  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(variants, function(variant) analysis$.private$variants[[variant]]$name)))
+evaluatr.impact = function(analysis, variants=c('full','time')) {
+  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
   evaluatr.impact.pre(analysis, run.stl= ('pca' %in% variants))
   results1 = list()
   
-  #Start Cluster for CausalImpact (the main analysis function).
-  clusterEvalQ(cluster(analysis), {
-    library(pogit, quietly = TRUE)
-    library(lubridate, quietly = TRUE)
-    library(RcppRoll, quietly = TRUE)
-    library(HDInterval, quietly = TRUE)
-    library(plyr, quietly = TRUE)
-    library(INLA, quietly = TRUE)
-  })
-  clusterExport(cluster(analysis), c('doCausalImpact','inla_mods','rrPredQuantiles','cumsum_func','analysis'), environment())
-  
+
   analysis$.private$variants = analysis$.private$variants[variants]
-  if(analysis$ridge==F){
-    for (variant in variants) {
-      progressStartPart(analysis)
-      results1[[variant]]$groups <- setNames(
-        parLapply(
-          cl = cluster(analysis),
-          analysis$.private$data[[variant]],
-          fun = doCausalImpact,
-          intervention_date=analysis$intervention_date,
-          n_seasons=analysis$n_seasons,
-          var.select.on = analysis$.private$variants[[variant]]$var.select.on,
-          time_points = analysis$time_points,
-          trend = analysis$.private$variants[[variant]]$trend,
-          burnN=analysis$set.burnN,
-          sampleN=analysis$set.sampleN,
-          crossval.stage = FALSE,
-          analysis=analysis
-        ),
-        analysis$groups
-      )
-      progressEndPart(analysis)
-    }
-  }else{
-    for (variant in variants) {
-      progressStartPart(analysis)
-      results1[[variant]]$groups <- setNames(
-        parLapply(
-          cl = cluster(analysis),
-          analysis$.private$data[['full']],
-          fun = inla_mods,
-          model.variant=variant
-        ),
-        analysis$groups
-      )
-      progressEndPart(analysis)
-    }
-  }  
-  
-  stopCluster(analysis)
-  
+  for (variant in variants) {
+    progressStartPart(analysis)
+    results1[[variant]]$groups <- setNames(
+      lapply(
+        analysis$.private$data[['full']],
+        FUN = inla_mods,
+        model.variant=variant
+      ),
+      analysis$groups
+    )
+    progressEndPart(analysis)
+  }
+ 
   #    return(results1)
   #}
   #part2<-function(ds){
@@ -357,50 +311,8 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     results[[variant]]$quantiles <- quantiles[[variant]]
   }
   
-  clusterUpdateAnalysis(analysis, function(analysis) {
-    for (variant in intersect(c('full', 'time'), variants)) {
-      #Save the inclusion probabilities from each of the models
-      results[[variant]]$inclusion_prob <-
-        setNames(lapply(results[[variant]]$groups, inclusionProb), analysis$groups)
-    }
-    
-    # Calculate best model
-    if(analysis$ridge==F){
-      if ("full" %in% variants) {
-        analysis$model_size <-
-          sapply(results$full$groups, modelsize_func, n_seasons = analysis$n_seasons)
-      }
-    }else{
-      analysis$model_size <- 1 #For ridge, just use SC model as 'best'
-    }
-    
-    if (all(c("full", "pca") %in% variants)) {
-      results$best$quantiles <-
-        vector("list", length(results$full$quantiles))
-      results$best$quantiles[analysis$model_size >= 1] <-
-        results$full$quantiles[analysis$model_size >= 1]
-      results$best$quantiles[analysis$model_size < 1] <-
-        results$pca$quantiles[analysis$model_size < 1]
-      results$best$quantiles <-
-        setNames(results$best$quantiles, analysis$groups)
-      
-      results$best$variant <-
-        vector("list", length(results$full$quantiles))
-      results$best$variant[analysis$model_size >= 1] <- "full"
-      results$best$variant[analysis$model_size < 1] <- "pca"
-      results$best$variant <-
-        setNames(results$best$variant, analysis$groups)
-      
-      variants = c("best", variants)
-    }
-    
-    # if(analysis$model_size >= 1){
-    results$best$cumsum_prevented<- results$full$cumsum_prevented
-    # }else{
-    #   results$best$cumsum_prevented<- results$pca$cumsum_prevented
-    # }
-    
-    for (variant in variants) {
+
+      for (variant in variants) {
       # Predictions, aggregated by year
       results[[variant]]$pred_quantiles <-
         sapply(results[[variant]]$quantiles, getPred, simplify = 'array')
@@ -578,6 +490,7 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         results$rr_mean_combo$Model,
         lapply(
           analysis$.private$variants[variants], 
+
           function(variant) variant$name
         )
       )
@@ -586,11 +499,10 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
     
     analysis$results$impact <- results
     analysis = evaluatr.prune(analysis, what="impact")
-    return(analysis)
-  })
+    return( analysis$results$impact)
+}  
   
-  return(analysis$results$impact)
-}
+
 
 #' Perform cross-validation
 #'
@@ -947,7 +859,6 @@ evaluatr.sensitivity = function(analysis) {
 #Formats the data
 #' @importFrom plyr rbind.fill arrange
 evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
-  clusterUpdateAnalysis(analysis, function(analysis) {
     # Setup data
     prelog_data <-
       analysis$input_data[!is.na(analysis$input_data[, analysis$outcome_name]), ]#If outcome is missing, delete
@@ -1129,8 +1040,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         }
       )
     
-    analysis
-  })
+
   
   
   offset <-
@@ -1140,77 +1050,8 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         exp(data[, analysis$denom_name])
     ) #offset term on original scale; 1 column per age group
   
-  ##SECTION 1: CREATING SMOOTHED VERSIONS OF CONTROL TIME SERIES AND APPENDING THEM ONTO ORIGINAL DATAFRAME OF CONTROLS
-  #EXTRACT LONG TERM TREND WITH DIFFERENT LEVELS OF SMOOTHNESS USING STL
-  # Set a list of parameters for STL
-  if(run.stl==TRUE){
-    stl.covars <-
-      mapply(
-        smooth_func,
-        ds.list = analysis$.private$ds,
-        covar.list = analysis$covars$full,
-        SIMPLIFY = FALSE,
-        MoreArgs = list(n_seasons = analysis$n_seasons)
-      )
-    post.start.index <-
-      which(analysis$time_points == analysis$post_period[1])
-    
-    if (length(analysis$groups) > 1) {
-      stl.data.setup <-
-        mapply(
-          stl_data_fun,
-          covars = stl.covars,
-          ds.sub = analysis$.private$ds ,
-          SIMPLIFY = FALSE,
-          MoreArgs = list(
-            n_seasons = analysis$n_seasons,
-            outcome_name = analysis$outcome_name,
-            post.start.index = post.start.index
-          )
-        ) #list of lists that has covariates for each regression for each strata
-    } else{
-      stl.data.setup <-
-        list(
-          mapply(
-            stl_data_fun,
-            covars = stl.covars,
-            ds.sub = analysis$.private$ds,
-            MoreArgs = list(
-              n_seasons = analysis$n_seasons,
-              outcome_name = analysis$outcome_name,
-              post.start.index = post.start.index
-            )
-          )
-        )
-    }
-    
-    ##SECTION 2: run first stage models for STL
-    addProgress(analysis, sprintf("STL first stage (group %s)", analysis$groups), after=0)
-    glm.results <-
-      vector("list", length = length(stl.data.setup)) #combine models into a list
-    clusterEvalQ(cluster(analysis), {
-      library(lme4, quietly = TRUE)
-    })
-    clusterExport(cluster(analysis),
-                  c('stl.data.setup', 'glm.fun', 'post.start.index'),
-                  environment())
-    for (i in 1:length(stl.data.setup)) {
-      progressStartPart(analysis)
-      glm.results[[i]] <-
-        parLapply(
-          cl = cluster(analysis),
-          stl.data.setup[[i]],
-          fun = function(d) {
-            glm.fun(d, post.start.index)
-          }
-        )
-      progressEndPart(analysis)
-    }
-    stopCluster(analysis)
-  }
   ######################
   
-  clusterUpdateAnalysis(analysis, function(analysis) {
     # Combine data
     #Combine the outcome, covariates, and time point information.
     analysis$.private$data$full <-
@@ -1235,21 +1076,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         ),
         analysis$groups
       )
-    if(run.stl==TRUE){
-      analysis$.private$data$pca <-
-        mapply(
-          FUN = pca_top_var,
-          glm.results.in = glm.results,
-          covars = stl.covars,
-          ds.in = analysis$.private$ds,
-          SIMPLIFY = FALSE,
-          MoreArgs = list(
-            outcome_name = analysis$outcome_name,
-            season.dummies = analysis$.private$season.dummies
-          )
-        )
-      names(analysis$.private$data$pca) <- analysis$groups
-    }
+   
     #Time trend model but without a denominator
     analysis$.private$data$time_no_offset <-
       setNames(
@@ -1262,8 +1089,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
         ),
         analysis$groups
       )
-    analysis
-  })
+
 }
 
 addProgress <- function(analysis, partNames, after=NULL) {
@@ -1310,7 +1136,6 @@ evaluatr.univariate <- function(analysis) {
   evaluatr.impact.pre(analysis,run.stl=FALSE) #formats the data
   #####
   # analysis$.private$data$full
-  clusterUpdateAnalysis(analysis, function(analysis) {
     results<-lapply( analysis$.private$data$full, single.var.glmer, 
                      n_seasons=analysis$n_seasons,
                      intro.date=analysis$post_period[1],
@@ -1327,60 +1152,12 @@ evaluatr.univariate <- function(analysis) {
       summary.results[[i]]<-summary.results[[i]][order(-summary.results[[i]]$aic.wgt),]
     }
     analysis$results$univariate<-summary.results
-    return(analysis)
-  })
-  
-  return(analysis$results$univariate)
+   return(analysis$results$univariate)
 }
 
 
 dataCheckWarning = function(message) {
   warning(warningCondition(message, class="evaluatr.dataCheck"))
-}
-
-# Set up cluster operations
-# If we are using an outside cluster (as we do in the Web UI) start and stop are functions used to start it or stop it
-# If we are using our own cluster (as we do by default), then start and stop are NULL and ww will set them up here
-cluster = function(analysis) {
-  if (is.null(analysis$.private$cluster)) {
-    analysis$.private$cluster = analysis$.private$startCluster()
-  }
-  analysis$.private$cluster
-}
-
-stopCluster = function(analysis) {
-  analysis$.private$stopCluster(analysis$.private$cluster)
-  analysis$.private$cluster = NULL
-}
-
-defaultStartCluster = function() {
-  if (Sys.getenv("CI") != "") {
-    # If running on GitLab, default to multi-session cluster using all cores
-    n_cores <- availableCores(methods=c("system"))
-  } else {
-    # If running on someone's personal computer, default to multi-session cluster leaving one core free (if possible)
-    n_cores <- max(availableCores(methods=c("system")) - 1, 1)
-  }
-  parallel::makeCluster(n_cores)
-}
-
-defaultStopCluster = function(cluster) {
-  parallel::stopCluster(cluster)
-}
-
-# This evaluates ... on a single node in a cluster. This doesn't help with performance (in fact, it will slightly decrease it), but it allows WebUI to push computation off the CPU that's doing web stuff
-clusterEval1 = function(analysis, func) {
-  result = future::value(future::remote(func(analysis), workers=cluster(analysis)))
-  stopCluster(analysis)
-  result
-}
-
-# This evaluates ... on a single node in a cluster, then updates the analysis object with the result of ... evaluation. It allows WebUI to push updates to the analysis object off to another CPU
-clusterUpdateAnalysis = function(analysis, func) {
-  newanalysis = clusterEval1(analysis, func)
-  # Sending .private$cluster through remote evaluation makes it sad
-  newanalysis$.private$cluster = analysis$.private$cluster
-  analysis[names(newanalysis)] = newanalysis
 }
 
 # This gets us compatibility with versions of R back to 3.0

@@ -54,8 +54,7 @@ evaluatr.plots <- function(analysis) {
     }else {
       pred_pca_plot <- NA
     }
- 
-    
+
     pred_full_plot_agg <- plotPredAgg(impact_results$full$ann_pred_quantiles[[group]], 
                                       analysis$time_points, analysis$year_def, analysis$intervention_date, 
                                       analysis$post_period, min_max, analysis$outcome[, 
@@ -174,7 +173,7 @@ evaluatr.plots <- function(analysis) {
       rr_roll_time_plot <- NA
       rr_roll_pca_plot <- NA
     }
-    
+  
     
     plots$groups[[group]] <- list(covar = covar_plot, 
                                   pred_full = pred_full_plot, 
@@ -184,6 +183,7 @@ evaluatr.plots <- function(analysis) {
                                   rr_roll_full = rr_roll_full_plot, 
                                   rr_roll_time = rr_roll_time_plot, rr_roll_pca = rr_roll_pca_plot, 
                                   cumsum_prevented = cumsum_prevented_plot[[group]])
+
     
   }
   
