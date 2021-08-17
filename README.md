@@ -9,6 +9,9 @@ This package is designed to run several different types of analyses to evaluate 
 
 -library(devtools)
 
+- Install INLA
+install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+
 
 **Note There is an issue with one of the packages that InterventionEvaluatrR depends on. Recent versions of the "future" package do not work. You need to first install a previous version of future using:
 
@@ -23,6 +26,10 @@ Then continue on with the installation of InterventionEvaluatR (do not update pa
 
 ### Note to Mac users: 
 You need to have Xcode installed on your machine; not all OS have this pre loaded. Install Xcode from the Apple App Store, and then follow the instructions above.
+
+### Lite version of the package
+
+A 'lite' version of the package that only has uses an option of fitting the models with INLA approximation (instead of MCMC); only fits the time trend and synthetic controls models; and does not use parallel computing can be installed using devtools::install_github("https://github.com/weinbergerlab/InterventionEvaluatR", ref='InterventionEvaluatR-lite')
 
 ## Getting started
 After loading the package, run: vignette('PAHO-mortality'). You can view the compiled vignette at https://weinbergerlab.gitlab.io/InterventionEvaluatR/PAHO-mortality.html
