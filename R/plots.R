@@ -45,15 +45,7 @@ evaluatr.plots <- function(analysis) {
                                                                   , group], analysis$time_points, analysis$post_period, 
                                min_max, analysis$outcome[, group], title = paste(group, 
                                                                                  "Time trend adjustment estimate (with offset)"))
-    if (length(impact_results$pca$pred_quantiles[, , group]) > 
-        0) {
-      pred_pca_plot <- plotPred(impact_results$pca$pred_quantiles[, 
-                                                                  , group], analysis$time_points, analysis$post_period, 
-                                min_max, analysis$outcome[, group], title = paste(group, 
-                                                                                  "STL+PCA estimate"))
-    }else {
-      pred_pca_plot <- NA
-    }
+  
  
     
     pred_full_plot_agg <- plotPredAgg(impact_results$full$ann_pred_quantiles[[group]], 
@@ -64,15 +56,7 @@ evaluatr.plots <- function(analysis) {
                                       analysis$time_points, analysis$year_def, analysis$intervention_date, 
                                       analysis$post_period, min_max, analysis$outcome[, 
                                                                                       group], title = paste(group, "Time trend adjustment estimate (with offset)"))
-    if (length(impact_results$pca$ann_pred_quantiles[[group]]) > 
-        0) {
-      pred_pca_plot_agg <- plotPredAgg(impact_results$pca$ann_pred_quantiles[[group]], 
-                                       analysis$time_points, analysis$year_def, analysis$intervention_date, 
-                                       analysis$post_period, min_max, analysis$outcome[, 
-                                                                                       group], title = paste(group, "STL+PCA estimate"))
-    }else {
-      pred_pca_plot_agg <- NA
-    }
+
     cumsum.ds <- as.data.frame(impact_results$full$cumsum_prevented[, 
                                                                     , group])
     last.cumsum <- round(cumsum.ds[nrow(cumsum.ds), ])
@@ -147,42 +131,21 @@ evaluatr.plots <- function(analysis) {
       else {
         rr_roll_time_plot <- NA
       }
-      if (length(impact_results$pca$rr_roll[, , group]) > 
-          0) {
-        rr_roll_pca_plot <- ggplot(melt(as.data.frame(impact_results$pca$rr_roll[, 
-                                                                                 , group]), id.vars = NULL), mapping = aes_string(x = rep(analysis$time_points[(length(analysis$time_points) - 
-                                                                                                                                                                  nrow(impact_results$pca$rr_roll[, , group]) + 
-                                                                                                                                                                  1):length(analysis$time_points)], ncol(impact_results$pca$rr_roll[, 
-                                                                                                                                                                                                                                    , group])), y = "value", linetype = "variable")) + 
-          geom_line() + geom_hline(yintercept = 1, linetype = 4) + 
-          labs(x = "Time", y = "Rolling Rate Ratio") + 
-          ggtitle(paste(group, "STL+PCA Rolling Rate Ratio")) + 
-          coord_cartesian(ylim = min_max) + theme_bw() + 
-          theme(axis.line = element_line(colour = "black"), 
-                panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
-                panel.border = element_blank(), panel.background = element_blank()) + 
-          theme(legend.title = element_blank(), legend.position = c(0, 
-                                                                    1), legend.justification = c(0, 1), legend.background = element_rect(colour = NA, 
-                                                                                                                                         fill = "transparent"), plot.title = element_text(hjust = 0.5), 
-                panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-      }
-      else {
-        rr_roll_pca_plot <- NA
-      }
+   
+     
     }  else {
       rr_roll_full_plot <- NA
       rr_roll_time_plot <- NA
-      rr_roll_pca_plot <- NA
     }
     
     
     plots$groups[[group]] <- list(covar = covar_plot, 
                                   pred_full = pred_full_plot, 
-                                  pred_time = pred_time_plot, pred_pca = pred_pca_plot, 
+                                  pred_time = pred_time_plot,  
                                    pred_full_agg = pred_full_plot_agg, 
-                                  pred_time_agg = pred_time_plot_agg, pred_pca_agg = pred_pca_plot_agg, 
+                                  pred_time_agg = pred_time_plot_agg, 
                                   rr_roll_full = rr_roll_full_plot, 
-                                  rr_roll_time = rr_roll_time_plot, rr_roll_pca = rr_roll_pca_plot, 
+                                  rr_roll_time = rr_roll_time_plot,
                                   cumsum_prevented = cumsum_prevented_plot[[group]])
     
   }
