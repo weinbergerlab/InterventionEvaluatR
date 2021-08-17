@@ -129,7 +129,7 @@ evaluatr.init <- function(country,
         time_no_offset = list(
           var.select.on = FALSE,
           trend = FALSE,
-          name = "Time trend (no offset)"
+          name = "Time trend — no offset"
         ),
         pca = list(
           var.select.on = FALSE,
@@ -226,8 +226,13 @@ evaluatr.init <- function(country,
 
 # This is used by the web UI to set up parallel computation 
 evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) {
-  analysis$.private$startCluster = startCluster
-  analysis$.private$stopCluster = stopCluster
+  if (!is.null(startCluster)) {
+    analysis$.private$startCluster = startCluster
+    analysis$.private$stopCluster = stopCluster
+  } else {
+    analysis$.private$startCluster = defaultStartCluster
+    analysis$.private$stopCluster = defaultStopCluster
+  }
   analysis$.private$progress = progress
 }
 
@@ -272,7 +277,11 @@ evaluatr.initParallel = function(analysis, startCluster, stopCluster, progress) 
 #' @export
 
 evaluatr.impact = function(analysis, variants=names(analysis$.private$variants)) {
-  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(analysis$.private$variants, function(variant) variant$name)))
+  if (analysis$ridge) {
+    # No PCA under ridge
+    variants = intersect(c('full', 'time', 'time_no_offset'), variants)    
+  }
+  addProgress(analysis, sprintf("Impact analysis (%s)", lapply(variants, function(variant) analysis$.private$variants[[variant]]$name)))
   evaluatr.impact.pre(analysis, run.stl= ('pca' %in% variants))
   results1 = list()
   
