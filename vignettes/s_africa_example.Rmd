@@ -153,6 +153,7 @@ lapply(names(d2.spl), function(x){
 
 Here we need to set a few parameters. We use the evaluatr.init() function to specify the name of the dataset, the date at which the vaccine is introduced, the date at which we want to begin evaluating the vaccine (typically 1-2 year after vaccine introduction). We also provide some information on the dataset, sch as whether the data are monthly or quarterly (n_seasons), the variable names for the grouping variable, the date variable, the outcome variable, and the denominator variable (if any). You can also set the number of interations for the MCMC. the default is to use a burn-in period of 5000 iterations and to sample 10,000 iterations afterthe burn in. This is a decent place to start. After evaluating model convergence (see below), you might want to increase the burn-in period.
 
+
 ```{r, setup_data, echo=TRUE}
 
 d2$one <- 1 
@@ -200,6 +201,7 @@ lapply(glmer_results,evaluatr.univariate.plot)
 For teaching purposes, this code has been pre-run since it takes some time and computational resources.
 
 ```{r,message = FALSE,warning=FALSE}
+
 start.time <- proc.time()
 impact_results = evaluatr.impact(analysis, variants=c('full','time'))
 
