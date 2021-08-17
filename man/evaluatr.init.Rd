@@ -9,7 +9,8 @@ evaluatr.init(country, data, pre_period_start = "start",
   eval_period_start, eval_period_end, n_seasons = 12,
   year_def = "cal_year", group_name, date_name, outcome_name,
   set.burnN = 5000, set.sampleN = 10000, denom_name,
-  log.covars = TRUE, error_dist = "iid", sparse_threshold = 5)
+  log.covars = TRUE, ridge = F, error_dist = "iid",
+  sparse_threshold = 5)
 }
 \arguments{
 \item{country}{A one-word label for output (eg country or state name).}
@@ -43,6 +44,8 @@ evaluatr.init(country, data, pre_period_start = "start",
 \item{denom_name}{Name of the denominator variable in the 'data' dataframe. if there is no denominator, include a column of 1s.}
 
 \item{log.covars}{Should the covariate be log transformed? (default: TRUE)}
+
+\item{ridge}{Run ridge regression with AR(1) random intercepts (faster) or spike and slab (with iid random intercept) for variable selection. Logical, Default TRUE.}
 
 \item{error_dist}{For the INLA models: use an 'iid' or 'ar1' error on the random intercept. Defaults to iid. Use caution with AR(1) as it can introduce bias in some situations}
 
@@ -97,6 +100,7 @@ Initialized analysis object, `analysis` as described below
 
 `analysis$outcome` as passeed to `outcome_name`
 
+`analysis$ridge` as passeed to `ridge`
 `analysis$error_dist` as passeed to `error_dist`
 `analysis$sparse_threshold` as passed to `sparse_threshold`
 }
