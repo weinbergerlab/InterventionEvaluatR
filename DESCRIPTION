@@ -11,7 +11,7 @@ Depends:
 Imports: 
     plyr,
     parallel,
-    future (<= 1.19.1),
+    future,
     pomp,
     splines,
     MASS,
