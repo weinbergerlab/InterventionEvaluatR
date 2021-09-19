@@ -112,11 +112,14 @@ makeTimeSeries <-
 
 
 #Main function
-inla_mods<-function(zoo_data=analysis$.private$data[['full']],
-                    intervention_date=analysis$intervention_date,
-                    n_seasons= analysis$n_seasons,
-                    time_points= analysis$time_points,
-                    error_dist=analysis$error_dist,
+inla_mods<-function(zoo_data,
+                    intervention_date,
+                    n_seasons,
+                    time_points,
+                    error_dist,
+                    denom_name,
+                    eval_period,
+                    post_period,
                     model.variant){
   
   y <- zoo_data[, 1] #all y
@@ -125,7 +128,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   post_period_response<- y[time_points >= as.Date(intervention_date)]
   x.all <-as.matrix(zoo_data[,-c(1)]) #Removes outcome column from dataset
   
-  y.pre[time_points>=analysis$intervention_date]<-NA
+  y.pre[time_points>=intervention_date]<-NA
   
   #Filter columsn with 0 variations in the covariate in the pre-vax period
   #x.var<-apply(x,2, function(xx) var(xx))  
@@ -133,9 +136,9 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   #x<-x[,x.var>0] 
   
   ##NEEDTO SEPRATE OUT SEASONAL DUMMIES FROM COVARS
-  x<-x.all[,-(1:(analysis$n_seasons-1))]
-  x.months<-x.all[,(1:(analysis$n_seasons-1))]
-  dimnames(x.months)[[2]]<-paste0('season', 1:(analysis$n_seasons-1))
+  x<-x.all[,-(1:(n_seasons-1))]
+  x.months<-x.all[,(1:(n_seasons-1))]
+  dimnames(x.months)[[2]]<-paste0('season', 1:(n_seasons-1))
   
   #Should be already scaled, but doesn't hurt...
   x.scale<-apply(x,2, function(z) scale(z)) 
@@ -143,7 +146,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   y.aware.scale<- apply(x, 2, function(x1){
     log.y.pre.scale<- scale(log(y.pre+0.5))
     log.y.pre.scale<-log.y.pre.scale[!is.na(log.y.pre.scale)]
-    reg<-lm(log.y.pre.scale~x1[time_points<analysis$intervention_date])
+    reg<-lm(log.y.pre.scale~x1[time_points<intervention_date])
     slope<- reg$coefficients[2]
     x.scale<-x1*slope - mean(x1*slope)
     return(x.scale)
@@ -215,8 +218,8 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   }
   
   if(model.variant %in% c('time','time_no_offset')){
-    if(analysis$denom_name  %in% names(x)){
-      log.offset<- x[,c(analysis$denom_name)]
+    if(denom_name  %in% names(x)){
+      log.offset<- x[,c(denom_name)]
     }else{
       log.offset<- rep(0, nrow(mod.df.full))
     }
@@ -333,7 +336,7 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   log_rr_full_t_sd<- apply(log.rr.pointwise,1,sd)
   #log_rr_full_t_samples.prec.post<-1/log_rr_full_t_sd^2
   
-  post.period<- which(time_points>= analysis$eval_period[1]  &time_points<= analysis$eval_period[2] )
+  post.period<- which(time_points>= eval_period[1]  &time_points<= eval_period[2] )
   
   post.samples<-posterior.preds.counts[post.period,]
   
@@ -365,8 +368,8 @@ inla_mods<-function(zoo_data=analysis$.private$data[['full']],
   pred<-t(apply(posterior.preds.counts,1, quantile, probs=c(0.025, 0.5, 0.975)))
   
   #Cases averted
-  is_post_period <- which(time_points >= analysis$post_period[1])
-  is_pre_period <- which(time_points < analysis$post_period[1])
+  is_post_period <- which(time_points >= post_period[1])
+  is_pre_period <- which(time_points < post_period[1])
   cases_prevented<- apply(posterior.preds.counts, 2, function(x1)  x1 -y )
   cumsum_cases_prevented_post <-
     apply(cases_prevented[is_post_period,], 2, cumsum)

@@ -281,6 +281,13 @@ evaluatr.impact = function(analysis, variants=names(analysis$.private$variants))
         lapply(
           analysis$.private$data[['full']],
           FUN = inla_mods,
+          intervention_date=analysis$intervention_date,
+          n_seasons= analysis$n_seasons,
+          time_points= analysis$time_points,
+          error_dist=analysis$error_dist,
+          denom_name=analysis$denom_name,
+          eval_period=analysis$eval_period,
+          post_period=analysis$post_period,
           model.variant=variant
         ),
         analysis$groups
