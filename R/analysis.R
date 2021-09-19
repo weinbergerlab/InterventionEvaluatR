@@ -925,3 +925,6 @@ clusterUpdateAnalysis = function(analysis, func) {
 .onLoad <- function(libname, pkgname) {
   backports::import(pkgname)
 }
+
+# This lets the WebUI detect which version of evaluatr it's working with
+lite = TRUE
