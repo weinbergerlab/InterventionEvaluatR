@@ -12,6 +12,8 @@ This package is designed to run several different types of analyses to evaluate 
 - Install INLA
 install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 
+install.packages('https://cran.r-project.org/src/contrib/Archive/dummies/dummies_1.5.6.tar.gz', repos=NULL, type="source")
+
 
 **Note There is an issue with one of the packages that InterventionEvaluatrR depends on. Recent versions of the "future" package do not work. You need to first install a previous version of future using:
 
