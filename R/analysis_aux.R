@@ -1812,9 +1812,13 @@ single.var.glmer<-function(ds1, ds.labels, intro.date, time_points,n_seasons, ev
   for(i in 1:length(covars)){
     covar1<-ds1[,covars[i]]
     eval.start.index<-which(time_points==eval.period[1])
-    months<-month(time_points)
-    season.dummies<-   dummies::dummy(months)[,1:(n_seasons-1)]
+    months<- month(time_points)
+    month.df <- cbind.data.frame('months'=factor(month(time_points)))
+    #season.dummies <-   dummies::dummy(months)[,1:(n_seasons-1)]
+    season.dummies <- model.matrix( ~ -1 + months, data=month.df)
+    season.dummies <- season.dummies[,-1]
     dimnames(season.dummies)[[2]]<-paste0('s',1:(n_seasons-1))
+    
     ds2<-cbind.data.frame(outcome.pre, season.dummies, scale(covar1))
     names(ds2)[ncol(ds2)]<-covars[i]
     ds2$obs<-as.factor(1:nrow(ds2))
