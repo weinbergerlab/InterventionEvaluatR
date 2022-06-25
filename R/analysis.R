@@ -584,7 +584,9 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
       dt[dt.m %in% c(5, 6, 7, 8)] <- 2
       dt[dt.m %in% c(9, 10, 11, 12)] <- 3
     }
-    analysis$.private$season.dummies <- dummies::dummy(dt)
+    #analysis$.private$season.dummies <- dummies::dummy(dt)
+    dt.df <- cbind.data.frame('seasons'=as.factor(dt))
+    analysis$.private$season.dummies <- model.matrix(~-1 + seasons , data=dt.df)
     analysis$.private$season.dummies <- as.data.frame(analysis$.private$season.dummies)
     names(analysis$.private$season.dummies) <- paste0('s', 1:analysis$n_seasons)
     analysis$.private$season.dummies <- analysis$.private$season.dummies[, -analysis$n_seasons]
