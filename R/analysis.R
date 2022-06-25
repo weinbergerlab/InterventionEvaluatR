@@ -1048,7 +1048,7 @@ evaluatr.impact.pre = function(analysis, run.stl=TRUE) {
     analysis$.private$season.dummies <- model.matrix(~-1 + seasons , data=dt.df)
     analysis$.private$season.dummies <- as.data.frame(analysis$.private$season.dummies)
     names(analysis$.private$season.dummies) <- paste0('s', 1:analysis$n_seasons)
-    analysis$.private$season.dummies <- analysis$.private$season.dummies[, -1]
+    analysis$.private$season.dummies <- analysis$.private$season.dummies[, -analysis$n_seasons]
     
     analysis$.private$ds <-
       lapply(analysis$.private$ds, function(ds) {
