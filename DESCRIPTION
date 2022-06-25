@@ -11,7 +11,7 @@ Depends:
 Imports: 
     plyr,
     parallel,
-    future (<= 1.19.1),
+    future,
     pomp,
     splines,
     MASS,
@@ -20,7 +20,6 @@ Imports:
     RcppRoll,
     lme4,
     reshape,
-    dummies,
     ggplot2,
     pogit,
     pbapply,
