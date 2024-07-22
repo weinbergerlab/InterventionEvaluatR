@@ -33,6 +33,18 @@ You need to have Xcode installed on your machine; not all OS have this pre loade
 
 A 'lite' version of the package that only has uses an option of fitting the models with INLA approximation (instead of MCMC); only fits the time trend and synthetic controls models; and does not use parallel computing can be installed using devtools::install_github("https://github.com/weinbergerlab/InterventionEvaluatR", ref='InterventionEvaluatR-lite')
 
+## Note on problems wit package dependencies 7/22/2024
+There have been a number of reported issues with the package breaking due to unresolved dependency issues.
+
+To resolve this, do the following:
+1. Download the repository from https://github.com/DanWeinberger/demo_InterventionEvaluatR . Open the .rproj file in RStudio. this should automatically install a local version of most of the dependencies using the renv package. this takes a few minutes to complete
+2. library(remote)
+3. install_version("future", version = "1.19.1", repos = "http://cran.us.r-project.org")
+4. install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+5. install.packages('https://cran.r-project.org/src/contrib/Archive/dummies/dummies_1.5.6.tar.gz', repos=NULL, type="source")
+
+Then run your analysis with the demo_InterventionEvaluatR project open 
+
 ## Getting started
 After loading the package, run: vignette('PAHO-mortality'). You can view the compiled vignette at https://weinbergerlab.gitlab.io/InterventionEvaluatR/PAHO-mortality.html
 
