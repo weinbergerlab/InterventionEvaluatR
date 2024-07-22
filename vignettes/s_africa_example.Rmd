@@ -227,9 +227,10 @@ results.table<- cbind.data.frame(
   impact_results$full$rr_mean_intervals, 
   impact_results$time$rr_mean_intervals, 
   #impact_results$time_no_offset$rr_mean_intervals, 
-  impact_results$its$rr_mean_intervals, 
-  impact_results$pca$rr_mean_intervals)
+  impact_results$its$rr_mean_intervals)
+
   table<-xtable(results.table)
+  
   htmlTable(table)
 ```
 
@@ -243,7 +244,7 @@ cum.prevented<-impact_results$full$cumsum_prevented[last.point,,]
 
 Format and print table 
 ```{r}
-cum1<- round(t(cum.prevented))
+cum1<- round((t(cum.prevented)),-2)
 cum2<- paste0(cum1[,'50%'], ' (', cum1[,'2.5%'],', ',cum1[,'97.5%'],')')
 cum3<-cbind.data.frame(row.names(cum1), cum2)
 names(cum3)<-c('Stratum','Cases Averted (95% CrI)')
