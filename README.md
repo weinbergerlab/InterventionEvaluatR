@@ -33,7 +33,7 @@ You need to have Xcode installed on your machine; not all OS have this pre loade
 
 A 'lite' version of the package that only has uses an option of fitting the models with INLA approximation (instead of MCMC); only fits the time trend and synthetic controls models; and does not use parallel computing can be installed using devtools::install_github("https://github.com/weinbergerlab/InterventionEvaluatR", ref='InterventionEvaluatR-lite')
 
-## Note on problems wit package dependencies 7/22/2024
+## Note on problems with package dependencies 7/22/2024
 There have been a number of reported issues with the package breaking due to unresolved dependency issues.
 
 To resolve this, do the following:
